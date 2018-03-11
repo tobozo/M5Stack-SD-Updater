@@ -45,22 +45,27 @@
  *   - [sketch name].bin the Arduino binary
  *   - [sketch name].jpg an image (max 200x100 but smaller is better)
  *   - [sketch name].json file with dimensions descriptions: {"width":xxx,"height":xxx} 
- * The file names must be the same (case matters!).
+ * The file names must be the same (case matters!) and left int heir relevant folders.
+ * For this you will need to create two folders on the root of the SD:
+ *   /jpg
+ *   /json
  * jpg and json are optional but must both be set if provided.
  * 
  * 
  */
 
-#include <M5Stack.h>        // https://github.com/m5stack/M5Stack/
-#include "M5StackUpdater.h" // https://github.com/tobozo/M5Stack-SD-Updater
-#include <M5StackSAM.h>     // https://github.com/tomsuch/M5StackSAM
-#include <ArduinoJson.h>    // https://github.com/bblanchon/ArduinoJson/
+#include <M5Stack.h>             // https://github.com/m5stack/M5Stack/
+#include "M5StackUpdater.h"      // https://github.com/tobozo/M5Stack-SD-Updater
+#include <M5StackSAM.h>          // https://github.com/tomsuch/M5StackSAM
+#include <ArduinoJson.h>         // https://github.com/bblanchon/ArduinoJson/
 
 #define MAX_FILES 255 // this affects memory
 
 /* filenames cache structure */
 struct FileInfo {
   String fileName;  // heap heap heap
+  String iconName;
+  String metaName;
   uint32_t fileSize;
   bool hasIcon = false;
   bool hasMeta = false;
@@ -77,16 +82,6 @@ M5SAM M5Menu;
 
 uint16_t appsCount = 0;
 
-/* not sure that was really necessary */
-bool fileExists(fs::FS &fs, const char * fileName) {
-  File file = fs.open(fileName);
-  if(!file){
-    return false;
-  }
-  return true;
-}
-
-/* recursivity hasn't been tested yet, create folders at your own risks */
 void listDir(fs::FS &fs, const char * dirName, uint8_t levels){
   Serial.printf("Listing directory: %s\n", dirName);
 
@@ -112,17 +107,21 @@ void listDir(fs::FS &fs, const char * dirName, uint8_t levels){
       String fileName = file.name();
       if(fileName!="/menu.bin" && fileName.endsWith(".bin")) {
         Serial.println("  FILE: " + fileName );
-        String currentIconFile = fileName;
-        String currentMetaFile = fileName;
-        currentIconFile.replace(".bin", ".jpg");
-        currentMetaFile.replace(".bin", ".json");
+        
         fileInfo[appsCount].fileName = fileName;
         fileInfo[appsCount].fileSize = file.size();
-        if(fileExists(fs, currentIconFile.c_str())) {
+
+        String currentIconFile = "/jpg" + fileName;
+        currentIconFile.replace(".bin", ".jpg");
+        if(SD.exists(currentIconFile.c_str())) {
           fileInfo[appsCount].hasIcon = true;
+          fileInfo[appsCount].iconName = currentIconFile;
         }
-        if(fileExists(fs, currentIconFile.c_str())) {
+        String currentMetaFile = "/json" + fileName;
+        currentMetaFile.replace(".bin", ".json");
+        if(SD.exists(currentMetaFile.c_str())) {
           fileInfo[appsCount].hasMeta = true;
+          fileInfo[appsCount].metaName = currentMetaFile;
         }
         appsCount++;
       } else {
@@ -186,36 +185,36 @@ void doM5Menu() {
     if(M5.BtnC.wasPressed()){
       M5Menu.nextList();
     }
+    uint16_t MenuID = M5Menu.getListID();
+    
     if(M5.BtnA.wasPressed()){
       if(!inmenu) {
         inmenu = true;
         M5Menu.windowClr();
         // file must be jpeg and json must contain dimensions as follows:  {"width":11,"height":22}
-        if( fileInfo[ M5Menu.getListID() ].hasMeta && fileInfo[ M5Menu.getListID() ].hasIcon) {
-          String metaFile = fileInfo[ M5Menu.getListID() ].fileName;
-          metaFile.replace(".bin", ".json");
-          File file = SD.open(metaFile);
-          StaticJsonBuffer<64> jsonBuffer;
-          JsonObject &root = jsonBuffer.parseObject(file);
-          if (root.success()) {
-            jsonMeta.width  = root["width"];
-            jsonMeta.height = root["height"];
-            if(jsonMeta.width>0 && jsonMeta.height>0) {
-              String iconFile = fileInfo[ M5Menu.getListID() ].fileName;
-              iconFile.replace(".bin", ".jpg");
-              M5.Lcd.drawJpgFile(SD, iconFile.c_str(), (M5.Lcd.width()/2)-(jsonMeta.width/2), 30, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE);
-            }
-          }
-        }
-        M5.Lcd.drawCentreString("File Name: "+fileInfo[ M5Menu.getListID() ].fileName,M5.Lcd.width()/2,(M5.Lcd.height()/2)-10,2);
-        M5.Lcd.drawCentreString("File Size: "+String(fileInfo[ M5Menu.getListID() ].fileSize),M5.Lcd.width()/2,(M5.Lcd.height()/2)+10,2);
+        M5.Lcd.drawCentreString("File Name: "+fileInfo[MenuID].fileName,M5.Lcd.width()/2,(M5.Lcd.height()/2)-10,2);
+        M5.Lcd.drawCentreString("File Size: "+String(fileInfo[MenuID].fileSize),M5.Lcd.width()/2,(M5.Lcd.height()/2)+10,2);
       } else {
         inmenu = false;
         M5Menu.showList();
       }
     }
+
+    if( fileInfo[MenuID].hasMeta && fileInfo[MenuID].hasIcon) {
+      File file = SD.open(fileInfo[MenuID].metaName);
+      StaticJsonBuffer<64> jsonBuffer;
+      JsonObject &root = jsonBuffer.parseObject(file);
+      if (root.success()) {
+        jsonMeta.width  = root["width"];
+        jsonMeta.height = root["height"];
+        if(jsonMeta.width>0 && jsonMeta.height>0) {
+          M5.Lcd.drawJpgFile(SD, fileInfo[MenuID].iconName.c_str(), M5.Lcd.width()-jsonMeta.width-10, (M5.Lcd.height()/2)-(jsonMeta.height/2)+10, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE);
+        }
+      }
+    }
     M5.update();
   }
+
   updateFromFS(SD, fileInfo[ M5Menu.getListID() ].fileName);
   ESP.restart();
 }
@@ -231,6 +230,20 @@ void setup() {
     M5.setWakeupButton(BUTTON_B_PIN);
     M5.powerOFF();
   }
+
+  while(!SD.begin(TFCARD_CS_PIN)) {
+    M5.Lcd.setBrightness(100);
+    M5.Lcd.fillScreen(BLACK);
+    delay(300);
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setCursor(10,100);
+    M5.Lcd.print("Insert SD");
+    delay(500);
+  }
+
+  M5.Lcd.setTextSize(1);
+  
   listDir(SD, "/", 0);
   aSortFiles();
   buildM5Menu();
@@ -240,3 +253,4 @@ void setup() {
 void loop() {
   doM5Menu();
 }
+
