@@ -111,7 +111,7 @@ void performUpdate(Stream &updateSource, size_t updateSize, String fileName) {
 }
 
 // check given FS for valid menu.bin and perform update if available
-void updateFromFS(fs::FS &fs, String fileName = "menu.bin" ) {
+void updateFromFS(fs::FS &fs, String fileName = "/menu.bin" ) {
   File updateBin = fs.open(fileName);
   if (updateBin) {
     if(updateBin.isDirectory()){
