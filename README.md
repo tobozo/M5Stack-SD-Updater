@@ -14,6 +14,8 @@ MSStack: [https://github.com/m5stack/M5Stack](https://github.com/m5stack/M5Stack
 M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/m5stack/M5Stack)
   
 ArduinoJSON : [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/)
+
+QRCode : [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode)
   
 M5Stack-SD-Updater: this library
 
@@ -68,8 +70,26 @@ Some artwork can be added, the menu will scan for these file types:
     
   - .jpg image/icon (max 200x100)
     
-  - .json file with dimensions descriptions: {"width":xxx,"height":xxx} 
+  - .json file with dimensions descriptions: {"width":xxx,"height":xxx, "authorName":"tobozo","projectURL":"http://blah"} 
     
 
   The file names must match and case matters.
   jpg and json files are optional but must both be set if provided.
+  The value for *projectURL* property will be rendered as a QR Code in the info window.
+
+
+OPTIONAL:
+
+The JoyPSP Controls for M5Stack SD Menu necessary code is disabled in the menu example.
+It's using a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, which are appropriate for analog reading.
+
+The JoyPSP only handles up/down actions for the meantime
+More controls will be added soon.
+
+
+REFERENCES:
+
+  [Demo](https://youtu.be/myQfeYxyc3o)
+  [Another Demo with Pacman+sound](https://youtu.be/36fgNCecoEg)
+  [Macsbug'article](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/)(JP)
+ 
