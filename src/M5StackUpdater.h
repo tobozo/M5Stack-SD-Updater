@@ -73,15 +73,16 @@ void displayUpdateUI(String fileName) {
   M5.Lcd.setTextColor(WHITE);
   M5.Lcd.setTextSize(2);
   M5.Lcd.printf(String("LOADING " + fileName).c_str());
-  M5.Lcd.drawRect(110, 130, 100, 20, WHITE);
-  M5.Lcd.drawRect(111, 131, 98, 18, BLACK);
+  M5.Lcd.drawRect(110, 130, 102, 20, WHITE);
 }
 
 
-void progress(int state, int size){
+void progress(int state, int size) {
   int percent = (state*100) / size;
   Serial.printf("percent = %d", percent);
-  M5.Lcd.drawRect(111, 131, percent, 18, GREEN);
+  if (percent > 0) {
+    M5.Lcd.drawRect(111, 131, percent, 18, GREEN);
+  }
 }
 
 // perform the actual update from a given stream
