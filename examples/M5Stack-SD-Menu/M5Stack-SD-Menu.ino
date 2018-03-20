@@ -70,7 +70,7 @@
  * but provided as an example for custom controls.
  * 
  */
-#define USE_PSP_JOY true
+// #define USE_PSP_JOY true
 #ifdef USE_PSP_JOY
   #include "joyPSP.h"
 #endif
@@ -126,7 +126,7 @@ void getMeta(String metaFileName, JSONMeta &jsonMeta) {
 
 void renderScroll(String &scrollText, uint8_t x, uint8_t y, uint16_t width) {
   if(scrollText=="") return;
-  unsigned long now = millis();
+  //unsigned long now = millis();
   if(lastScrollRender+60>millis()) return;
   M5.Lcd.setTextSize(2);
   //lastScrollRender = now;
@@ -134,7 +134,7 @@ void renderScroll(String &scrollText, uint8_t x, uint8_t y, uint16_t width) {
   int16_t vsize = 0;
   String scrollMe = "";
   int16_t vpos;
-  uint8_t csize, lastcsize;
+  uint8_t csize = 0, lastcsize = 0;
   
   scrollPointer-=1;
   if(scrollPointer<-textWidth) {
@@ -186,11 +186,6 @@ void renderScroll(String &scrollText, uint8_t x, uint8_t y, uint16_t width) {
 }
 
 
-/* by menu ID */
-void renderIcon(uint16_t MenuID) {
-  renderIcon(fileInfo[MenuID]);
-}
-
 /* by file info */
 void renderIcon(FileInfo &fileInfo) {
   if(!fileInfo.hasMeta || !fileInfo.hasIcon) {
@@ -198,6 +193,11 @@ void renderIcon(FileInfo &fileInfo) {
   }
   JSONMeta jsonMeta = fileInfo.jsonMeta;
   M5.Lcd.drawJpgFile(SD, fileInfo.iconName.c_str(), M5.Lcd.width()-jsonMeta.width-10, (M5.Lcd.height()/2)-(jsonMeta.height/2)+10, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE);
+}
+
+/* by menu ID */
+void renderIcon(uint16_t MenuID) {
+  renderIcon(fileInfo[MenuID]);
 }
 
 
