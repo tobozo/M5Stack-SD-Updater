@@ -7,7 +7,20 @@ This is inspired from gamebuino however it does not use a modified bootloader.
 
 PREREQUISITES:
 
-Make sure you have the following libraries
+Make sure you have the following libraries:
+  
+MSStack: [https://github.com/m5stack/M5Stack](https://github.com/m5stack/M5Stack)
+
+
+~~M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)~~
+
+**Important Notes for M5StackSAM**: 
+
+- Temporarily apply [this patch](https://github.com/tobozo/M5StackSAM/commit/732bd82557eb67c42b92b8752140fe2290c569d6) or install this pre-patched version [https://github.com/tobozo/M5StackSAM](https://github.com/tobozo/M5StackSAM).
+
+- There's an [ongoing PR](https://github.com/tomsuch/M5StackSAM/pull/2) so things will eventually get sorted.
+  
+ArduinoJSON : [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/)
 
 - MSStack: [https://github.com/m5stack/M5Stack](https://github.com/m5stack/M5Stack)
 - M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
