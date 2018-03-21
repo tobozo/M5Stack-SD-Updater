@@ -24,7 +24,7 @@ extern M5SAM M5Menu;
 extern unsigned long lastcheck;
 extern uint16_t checkdelay;
 extern uint16_t appsCount;
-extern bool inmenu;
+extern bool inInfoMenu;
 
 extern void renderIcon(uint16_t MenuID);
 
@@ -76,7 +76,7 @@ void handleJoyPad() {
       M5Menu.setListID(MenuID);
       M5Menu.showList();
       renderIcon(MenuID);
-      inmenu = false;
+      inInfoMenu = false;
       joyX = 4096/2;
       lastcheck = millis();
     }
@@ -90,7 +90,7 @@ void handleJoyPad() {
       M5Menu.setListID(MenuID);
       M5Menu.showList();
       renderIcon(MenuID);
-      inmenu = false;
+      inInfoMenu = false;
       joyX = 4096/2;
       lastcheck = millis();
     }
