@@ -31,20 +31,29 @@
  * (sketch / export compiled binary) and saved on the SD Card as 
  * "menu.bin" for persistence, and initially flashed on the M5Stack.
  * 
- * It will list all available apps on the sdcard and load them on 
- * demand. Once you're finished with the app, you reset+BTN_A and
- * it loads the menu again. Rinse and repeat.
+ * As SD Card mounting can be a hassle, using the ESP32 Sketch data 
+ * uploader is also possible. Any file sent using this method will
+ * automatically be copied onto the SD Card on next restart.
+ * This includes .bin, .json, .jpg and .mod files.
+ * 
+ * The menu will list all available apps on the sdcard and load them 
+ * on demand. 
+ * 
+ * Once you're finished with the loaded app, push reset+BTN_A and it 
+ * loads the menu again. Rinse and repeat.
  *  
  * Obviously none of those apps will embed this menu, instead they
  * must include and implement the M5Stack SD Loader Snippet, a lighter
  * version of the loader dedicated to loading the menu.
  * 
- * Usage: Push BTN_A on boot calls the menu (in app) or powers the M5Stack off (in menu)
+ * Usage: Push BTN_A on boot calls the menu (in app) or powers off the 
+ * M5Stack (in menu)
  * 
- * Accepted file types on the sd:
+ * Accepted file types on the SD:
  *   - [sketch name].bin the Arduino binary
  *   - [sketch name].jpg an image (max 200x100 but smaller is better)
  *   - [sketch name].json file with dimensions descriptions: {"width":xxx,"height":xxx,"authorName":"tobozo", "projectURL":"http://blah"} 
+ *   
  * The file names must be the same (case matters!) and left int heir relevant folders.
  * For this you will need to create two folders on the root of the SD:
  *   /jpg
@@ -52,14 +61,18 @@
  * jpg and json are optional but must both be set if provided.
  * 
  * 
+ * 
  */
-
+ 
+#include "SPIFFS.h"
 #include <M5Stack.h>             // https://github.com/m5stack/M5Stack/
 #include "M5StackUpdater.h"      // https://github.com/tobozo/M5Stack-SD-Updater
 #include <M5StackSAM.h>          // https://github.com/tomsuch/M5StackSAM
 #include <ArduinoJson.h>         // https://github.com/bblanchon/ArduinoJson/
-#include "assets.h"              // some artwork for the UI
 #include "qrcode.h"              // https://github.com/ricmoo/qrcode
+#include "i18n.h"                // language file
+#include "assets.h"              // some artwork for the UI
+
 
 
 #define MAX_FILES 255 // this affects memory
@@ -70,7 +83,7 @@
  * but provided as an example for custom controls.
  * 
  */
-// #define USE_PSP_JOY true
+#define USE_PSP_JOY true
 #ifdef USE_PSP_JOY
   #include "joyPSP.h"
 #endif
@@ -82,6 +95,7 @@ struct JSONMeta {
   int height;
   String authorName = "";
   String projectURL = "";
+  String credits = ""; // scroll this ?
   // TODO: add more interesting properties
 };
 
@@ -101,12 +115,12 @@ FileInfo fileInfo[MAX_FILES];
 M5SAM M5Menu;
 
 uint16_t appsCount = 0; // how many binary files
-bool inmenu = false; // menu state machine
+bool inInfoMenu = false; // menu state machine
 unsigned long lastcheck = millis(); // timer check
 uint16_t checkdelay = 300; // timer frequency
 uint16_t MenuID; // pointer to the current menu item selected
 int16_t scrollPointer = 0; // pointer to the scrollText position
-unsigned long lastScrollRender = millis(); // timer for scrolling
+unsigned long lastScrollRender = micros(); // timer for scrolling
 String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
 
@@ -120,30 +134,40 @@ void getMeta(String metaFileName, JSONMeta &jsonMeta) {
     jsonMeta.height = root["height"];
     jsonMeta.authorName = root["authorName"].as<String>();
     jsonMeta.projectURL = root["projectURL"].as<String>();
+    jsonMeta.credits    = root["credits"].as<String>();
   }
 }
 
 
-void renderScroll(String &scrollText, uint8_t x, uint8_t y, uint16_t width) {
+void renderScroll(String scrollText, uint8_t x, uint8_t y, uint16_t width) {
   if(scrollText=="") return;
-  //unsigned long now = millis();
-  if(lastScrollRender+60>millis()) return;
+  // setup text size before it's measured  
   M5.Lcd.setTextSize(2);
-  //lastScrollRender = now;
+  if(!scrollText.endsWith(" ")) {
+    // append a space, scrolling text *will* repeat
+    scrollText += " ";
+  }
+  // grow text to desired width
+  while(M5.Lcd.textWidth(scrollText)<width) {
+    scrollText += scrollText;
+  }
+
+  String  scrollMe = "";
   int16_t textWidth = M5.Lcd.textWidth(scrollText);
-  int16_t vsize = 0;
-  String scrollMe = "";
-  int16_t vpos;
-  uint8_t csize = 0, lastcsize = 0;
+  int16_t vsize = 0,
+          vpos = 0,
+          voffset = 0,
+          scrollOffset = 0;
+  uint8_t csize = 0, 
+          lastcsize = 0;
   
   scrollPointer-=1;
   if(scrollPointer<-textWidth) {
-    scrollPointer = 0 + M5.Lcd.textWidth(" ");
+    scrollPointer = 0;
     vsize = scrollPointer;
   }
   
   while( M5.Lcd.textWidth(scrollMe) < width ) {
-    scrollMe +=" ";
     for(uint8_t i=0;i<scrollText.length();i++) {
       char thisChar[2];
       thisChar[0] = scrollText[i];
@@ -151,38 +175,35 @@ void renderScroll(String &scrollText, uint8_t x, uint8_t y, uint16_t width) {
       csize = M5.Lcd.textWidth(thisChar);
       vsize+=csize;
       vpos = vsize+scrollPointer;
-      
       if(vpos>x && vpos<=x+width) {
         scrollMe += scrollText[i];
         lastcsize = csize;
+        voffset = scrollPointer%lastcsize;
+        scrollOffset = x+voffset;
+        if(M5.Lcd.textWidth(scrollMe) > width-voffset) {
+          break; // break out of the loop and out of the while
+        }
       }
     }
   }
 
-  int16_t voffset = scrollPointer%lastcsize;
-  int16_t scrollOffset = x+voffset;
-
-  // trim if necessary
+  // trim
   while( M5.Lcd.textWidth(scrollMe) > width-voffset ) {
     scrollMe.remove(scrollMe.length()-1);
   }
 
   // only draw if things changed
   if(scrollOffset!=lastScrollOffset || scrollMe!=lastScrollMessage) {
-    // delete last message
-    M5.Lcd.setCursor(lastScrollOffset, y);
-    M5.Lcd.setTextColor(BLACK);
-    M5.Lcd.print(lastScrollMessage );
-    // write new message  
+    M5.Lcd.setTextColor(WHITE,BLACK); // setting background color removes the flickering effect
     M5.Lcd.setCursor(scrollOffset, y);
-    M5.Lcd.setTextColor(WHITE);
     M5.Lcd.print(scrollMe);
+    M5.Lcd.setTextColor(WHITE);
   }
 
   M5.Lcd.setTextSize(1);
   lastScrollMessage = scrollMe;
   lastScrollOffset  = scrollOffset;
-  lastScrollRender  = millis();
+  lastScrollRender  = micros();
 }
 
 
@@ -211,8 +232,9 @@ void renderMeta(JSONMeta &jsonMeta) {
   M5.Lcd.setCursor(10,(M5.Lcd.height()/2)-10);  
   
   if(jsonMeta.authorName!="" && jsonMeta.projectURL!="" ) { // both values provided
-    M5.Lcd.print("By ");
+    M5.Lcd.print(AUTHOR_PREFIX);
     M5.Lcd.print(jsonMeta.authorName);
+    M5.Lcd.print(AUTHOR_SUFFIX);
     qrRender(jsonMeta.projectURL, 180);
   } else if(jsonMeta.projectURL!="") { // only projectURL
     M5.Lcd.print(jsonMeta.projectURL);
@@ -247,63 +269,70 @@ void qrRender(String text, float sizeinpixels) {
       }
     }
   }
+}
+
+
+void getFileInfo(File &file) {
+  String fileName   = file.name();
+  uint32_t fileSize = file.size();
+  Serial.println(String(DEBUG_FILELABEL) + fileName );
   
+  fileInfo[appsCount].fileName = fileName;
+  fileInfo[appsCount].fileSize = fileSize;
+
+  String currentIconFile = "/jpg" + fileName;
+  currentIconFile.replace(".bin", ".jpg");
+  if(SD.exists(currentIconFile.c_str())) {
+    fileInfo[appsCount].hasIcon = true;
+    fileInfo[appsCount].iconName = currentIconFile;
+  }
+  String currentMetaFile = "/json" + fileName;
+  currentMetaFile.replace(".bin", ".json");
+  if(SD.exists(currentMetaFile.c_str())) {
+    fileInfo[appsCount].hasMeta = true;
+    fileInfo[appsCount].metaName = currentMetaFile;
+  }
+  if(fileInfo[appsCount].hasMeta == true) {
+    getMeta(fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta);
+  }
 }
 
 
 void listDir(fs::FS &fs, const char * dirName, uint8_t levels){
-  Serial.printf("Listing directory: %s\n", dirName);
+  Serial.printf(String(DEBUG_DIRNAME).c_str(), dirName);
 
   File root = fs.open(dirName);
   if(!root){
-    Serial.println("Failed to open directory");
+    Serial.println(DEBUG_DIROPEN_FAILED);
     return;
   }
   if(!root.isDirectory()){
-    Serial.println("Not a directory");
+    Serial.println(DEBUG_NOTADIR);
     return;
   }
 
   File file = root.openNextFile();
   while(file){
     if(file.isDirectory()){
-      Serial.print("  DIR : ");
+      Serial.print(DEBUG_DIRLABEL);
       Serial.println(file.name());
       if(levels){
         listDir(fs, file.name(), levels -1);
       }
     } else {
-      String fileName = file.name();
-      if(fileName!="/menu.bin" && fileName.endsWith(".bin")) {
-        Serial.println("  FILE: " + fileName );
-        
-        fileInfo[appsCount].fileName = fileName;
-        fileInfo[appsCount].fileSize = file.size();
-
-        String currentIconFile = "/jpg" + fileName;
-        currentIconFile.replace(".bin", ".jpg");
-        if(SD.exists(currentIconFile.c_str())) {
-          fileInfo[appsCount].hasIcon = true;
-          fileInfo[appsCount].iconName = currentIconFile;
-        }
-        String currentMetaFile = "/json" + fileName;
-        currentMetaFile.replace(".bin", ".json");
-        if(SD.exists(currentMetaFile.c_str())) {
-          fileInfo[appsCount].hasMeta = true;
-          fileInfo[appsCount].metaName = currentMetaFile;
-        }
-        if(fileInfo[appsCount].hasMeta == true) {
-          getMeta(fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta);
-        }
-        
+      if(String(file.name())!=MENU_BIN && String(file.name()).endsWith(".bin")) {
+        getFileInfo( file );
         appsCount++;
       } else {
         // ignored files
-        Serial.println("  IGNORED FILE: " + fileName );
+        Serial.println(String(DEBUG_IGNORED) + file.name() );
       }
     }
     file = root.openNextFile();
   }
+  file = fs.open(MENU_BIN);
+  getFileInfo( file );
+  appsCount++;
 }
 
 
@@ -328,7 +357,7 @@ void aSortFiles() {
         }
       }
 
-      if (name1 > name2) {
+      if (name1 > name2 || name1==MENU_BIN) {
         temp = fileInfo[i];
         fileInfo[i] = fileInfo[i + 1];
         fileInfo[i + 1] = temp;
@@ -341,21 +370,27 @@ void aSortFiles() {
 
 void buildM5Menu() {
   M5Menu.clearList();
-  M5Menu.setListCaption("Applications");
+  M5Menu.setListCaption(MENU_SUBTITLE);
   for(uint16_t i=0;i<appsCount;i++) {
     String shortName = fileInfo[i].fileName.substring(1);
     shortName.replace(".bin", "");
+    
+    if(shortName=="menu") {
+      shortName = ABOUT_THIS_MENU;
+    }
+    
     M5Menu.addList(shortName);
   }
 }
 
 
 void doM5Menu() {
-  M5Menu.drawAppMenu(F("SD CARD LOADER"),F("INFO"),F("LOAD"),F(">"));
+  M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
   M5Menu.showList();
   renderIcon(0);
-  inmenu = false;
+  inInfoMenu = false;
   lastcheck = millis();
+  unsigned long lastpush = millis();
   checkdelay = 300;
   
   while(!M5.BtnB.wasPressed()){
@@ -367,32 +402,41 @@ void doM5Menu() {
     #endif
     
     if(M5.BtnC.wasPressed()){
-      M5Menu.drawAppMenu(F("SD CARD LOADER"),F("INFO"),F("LOAD"),F(">"));
+      lastpush = millis();
+      M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
       M5Menu.nextList();
       MenuID = M5Menu.getListID();
       renderIcon(MenuID);
-      inmenu = false;
+      inInfoMenu = false;
     }
     
     if(M5.BtnA.wasPressed()){
-      if(!inmenu) {
-        inmenu = true;
+      lastpush = millis();
+      if(!inInfoMenu) {
+        inInfoMenu = true;
         M5Menu.windowClr();
         renderMeta(fileInfo[MenuID].jsonMeta);
       } else {
-        inmenu = false;
-        M5Menu.drawAppMenu(F("SD CARD LOADER"),F("INFO"),F("LOAD"),F(">"));
+        inInfoMenu = false;
+        M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
         M5Menu.showList();
         renderIcon(MenuID);
       }
     }
 
-    if(inmenu) {
-      // do scroll text
+    if(inInfoMenu) {
+      // do scroll text while blocking sleep mode
       renderScroll(fileInfo[MenuID].jsonMeta.projectURL, 0, 5, 320);
+      lastpush = millis();
     }
     
     M5.update();
+    // go to sleep after 10 minutes if nothing happens
+    if(lastpush+600000<millis()) {
+      Serial.println(GOTOSLEEP_MESSAGE);
+      M5.setWakeupButton(BUTTON_B_PIN);
+      M5.powerOFF();
+    }
   }
 
   updateFromFS(SD, fileInfo[ M5Menu.getListID() ].fileName);
@@ -400,12 +444,89 @@ void doM5Menu() {
 }
 
 
+/* 
+ *  Scan SPIFFS for binaries and move them onto the SD Card
+ *  TODO: create an app manager for the SD Card
+ */
+void scanDataFolder() {
+  Serial.println(DEBUG_SPIFFS_SCAN);
+  /* check if mandatory folders exists and create if necessary */
+  if(!SD.exists("/jpg")) {
+    SD.mkdir("/jpg");
+  }
+  if(!SD.exists("/json")) {
+    SD.mkdir("/json");
+  }
+  if(!SD.exists("/mod")) {
+    SD.mkdir("/mod");
+  }
+  
+  if(!SPIFFS.begin()){
+    Serial.println(DEBUG_SPIFFS_MOUNTFAILED);
+  } else {
+    File root = SPIFFS.open("/");
+    if(!root){
+      Serial.println(DEBUG_DIROPEN_FAILED);
+    } else {
+      if(!root.isDirectory()){
+        Serial.println(DEBUG_NOTADIR);
+      } else {
+        File file = root.openNextFile();
+        Serial.println(file.name());
+        String fileName = file.name();
+        String destName = "";
+        if(fileName.endsWith(".bin")) {
+          destName = fileName;
+        }
+        if(fileName.endsWith(".json")) {
+          destName = "/json" + fileName;
+        }
+        if(fileName.endsWith(".jpg")) {
+          destName = "/jpg" + fileName;
+        }
+        if(fileName.endsWith(".mod")) {
+          destName = "/mod" + fileName;
+        }
+                
+        if(destName!="") {
+          displayUpdateUI(String(MOVINGFILE_MESSAGE) + fileName);
+          size_t fileSize = file.size();
+          File destFile = SD.open(destName, FILE_WRITE);
+          
+          if(!destFile){
+            Serial.println(DEBUG_SPIFFS_WRITEFAILED);
+          } else {
+            static uint8_t buf[512];
+            size_t packets = 0;
+            Serial.println(String(DEBUG_FILECOPY) + fileName);
+            
+            while(file.read(buf, 512)) {
+              destFile.write(buf, 512);
+              packets++;
+              progress((packets*512)-511, fileSize);
+            }
+            destFile.close();
+            Serial.println();
+            Serial.println(DEBUG_FILECOPY_DONE);
+            SPIFFS.remove( fileName );
+            Serial.println(DEBUG_WILL_RESTART);
+            delay(500);
+            ESP.restart();
+          }
+        } else {
+          Serial.println(DEBUG_NOTHING_TODO);
+        }
+      }
+    }
+  }
+}
+
 
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Welcome to the M5Stack SD Menu Loader!");
-  Serial.print("M5Stack initializing...");
+  Serial.println(WELCOME_MESSAGE);
+  Serial.print(INIT_MESSAGE);
   M5.begin();
   Wire.begin();
 
@@ -416,6 +537,7 @@ void setup() {
   // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
   
   if(digitalRead(BUTTON_A_PIN) == 0) {
+    Serial.println(GOTOSLEEP_MESSAGE);
     M5.setWakeupButton(BUTTON_B_PIN);
     M5.powerOFF();
   }
@@ -433,7 +555,7 @@ void setup() {
     uint16_t color = toggle ? BLACK : WHITE;
     M5.Lcd.setCursor(10,100);
     M5.Lcd.setTextColor(color);
-    M5.Lcd.print("Insert SD");
+    M5.Lcd.print(INSERTSD_MESSAGE);
     if(toggle) {
       M5.Lcd.drawJpg(disk01_jpg, 1775, 160, 100);
       delay(300);
@@ -444,7 +566,7 @@ void setup() {
 
     // go to sleep after a minute
     if(lastcheck+60000<now) {
-      Serial.println("Will go to sleep after waiting too long for SD Card insertion (meh)");
+      Serial.println(GOTOSLEEP_MESSAGE);
       M5.setWakeupButton(BUTTON_B_PIN);
       M5.powerOFF();
     }
@@ -453,6 +575,9 @@ void setup() {
   // TODO: animate loading screen
   M5.Lcd.setTextColor(WHITE);
   M5.Lcd.setTextSize(1);
+
+  // scan for SPIFFS files waiting to be moved onto the SD Card
+  scanDataFolder();
   
   listDir(SD, "/", 0);
   aSortFiles();
