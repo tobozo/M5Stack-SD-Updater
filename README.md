@@ -6,37 +6,30 @@ This is inspired from gamebuino however it does not use a modified bootloader.
 
 
 PREREQUISITES:
+--------------
 
 Make sure you have the following libraries:
   
-MSStack: [https://github.com/m5stack/M5Stack](https://github.com/m5stack/M5Stack)
-
-
-~~M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)~~
-
-**Important Notes for M5StackSAM**: 
-
-- Temporarily apply [this patch](https://github.com/tobozo/M5StackSAM/commit/732bd82557eb67c42b92b8752140fe2290c569d6) or install this pre-patched version [https://github.com/tobozo/M5StackSAM](https://github.com/tobozo/M5StackSAM).
-
-- There's an [ongoing PR](https://github.com/tomsuch/M5StackSAM/pull/2) so things will eventually get sorted.
-  
-ArduinoJSON : [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/)
-
 - MSStack: [https://github.com/m5stack/M5Stack](https://github.com/m5stack/M5Stack)
-- M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/)
 - QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode)
 - M5Stack-SD-Updater: this library
+
+- ~~M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)~~
+
+**Important Notes for M5StackSAM: Temporarily apply [this patch](https://github.com/tobozo/M5StackSAM/commit/732bd82557eb67c42b92b8752140fe2290c569d6) or install this pre-patched version [https://github.com/tobozo/M5StackSAM](https://github.com/tobozo/M5StackSAM) (There's an [ongoing PR](https://github.com/tomsuch/M5StackSAM/pull/2) so things will eventually get sorted).**
+  
+
 
 
   Proceed to instal manually the library in your Arduino IDE.
   Open both sketch from the "examples/M5Stack-SD-Update" menu.
 
 
-1) Compile the "M5Stack-SD-Menu.ino" example. This sketch is the menu app. It must be compiled once (sketch / export compiled binary) and saved on the SD Card as "menu.bin" for persistence. It should also be flashed on the M5Stack.
+**1) Compile the "M5Stack-SD-Menu.ino" example.** This sketch is the menu app. It must be compiled once (sketch / export compiled binary) and saved on the SD Card as "menu.bin" for persistence. It should also be flashed on the M5Stack.
 
 
-2) Merge and compile the "M5Stack-SDLoader-Snippet.ino" example. Now it is possible to embed any M5 app by implementing the 
+**2) Merge and compile the "M5Stack-SDLoader-Snippet.ino" example.** Now it is possible to embed any M5 app by implementing the 
   M5Stack SD Loader Snippet. This sketch can be used as a boilerplate to code an app from 
   scratch.
 
@@ -67,7 +60,7 @@ ArduinoJSON : [https://github.com/bblanchon/ArduinoJson/](https://github.com/bbl
   - Clear the content of the /data folder, put the binary there and use the [ESP32 Sketch Data Uploader](https://github.com/me-no-dev/arduino-esp32fs-plugin) utility (available from the Tools menu in the Arduino IDE).
       
       
-3) Repeat this for all applications, jpg images or json meta files to import
+**3) Repeat this for all applications**, jpg images or json meta files to import
 
 
 USAGE:
