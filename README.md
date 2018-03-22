@@ -3,7 +3,7 @@
 **M5Stack-SD-Updater is an Arduino library for [M5Stack](http://m5stack.com/) to package you apps on a SD card and load them from a menu.**
 It is inspired by gamebuino, however it does not use a modified bootloader.
 
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg)
+[![License: MIT](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tobozo/M5Stack-SD-Updater/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/tobozo/M5Stack-SD-Updater.svg?branch=master)](https://travis-ci.org/tobozo/M5Stack-SD-Updater)
 
 
