@@ -13,10 +13,6 @@ before_install:
   - tar xf arduino-$IDE_VERSION-linux64.tar.xz
   - mv arduino-$IDE_VERSION ~/arduino-ide
   - export PATH=$PATH:~/arduino-ide
-  - if [[ "$BOARD" =~ "esp8266:esp8266:" ]]; then
-      arduino --pref "boardsmanager.additional.urls=http://arduino.esp8266.com/stable/package_esp8266com_index.json" --install-boards esp8266:esp8266;
-      arduino --pref "boardsmanager.additional.urls=" --save-prefs;
-    fi
   - if [[ "$BOARD" =~ "espressif:esp32:" ]]; then
       mkdir -p ~/Arduino/hardware/espressif &&
       cd ~/Arduino/hardware/espressif &&
@@ -35,8 +31,8 @@ install:
   - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
   - wget https://github.com/ricmoo/QRCode/archive/master.zip --output-document=QRCode-master.zip
   - unzip -d ~/Arduino/libraries QRCode-master.zip
-  - wget https://github.com/tobozo/M5Stack-SD-Updater/archive/master.zip --output-document=M5Stack-SD-Updater
-  - unzip -d ~/Arduino/libraries M5Stack-SD-Updater
+  - wget https://github.com/m5stack/M5Stack/archive/master.zip --output-document=M5Stack-master.zip
+  - unzip -d ~/Arduino/libraries M5Stack-master.zip
   
 script:
   - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
