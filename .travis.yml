@@ -26,8 +26,9 @@ before_install:
       python get.py &&
       cd $TRAVIS_BUILD_DIR;
     fi
-  - arduino --install-library ArduinoJson
-  - arduino --install-library qrcode
+  - arduino --install-library https://github.com/bblanchon/ArduinoJson/archive/master.zip
+  - arduino --install-library https://github.com/tomsuch/M5StackSAM/archive/master.zip
+  - arduino --install-library https://github.com/ricmoo/QRCode/archive/master.zip
 install:
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
