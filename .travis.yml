@@ -3,8 +3,8 @@ env:
   global:
     - IDE_VERSION=1.8.5
   matrix:
-    - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:esp32:esp32:FlashFreq=80"
-    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:esp32:FlashFreq=80"
+    - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
+    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
 before_install:
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
   - sleep 3
@@ -35,6 +35,8 @@ install:
   - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
   - wget https://github.com/ricmoo/QRCode/archive/master.zip --output-document=QRCode-master.zip
   - unzip -d ~/Arduino/libraries QRCode-master.zip
+  - wget https://github.com/tobozo/M5Stack-SD-Updater/archive/master.zip --output-document=M5Stack-SD-Updater
+  - unzip -d ~/Arduino/libraries M5Stack-SD-Updater
   
 script:
   - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
