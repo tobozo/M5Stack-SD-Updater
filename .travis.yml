@@ -3,8 +3,8 @@ env:
   global:
     - IDE_VERSION=1.8.5
   matrix:
-    - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:m5stack-core-esp32:esp32:FlashFreq=80"
-    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:m5stack-core-esp32:esp32:FlashFreq=80"
+    - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:esp32:esp32:FlashFreq=80"
+    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:esp32:FlashFreq=80"
 before_install:
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
   - sleep 3
