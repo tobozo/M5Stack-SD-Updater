@@ -6,27 +6,27 @@ It is inspired by gamebuino, however it does not use a modified bootloader.
 [![License: MIT](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tobozo/M5Stack-SD-Updater/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/tobozo/M5Stack-SD-Updater.svg?branch=master)](https://travis-ci.org/tobozo/M5Stack-SD-Updater)
 
-
-
 [![ M5Stack Apps loaded from SD Card](https://img.youtube.com/vi/myQfeYxyc3o/0.jpg)](https://www.youtube.com/watch?v=myQfeYxyc3o)
 
-
+[<img alt="Visual demo for M5Stack Info Window with QR Code" title="M5Stack Info Window with Credits and QR Code" src="https://camo.githubusercontent.com/06570c553f4ca575d60e7d7ff81ea2d8d555e40d/68747470733a2f2f7062732e7477696d672e636f6d2f6d656469612f44596d4c75396e573041416c71682d2e6a7067" data-canonical-src="https://pbs.twimg.com/media/DYmLu9nW0AAlqh-.jpg" width=480>](https://twitter.com/TobozoTagada/status/975464467944402947)
 
 PREREQUISITES:
 --------------
 
-Make sure you have the following libraries:
+**Make sure you have the following libraries:**
   
 - MSStack: [https://github.com/m5stack/M5Stack](https://github.com/m5stack/M5Stack)
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/)
 - QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode)
 - M5Stack-SD-Updater (this project): perform a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+- M5StackSAM (forker+patched version, see credits): [https://github.com/tobozo/M5StackSAM](https://github.com/tobozo/M5StackSAM) 
 
-- ~~M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)~~
+**Important Notes for M5StackSAM**: this is a forked version with [this patch](https://github.com/tobozo/M5StackSAM/commit/732bd82557eb67c42b92b8752140fe2290c569d6) applied. If you alreay have the [original M5StackSAM library](https://github.com/tomsuch/M5StackSAM) and get [this compilation error](https://github.com/tobozo/M5Stack-SD-Updater/issues/3), you'll need to overwrite it with the [patched version](https://github.com/tobozo/M5StackSAM) (backwards compatible). 
 
-**Important Notes for M5StackSAM: Temporarily apply [this patch](https://github.com/tobozo/M5StackSAM/commit/732bd82557eb67c42b92b8752140fe2290c569d6) or install this pre-patched version [https://github.com/tobozo/M5StackSAM](https://github.com/tobozo/M5StackSAM) (There's an [ongoing PR](https://github.com/tomsuch/M5StackSAM/pull/2) so things will eventually get sorted).**
-  
+There's an [ongoing PR](https://github.com/tomsuch/M5StackSAM/pull/2) so the link will eventually get updated if the changes are merged.
 
+UNPACKING
+---------
 
 Open both sketch from the "examples/M5Stack-SD-Update" menu.
 
@@ -114,4 +114,14 @@ REFERENCES:
 - [Demo](https://youtu.be/myQfeYxyc3o)
 - [Another Demo with Pacman+sound](https://youtu.be/36fgNCecoEg)
 - [Macsbug'article](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) (Japanese)
+
+CREDITS
+=======
+
+- MSStack: [https://github.com/m5stack/M5Stack](https://github.com/m5stack/M5Stack)
+- M5StackSam [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
+- ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/)
+- QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode)
+
+
  
