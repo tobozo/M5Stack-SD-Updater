@@ -107,6 +107,14 @@ It's using a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+jo
 
 The JoyPSP only handles up/down actions for the meantime, more controls will be added soon.
 
+KNONW ISSUES
+------------
+Compilation #pragma warnings/errors in the Arduino IDE can be solved by setting the debug level to "default" in the Arduino preferences window.
+See [#3](https://github.com/tobozo/M5Stack-SD-Updater/issues/3) 
+
+vMicro: currently can't compile at all, see [#5](https://github.com/tobozo/M5Stack-SD-Updater/issues/5). Looking for a solution that works with both vMicro and Arduino IDE.
+
+
 🛣 ROADMAP:
 ----------
 Not defined yet, but looking at how fast this [library landed in platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater), there's a possibility it will soon exist in different flavours (i.e. as an ESP-IDF component) or with more [features](https://github.com/m5stack/faces). Contributors welcome!
