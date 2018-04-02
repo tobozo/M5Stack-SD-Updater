@@ -27,12 +27,12 @@ install:
   - ln -s $PWD ~/Arduino/libraries/.
   - wget https://github.com/bblanchon/ArduinoJson/archive/master.zip --output-document=Arduinojson-master.zip
   - unzip -d ~/Arduino/libraries Arduinojson-master.zip
-  - wget https://github.com/tobozo/M5StackSAM/archive/master.zip --output-document=M5StackSAM-master.zip
+  - wget https://github.com/tomsuch/M5StackSAM/archive/master.zip --output-document=M5StackSAM-master.zip
   - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
   - wget https://github.com/ricmoo/QRCode/archive/master.zip --output-document=QRCode-master.zip
   - unzip -d ~/Arduino/libraries QRCode-master.zip
-  - wget https://github.com/m5stack/M5Stack/archive/master.zip --output-document=M5Stack-master.zip
-  - unzip -d ~/Arduino/libraries M5Stack-master.zip
+  - wget https://github.com/m5stack/M5Stack/archive/0.1.6.zip --output-document=M5Stack.zip
+  - unzip -d ~/Arduino/libraries M5Stack.zip
   
 script:
   - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
