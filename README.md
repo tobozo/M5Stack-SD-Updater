@@ -18,13 +18,7 @@ It is inspired by gamebuino, however it does not use a modified bootloader.
 - MSStack: get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a manual installation from the [M5Stack repo](https://github.com/m5stack/M5Stack).
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
 - QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode) available in the Arduino Library Manager
-- M5StackSAM (⚠️forked/patched version required): [https://github.com/tobozo/M5StackSAM](https://github.com/tobozo/M5StackSAM) 
-
-**⚠️ Important Notes for M5StackSAM ⚠️**: M5Stack SD Menu won't work with the current official version of M5StackSAM. A [working version](https://github.com/tobozo/M5StackSAM) implementing [this patch](https://github.com/tobozo/M5StackSAM/commit/732bd82557eb67c42b92b8752140fe2290c569d6) is temporarily provided.
-
-If you previously installed the [original M5StackSAM library](https://github.com/tomsuch/M5StackSAM) and get [this compilation error](https://github.com/tobozo/M5Stack-SD-Updater/issues/3), you'll need to overwrite it with the backwards compatible [patched version](https://github.com/tobozo/M5StackSAM).
-
-There's an [ongoing PR](https://github.com/tomsuch/M5StackSAM/pull/2) so the link to the library will eventually get updated when the changes are merged.
+- M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM) 
 
 🍱 UNPACKING
 ------------
