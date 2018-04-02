@@ -69,7 +69,8 @@
 #include "M5StackUpdater.h"      // https://github.com/tobozo/M5Stack-SD-Updater
 #include <M5StackSAM.h>          // https://github.com/tomsuch/M5StackSAM
 #include <ArduinoJson.h>         // https://github.com/bblanchon/ArduinoJson/
-#include "qrcode.h"              // https://github.com/ricmoo/qrcode
+// uncomment this if your M5Stack library isn't up to date
+//#include "qrcode.h"              // https://github.com/ricmoo/qrcode
 #include "i18n.h"                // language file
 #include "assets.h"              // some artwork for the UI
 
