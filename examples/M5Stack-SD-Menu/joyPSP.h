@@ -12,21 +12,17 @@
  */
 
 
-#define JOY_X 35
-#define JOY_Y 36
+#define JOY_X 35 // analog pin
+#define JOY_Y 36 // analog pin
 
 bool joyPadDetected = false;
 
 uint16_t joyX = analogRead(JOY_X);
 uint16_t joyY = analogRead(JOY_Y);
-extern uint16_t MenuID;
-extern M5SAM M5Menu;
 extern unsigned long lastcheck;
 extern uint16_t checkdelay;
 extern uint16_t appsCount;
-extern bool inInfoMenu;
 
-extern void renderIcon(uint16_t MenuID);
 
 void initJoyPad() {
   pinMode(JOY_X, INPUT);
@@ -35,6 +31,7 @@ void initJoyPad() {
   float totalx = 0;
   float totaly = 0;
   uint16_t i;
+  // naive detection: make 1000 reads and hope they don't differ too much :p
   for(i=0;i<1000;i++) {
     totalx +=analogRead(JOY_X);
     totaly +=analogRead(JOY_Y);
@@ -43,67 +40,32 @@ void initJoyPad() {
   totaly /=i;
 
   if(totalx<10 && totaly<10) { 
-    //Serial.print( totalx);
-    //Serial.print("**--\t--**");
-    //Serial.println( totaly);
-    Serial.println("No Joypad detected, disabling");
+    Serial.println(DEBUG_JOYPAD_NOTFOUND);
   } else {
+    Serial.println(DEBUG_JOYPAD_FOUND);
     joyPadDetected = true;
   }  
 }
 
 
-void handleJoyPad() {
-  
-  MenuID = M5Menu.getListID();
+HIDSignal getJoyPad() {
+  if(joyPadDetected==false) return UI_INERT;
 
-  if(joyPadDetected) {
-  
-    unsigned long now = millis();
-    long diff = now-lastcheck;
-    if(diff>checkdelay) {
-      lastcheck = now;
-      joyX = analogRead(JOY_X);
-      joyY = analogRead(JOY_Y);
-    }
-    if(joyX<=500 /*&& joyX!=0*/) {
-      if(MenuID+1<appsCount) {
-        MenuID++;
-      } else {
-        MenuID = 0;
-      }
-      M5Menu.drawAppMenu(F("SD CARD LOADER"),F("INFO"),F("LOAD"),F(">"));
-      M5Menu.setListID(MenuID);
-      M5Menu.showList();
-      renderIcon(MenuID);
-      inInfoMenu = false;
-      joyX = 4096/2;
-      lastcheck = millis();
-    }
-    if(joyX>=3500 /*&& joyX!=4095*/) {
-      if(MenuID!=0) {
-        MenuID--;
-      } else {
-        MenuID = appsCount-1;
-      }
-      M5Menu.drawAppMenu(F("SD CARD LOADER"),F("INFO"),F("LOAD"),F(">"));
-      M5Menu.setListID(MenuID);
-      M5Menu.showList();
-      renderIcon(MenuID);
-      inInfoMenu = false;
-      joyX = 4096/2;
-      lastcheck = millis();
-    }
-    /*
-    Serial.print( joyX );
-    Serial.print( "\t" );
-    Serial.print( joyY );
-    Serial.println();
-    */
+  unsigned long now = millis();
+  long diff = now-lastcheck;
+  if(diff>checkdelay) {
+    lastcheck = now;
+    joyX = analogRead(JOY_X);
+    joyY = analogRead(JOY_Y);
   }
+  if(joyX<=500) {
+    return UI_UP;
+  }
+  if(joyX>=3500) {
+    return UI_DOWN;
+  }
+  return UI_INERT;
 }
-
-
 
 
 #endif
