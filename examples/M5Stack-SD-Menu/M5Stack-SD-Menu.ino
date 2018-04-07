@@ -72,21 +72,25 @@
 #include "qrcode.h"              // https://github.com/ricmoo/qrcode
 #include "i18n.h"                // language file
 #include "assets.h"              // some artwork for the UI
-
+#include "controls.h"            // keypad / joypad / keyboard controls
 
 
 #define MAX_FILES 255 // this affects memory
 
+
+
 /* 
- * 
- * PSP JoyPad control plugin is default disabled
- * but provided as an example for custom controls.
+ * Files with those extensions will be transferred to the SD Card
+ * if found on SPIFFS.
+ * Directory is automatically created.
  * 
  */
-#define USE_PSP_JOY true
-#ifdef USE_PSP_JOY
-  #include "joyPSP.h"
-#endif
+const uint8_t extensionsCount = 4; // change this if you add / remove an extension
+String allowedExtensions[extensionsCount] = {
+    // do NOT remove jpg and json or the menu will crash !!!
+    "jpg", "json", "mod", "mp3"
+};
+
 
 
 /* Storing json meta file information r */
@@ -117,6 +121,7 @@ M5SAM M5Menu;
 uint16_t appsCount = 0; // how many binary files
 bool inInfoMenu = false; // menu state machine
 unsigned long lastcheck = millis(); // timer check
+unsigned long lastpush = millis(); // keypad/keyboard activity
 uint16_t checkdelay = 300; // timer frequency
 uint16_t MenuID; // pointer to the current menu item selected
 int16_t scrollPointer = 0; // pointer to the scrollText position
@@ -141,15 +146,12 @@ void getMeta(String metaFileName, JSONMeta &jsonMeta) {
 
 void renderScroll(String scrollText, uint8_t x, uint8_t y, uint16_t width) {
   if(scrollText=="") return;
-  // setup text size before it's measured  
-  M5.Lcd.setTextSize(2);
+  M5.Lcd.setTextSize(2); // setup text size before it's measured  
   if(!scrollText.endsWith(" ")) {
-    // append a space, scrolling text *will* repeat
-    scrollText += " ";
+    scrollText += " "; // append a space since scrolling text *will* repeat
   }
-  // grow text to desired width
   while(M5.Lcd.textWidth(scrollText)<width) {
-    scrollText += scrollText;
+    scrollText += scrollText; // grow text to desired width
   }
 
   String  scrollMe = "";
@@ -187,7 +189,7 @@ void renderScroll(String scrollText, uint8_t x, uint8_t y, uint16_t width) {
     }
   }
 
-  // trim
+  // display trim
   while( M5.Lcd.textWidth(scrollMe) > width-voffset ) {
     scrollMe.remove(scrollMe.length()-1);
   }
@@ -204,6 +206,7 @@ void renderScroll(String scrollText, uint8_t x, uint8_t y, uint16_t width) {
   lastScrollMessage = scrollMe;
   lastScrollOffset  = scrollOffset;
   lastScrollRender  = micros();
+  lastpush          = millis();
 }
 
 
@@ -228,7 +231,7 @@ void renderMeta(JSONMeta &jsonMeta) {
   M5.Lcd.setCursor(10, (M5.Lcd.height()/2)-25);
   M5.Lcd.print(fileInfo[MenuID].fileName);
   M5.Lcd.setCursor(10, (M5.Lcd.height()/2)+10);
-  M5.Lcd.print(String(fileInfo[MenuID].fileSize) + " bytes");
+  M5.Lcd.print(String(fileInfo[MenuID].fileSize) + String(FILESIZE_UNITS));
   M5.Lcd.setCursor(10,(M5.Lcd.height()/2)-10);  
   
   if(jsonMeta.authorName!="" && jsonMeta.projectURL!="" ) { // both values provided
@@ -384,63 +387,47 @@ void buildM5Menu() {
 }
 
 
-void doM5Menu() {
+void menuUp() {
+  MenuID = M5Menu.getListID();
+  if(MenuID>0) {
+    MenuID--;
+  } else {
+    MenuID = appsCount-1;
+  }
+  M5Menu.setListID(MenuID);
   M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
   M5Menu.showList();
-  renderIcon(0);
+  renderIcon(MenuID);
   inInfoMenu = false;
-  lastcheck = millis();
-  unsigned long lastpush = millis();
-  checkdelay = 300;
-  
-  while(!M5.BtnB.wasPressed()){
-    
-    MenuID = M5Menu.getListID();
+  lastpush = millis();
+}
 
-    #ifdef USE_PSP_JOY
-      handleJoyPad();
-    #endif
-    
-    if(M5.BtnC.wasPressed()){
-      lastpush = millis();
-      M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
-      M5Menu.nextList();
-      MenuID = M5Menu.getListID();
-      renderIcon(MenuID);
-      inInfoMenu = false;
-    }
-    
-    if(M5.BtnA.wasPressed()){
-      lastpush = millis();
-      if(!inInfoMenu) {
-        inInfoMenu = true;
-        M5Menu.windowClr();
-        renderMeta(fileInfo[MenuID].jsonMeta);
-      } else {
-        inInfoMenu = false;
-        M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
-        M5Menu.showList();
-        renderIcon(MenuID);
-      }
-    }
 
-    if(inInfoMenu) {
-      // do scroll text while blocking sleep mode
-      renderScroll(fileInfo[MenuID].jsonMeta.projectURL, 0, 5, 320);
-      lastpush = millis();
-    }
-    
-    M5.update();
-    // go to sleep after 10 minutes if nothing happens
-    if(lastpush+600000<millis()) {
-      Serial.println(GOTOSLEEP_MESSAGE);
-      M5.setWakeupButton(BUTTON_B_PIN);
-      M5.powerOFF();
-    }
-  }
+void menuDown() {
+  M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
+  M5Menu.nextList();
+  MenuID = M5Menu.getListID();
+  renderIcon(MenuID);
+  inInfoMenu = false;
+  lastpush = millis();
+}
 
-  updateFromFS(SD, fileInfo[ M5Menu.getListID() ].fileName);
-  ESP.restart();
+
+void menuInfo() {
+  inInfoMenu = true;
+  M5Menu.windowClr();
+  renderMeta(fileInfo[MenuID].jsonMeta);
+  lastpush = millis();
+}
+
+
+void menuMeta() {
+  inInfoMenu = false;
+  M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
+  M5Menu.showList();
+  MenuID = M5Menu.getListID();
+  renderIcon(MenuID);
+  lastpush = millis();
 }
 
 
@@ -451,14 +438,12 @@ void doM5Menu() {
 void scanDataFolder() {
   Serial.println(DEBUG_SPIFFS_SCAN);
   /* check if mandatory folders exists and create if necessary */
-  if(!SD.exists("/jpg")) {
-    SD.mkdir("/jpg");
-  }
-  if(!SD.exists("/json")) {
-    SD.mkdir("/json");
-  }
-  if(!SD.exists("/mod")) {
-    SD.mkdir("/mod");
+
+  for(uint8_t i=0;i<extensionsCount;i++) {
+    String dir = "/" + allowedExtensions[i];
+    if(!SD.exists(dir)) {
+      SD.mkdir(dir);
+    }
   }
   
   if(!SPIFFS.begin()){
@@ -478,16 +463,14 @@ void scanDataFolder() {
         if(fileName.endsWith(".bin")) {
           destName = fileName;
         }
-        if(fileName.endsWith(".json")) {
-          destName = "/json" + fileName;
+        // move allowed file types to their own folders
+        for(uint8_t i=0;i<extensionsCount;i++) {
+          String ext = "." + allowedExtensions[i];
+          if(fileName.endsWith(ext)) {  
+            destName = "/" + allowedExtensions[i] + fileName;
+          }
         }
-        if(fileName.endsWith(".jpg")) {
-          destName = "/jpg" + fileName;
-        }
-        if(fileName.endsWith(".mod")) {
-          destName = "/mod" + fileName;
-        }
-                
+
         if(destName!="") {
           displayUpdateUI(String(MOVINGFILE_MESSAGE) + fileName);
           size_t fileSize = file.size();
@@ -529,12 +512,13 @@ void setup() {
   Serial.print(INIT_MESSAGE);
   M5.begin();
   Wire.begin();
-
-  // Thanks to Macbug for the hint, my old ears couldn't hear 
-  // the buzzing :-) 
-  dacWrite(25, 0); // turn speaker off
+  // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-) 
   // See Macbug's excellent article on this tool:
   // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
+  dacWrite(25, 0); // turn speaker signal off
+  // Also thanks to @Kongduino for a complementary way to turn off the speaker:
+  // https://twitter.com/Kongduino/status/980466157701423104
+  ledcDetachPin(25); // detach DAC
   
   if(digitalRead(BUTTON_A_PIN) == 0) {
     Serial.println(GOTOSLEEP_MESSAGE);
@@ -563,8 +547,7 @@ void setup() {
       M5.Lcd.drawJpg(disk00_jpg, 1775, 160, 100);
       delay(500);
     }
-
-    // go to sleep after a minute
+    // go to sleep after a minute, no need to hammer the SD Card reader
     if(lastcheck+60000<now) {
       Serial.println(GOTOSLEEP_MESSAGE);
       M5.setWakeupButton(BUTTON_B_PIN);
@@ -572,7 +555,6 @@ void setup() {
     }
   }
 
-  // TODO: animate loading screen
   M5.Lcd.setTextColor(WHITE);
   M5.Lcd.setTextSize(1);
 
@@ -583,15 +565,68 @@ void setup() {
   aSortFiles();
   buildM5Menu();
 
-  // TODO: implement other controls
   #ifdef USE_PSP_JOY
     initJoyPad();
   #endif
-  
+  #ifdef USE_FACES_GAMEBOY
+    initKeypad();
+  #endif
+
+  // TODO: animate loading screen
+  /* fake loading progress, looks kool ;-) */
+  for(uint8_t i=1;i<100;i++) {
+    progress(i, 100);
+  }
+
+  M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
+  M5Menu.showList();
+  renderIcon(0);
+  inInfoMenu = false;
+  lastcheck = millis();
+  lastpush = millis();
+  checkdelay = 300;
+
 }
 
 
 void loop() {
-  doM5Menu();
+
+  HIDSignal hidState = getControls();
+
+  switch(hidState) {
+    case UI_DOWN:
+      menuDown();
+    break;
+    case UI_UP:
+      menuUp();
+    break;
+    case UI_INFO:
+      if(!inInfoMenu) {
+        menuInfo();
+      } else {
+        menuMeta();
+      }
+    break;
+    case UI_LOAD:
+      updateFromFS(SD, fileInfo[ M5Menu.getListID() ].fileName);
+      ESP.restart();
+    break;
+    default:
+    case UI_INERT:
+      if(inInfoMenu) {
+        // !! scrolling text also prevents sleep mode !!
+        renderScroll(fileInfo[MenuID].jsonMeta.projectURL, 0, 5, 320);
+      }
+      M5.update();
+    break;
+  }
+
+  // go to sleep after 10 minutes if nothing happens
+  if(lastpush+600000<millis()) {
+    Serial.println(GOTOSLEEP_MESSAGE);
+    M5.setWakeupButton(BUTTON_B_PIN);
+    M5.powerOFF();
+  }
+
 }
 
