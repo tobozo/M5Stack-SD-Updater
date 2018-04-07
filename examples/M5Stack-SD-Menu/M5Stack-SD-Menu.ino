@@ -66,7 +66,7 @@
  
 #include "SPIFFS.h"
 #include <M5Stack.h>             // https://github.com/m5stack/M5Stack/
-#ifdef __QRCODE_H // fix this when M5Stack makes a new release
+#ifdef __QRCODE_H_ // fix this when M5Stack makes a new release
   #include "utility/qrcode.h"      // qrCode from M5Stack
 #else
   #include "qrcode.h"      // qrCode from M5Stack
