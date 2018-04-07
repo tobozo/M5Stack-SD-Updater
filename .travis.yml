@@ -31,7 +31,7 @@ install:
   - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
   - wget https://github.com/ricmoo/QRCode/archive/master.zip --output-document=QRCode-master.zip
   - unzip -d ~/Arduino/libraries QRCode-master.zip
-  - wget https://github.com/m5stack/M5Stack/archive/master.zip --output-document=M5Stack.zip
+  - wget https://github.com/m5stack/M5Stack/archive/0.1.6.zip --output-document=M5Stack.zip
   - unzip -d ~/Arduino/libraries M5Stack.zip
   
 script:
