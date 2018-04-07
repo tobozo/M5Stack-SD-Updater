@@ -66,12 +66,16 @@
  
 #include "SPIFFS.h"
 #include <M5Stack.h>             // https://github.com/m5stack/M5Stack/
+#ifdef __QRCODE_H // fix this when M5Stack makes a new release
+  #include "utility/qrcode.h"      // qrCode from M5Stack
+#else
+  #include "qrcode.h"      // qrCode from M5Stack
+#endif
 #include "M5StackUpdater.h"      // https://github.com/tobozo/M5Stack-SD-Updater
 #include <M5StackSAM.h>          // https://github.com/tomsuch/M5StackSAM
 #include <ArduinoJson.h>         // https://github.com/bblanchon/ArduinoJson/
-#include "qrcode.h"              // https://github.com/ricmoo/qrcode
 #include "i18n.h"                // language file
-#include "assets.h"              // some artwork for the UI
+#include "assets.h" // some artwork for the UI
 #include "controls.h"            // keypad / joypad / keyboard controls
 
 
