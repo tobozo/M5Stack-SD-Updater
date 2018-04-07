@@ -7,6 +7,7 @@
 #define INSERTSD_MESSAGE F("Insert SD")
 #define GOTOSLEEP_MESSAGE F("Will go to sleep")
 #define MOVINGFILE_MESSAGE F("Moving ")
+#define FILESIZE_UNITS F(" bytes")
 
 #define MENU_TITLE F("SD CARD LOADER")
 #define MENU_SUBTITLE F("Applications")
@@ -33,6 +34,10 @@
 #define DEBUG_FILECOPY_DONE F("Transfer finished")
 #define DEBUG_WILL_RESTART F("Binary removed from SPIFFS, will now restart")
 #define DEBUG_NOTHING_TODO F("No binary to transfer")
+#define DEBUG_KEYPAD_NOTFOUND F("Keypad not installed")
+#define DEBUG_KEYPAD_FOUND F("Keypad detected!")
+#define DEBUG_JOYPAD_NOTFOUND F("No Joypad detected, disabling")
+#define DEBUG_JOYPAD_FOUND F("Joypad detected!")
 
 
 
