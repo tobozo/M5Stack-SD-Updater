@@ -1,3 +1,5 @@
+#ifndef __M5STACKUPDATER_H
+#define __M5STACKUPDATER_H
 /*
  *
  * M5Stack SD Updater
@@ -138,3 +140,4 @@ void updateFromFS(fs::FS &fs, String fileName = MENU_BIN ) {
     Serial.println("Could not load binary from sd root");
   }
 }
+#endif
