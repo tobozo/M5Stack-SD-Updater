@@ -66,10 +66,10 @@
  
 #include "SPIFFS.h"
 #include <M5Stack.h>             // https://github.com/m5stack/M5Stack/
-#ifndef REG_PKT_SNR_VALUE // fix this when M5Stack makes a new release
-  #include "utility/qrcode.h"      // qrCode from M5Stack
-#else
-  #include "qrcode.h"      // qrCode from M5Stack
+// if M5Stack version >= 0.1.7
+#include "utility/qrcode.h"      // qrCode from M5Stack
+// else
+//#include "qrcode.h"      // qrCode from M5Stack
 #endif
 #include "M5StackUpdater.h"      // https://github.com/tobozo/M5Stack-SD-Updater
 #include <M5StackSAM.h>          // https://github.com/tomsuch/M5StackSAM
