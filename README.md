@@ -15,10 +15,17 @@ It is inspired by gamebuino, however it does not use a modified bootloader.
 **Make sure you have the following libraries:**
   
 - M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
-- MSStack: get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a manual installation from the [M5Stack repo](https://github.com/m5stack/M5Stack).
+- [M5Stack](https://github.com/m5stack/M5Stack) get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
+- M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
+
+**If your version of [M5Stack is (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7) you're done.**
+
+**If your version of M5Stack is 0.1.6 or earlier, install this additional library:**
+
 - QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode) available in the Arduino Library Manager
-- M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM) 
+
+
 
 🍱 UNPACKING
 ------------
@@ -96,14 +103,31 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
 
 🔘 OPTIONAL:
 ------------
-The JoyPSP Controls for M5Stack SD Menu necessary code can safely be disabled in the menu example.
-It's using a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, which are appropriate for analog reading.
+The M5Stack automatically detects and uses the [M5Stack-Faces](https://github.com/m5stack/faces) addon (gameboy only).
 
-The JoyPSP only handles up/down actions for the meantime, more controls will be added soon.
+The JoyPSP Controls for M5Stack SD Menu necessary code is now disabled in the menu example but the code stays here and can be used as a boilerplate for any other two-wires input device.
+
+The code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, but it shouldn't be a problem to adapt/extend to other analog joystick models.
 
 KNONW ISSUES
 ------------
-Compilation #pragma warnings/errors in the Arduino IDE can be solved by setting the debug level to "default" in the Arduino preferences window.
+*qrcode.h not found*, or *duplicate declarations* errors can occur during compilation of M5Stack-SD-Menu.ino.
+
+Reason: M5Stack recently embedded the `qrcode.h` library into their own core, but the current M5Stack-SD-Menu.ino is using a version of qrcode.h bundled with a more recent version of [M5Stack (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7).
+If your version of M5stack library is older, Arduino IDE will probably complain.
+
+Solution 1: comment out one of the two includes in M5Stack-SD-Menu.ino:
+
+`#include "qrcode.h"` ← use this with M5Stack-Core 0.1.6 and older, comment out the other one
+
+or
+
+`#include "utilities/qrcode.h` ← use this with M5Stack-Core 0.1.7, comment out the other one
+
+Solution 2: in your library manager, downgrade the M5Stack-SD-Menu to the previous version (0.0.1) until you update M5Stack library
+
+
+Compilation `#pragma` warnings/errors in the Arduino IDE can be solved by setting the debug level to `default` in the Arduino preferences window.
 See [#3](https://github.com/tobozo/M5Stack-SD-Updater/issues/3) 
 
 vMicro: currently can't compile at all, see [#5](https://github.com/tobozo/M5Stack-SD-Updater/issues/5). Looking for a solution that works with both vMicro and Arduino IDE.
@@ -119,7 +143,7 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 - :clapper: [Generic Demo](https://youtu.be/myQfeYxyc3o)
 - :clapper: [Demo with Pacman+sound](https://youtu.be/36fgNCecoEg) ([source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP))
 - :clapper: [NyanCat Demo](https://youtu.be/Zxh2mtWwfaE) ([source](https://github.com/tobozo/M5Stack-NyanCat))
-- 🎓 [Macsbug'article](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) (Japanese)
+- 🎓 [Macsbug's article](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) (Japanese)
 
 
 🙏 CREDITS
