@@ -124,11 +124,13 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
   
   `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://blah","credits":"thanks"}`
 
+<br />
 
   ⚠️ The jpg/json file names must match the bin file name, case matters!
   jpg/json files are optional but must both be set if provided.
   The value for *projectURL* property will be rendered as a QR Code in the info window.
 
+<br />
 <br />
 
 🚫 LIMITATIONS:
@@ -149,7 +151,7 @@ The code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/
 
 <br />
 
-KNOWN ISSUES
+ ⚠️ KNOWN ISSUES
 ------------
 *qrcode.h not found*, or *duplicate declarations* errors can occur during compilation of M5Stack-SD-Menu.ino.
 
@@ -194,7 +196,7 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 <br />
 
 🙏 CREDITS
-==========
+-----------
 
 <br />
 
