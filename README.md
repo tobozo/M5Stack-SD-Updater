@@ -166,11 +166,14 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 
 🙏 CREDITS
 ==========
-- 👍 MSStack: [https://github.com/m5stack/M5Stack](https://github.com/m5stack/M5Stack)
-- 👍 M5StackSam [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
-- 👍 ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/)
-- 👍 QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode)
-- 👍 [@Reaper7](https://github.com/reaper7) [https://github.com/reaper7](https://github.com/reaper7)
 
-
+<br />
+ 
+| 👍     | M5Stack             | https://github.com/m5stack/M5Stack           |  
+| ------ |:------------------- | :------------------------------------------- | 
+| 👍     | M5StackSam          | https://github.com/tomsuch/M5StackSAM        |   
+| 👍     | ArduinoJSON         | https://github.com/bblanchon/ArduinoJson/    |    
+| 👍     | QRCode              | https://github.com/bblanchon/ArduinoJson/    |    
+| 👍     | @Reaper7            | https://github.com/reaper7                   |    
+ 
  
