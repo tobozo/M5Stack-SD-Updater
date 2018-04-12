@@ -31,9 +31,9 @@
 
 <br />
 
-**Make sure you have the following libraries:**
+**Make sure you have the following libraries:** - they should be installed in: ....\Documents\Arduino\libraries
 
-- [M5Stack](https://github.com/m5stack/M5Stack) get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+- [M5Stack library](https://github.com/m5stack/M5Stack) - this is probably already installed - if not you can get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
 
 - M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
 
@@ -43,6 +43,8 @@
 <br />
 
 **If your version of [M5Stack is (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7) you are set and can move on.**
+
+<br />
 
 **If your version of M5Stack is 0.1.6 or earlier, you need to install this additional library:**
 
