@@ -1,16 +1,20 @@
-# M5Stack-SD-Updater
-
-**M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) to package you apps on a SD card and load them from a menu.**
-It is inspired by gamebuino, however it does not use a modified bootloader.
-
 [![License: MIT](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tobozo/M5Stack-SD-Updater/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/tobozo/M5Stack-SD-Updater.svg?branch=master)](https://travis-ci.org/tobozo/M5Stack-SD-Updater)
 
+
+# M5Stack-SD-Updater
 
 
 ![SD Card Loader](SDCardLoaderpic.png) 
 
 
+## ABOUT
+
+- **M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) to package you apps on a SD card and load them from a menu.**
+
+- It is inspired by gamebuino, however it does not use a modified bootloader.
+
+- Project by Torbozo Tagada - 
 
 
 <br />
@@ -26,9 +30,11 @@ It is inspired by gamebuino, however it does not use a modified bootloader.
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
 - M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
 
-**If your version of [M5Stack is (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7) you're done.**
+<br />
 
-**If your version of M5Stack is 0.1.6 or earlier, install this additional library:**
+**If your version of [M5Stack is (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7) you are set and can move on.**
+
+**If your version of M5Stack is 0.1.6 or earlier, you need to install this additional library:**
 
 - QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode) available in the Arduino Library Manager
 
@@ -38,14 +44,20 @@ It is inspired by gamebuino, however it does not use a modified bootloader.
 
 🍱 UNPACKING
 ------------
-Open both sketches from the "examples/M5Stack-SD-Update" menu.
+
+**1) Open both sketches from the "examples/M5Stack-SD-Update" menu.**
 
 
-**1) Compile the "M5Stack-SD-Menu.ino" example.** This sketch is the menu app. It must be compiled once (sketch / export compiled binary) and saved on the SD Card root directory as "menu.bin" for persistence. It should also be flashed on the M5Stack.
+**2) Compile the "M5Stack-SD-Menu.ino" example.** <br />
+This sketch is the menu app. It must be (a) compiled and saved to the root directory of a micro SD card for persistence and (b) flashed onto the M5Stack.
+
+(a) In the Arduino IDE, go to Sketch / Export compiled binary , and compile the file. Rename the file "menu.bin" and copy it to the micro SD card. (b) Next, flash "menu.bin" to the M5Stack. 
 
 
-**2) Merge and compile the "M5Stack-SDLoader-Snippet.ino" example.** It is possible to embed any M5 app by implementing the 
-  M5Stack SD Loader Snippet. This sketch can be used as a boilerplate to code an app from scratch.
+**3) Make sketches compatible with the SD-Updater Menu .** <br />
+
+The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used to make any Arduino compatible sketch compatible for use with the SD-Updater menu.
+
 
   For an existing M5 app, find the line:
 
@@ -124,7 +136,7 @@ The code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/
 
 <br />
 
-KNONW ISSUES
+KNOWN ISSUES
 ------------
 *qrcode.h not found*, or *duplicate declarations* errors can occur during compilation of M5Stack-SD-Menu.ino.
 
