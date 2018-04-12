@@ -14,13 +14,17 @@
 
 - It is inspired by gamebuino, however it does not use a modified bootloader.
 
-- Project by Torbozo Tagada - 
+- Project by @Torbozo
 
 
 <br />
 
 🏭 PREREQUISITES:
 -----------------
+<br />
+
+**Micro SD Card (TF Card)** - formatted using FAT32. Max size 32 Gb.
+
 <br />
 
 **Make sure you have the following libraries:**
@@ -47,12 +51,14 @@
 
 **1) Open both sketches from the "examples/M5Stack-SD-Update" menu.**
 
+<br />
 
 **2) Compile the "M5Stack-SD-Menu.ino" example.** <br />
 This sketch is the menu app. It must be (a) compiled and saved to the root directory of a micro SD card for persistence and (b) flashed onto the M5Stack.
 
 (a) In the Arduino IDE, go to Sketch / Export compiled binary , and compile the file. Rename the file "menu.bin" and copy it to the micro SD card. (b) Next, flash "menu.bin" to the M5Stack. 
 
+<br />
 
 **3) Make sketches compatible with the SD-Updater Menu .** <br />
 
@@ -85,8 +91,9 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
   - Manually copy it to the sd card
   - Existing installations (menu.bin already copied and loaded on the M5Stack): clear the content of the [examples/M5Stack-SD-Menu/data](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/data) folder, copy the compiled binary there and use the [ESP32 Sketch Data Uploader](https://github.com/me-no-dev/arduino-esp32fs-plugin) utility (available from the Tools menu in the Arduino IDE).
 
+<br />
 
-**3) Repeat this for all applications**, jpg images or json meta files to import
+**4) Repeat this for all applications**, jpg images or json meta files to import
 
 <br />
 
@@ -172,7 +179,7 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 - :clapper: [Generic Demo](https://youtu.be/myQfeYxyc3o)
 - :clapper: [Demo with Pacman+sound](https://youtu.be/36fgNCecoEg) ([source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP))
 - :clapper: [NyanCat Demo](https://youtu.be/Zxh2mtWwfaE) ([source](https://github.com/tobozo/M5Stack-NyanCat))
-- 🎓 [Macsbug's article](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) (Japanese)
+- 🎓 [Macsbug's article on SD-Updater](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) (Japanese)
 
 <br />
 
