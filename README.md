@@ -14,7 +14,11 @@
 
 - It is inspired by gamebuino, however it does not use a modified bootloader.
 
-- Project by @Torbozo
+- [Video demonstration](https://www.youtube.com/watch?v=myQfeYxyc3o)
+
+- Project by [tobozo](https://github.com/tobozo)
+
+- Contributors welcome !
 
 
 <br />
@@ -28,9 +32,11 @@
 <br />
 
 **Make sure you have the following libraries:**
-  
-- M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+
 - [M5Stack](https://github.com/m5stack/M5Stack) get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+
+- M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
 - M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
 
@@ -176,10 +182,14 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 
 #️⃣  REFERENCES:
 --------------
-- :clapper: [Generic Demo](https://youtu.be/myQfeYxyc3o)
-- :clapper: [Demo with Pacman+sound](https://youtu.be/36fgNCecoEg) ([source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP))
-- :clapper: [NyanCat Demo](https://youtu.be/Zxh2mtWwfaE) ([source](https://github.com/tobozo/M5Stack-NyanCat))
-- 🎓 [Macsbug's article on SD-Updater](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) (Japanese)
+<br />
+
+|- :clapper:   | [Generic Demo]           | (https://youtu.be/myQfeYxyc3o)               |
+| ------------ |:------------------------ | :------------------------------------------- |
+|- :clapper:   | [Demo with Pacman+sound](https://youtu.be/36fgNCecoEg) | ([source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP)) | 
+|- :clapper:   | [NyanCat Demo](https://youtu.be/Zxh2mtWwfaE) |  ([source](https://github.com/tobozo/M5Stack-NyanCat))  |
+| - 🎓        | [Macsbug's article on SD-Updater](https://translate.google.com/translate?hl=en&sl=ja&tl=en&u=https%3A%2F%2Fmacsbug.wordpress.com%2F2018%2F03%2F12%2Fm5stack-sd-updater%2F) | (English translation) |
+| - 🎓        | [Macsbug's article on M5Stack SD-Updater](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) | (Japanese) |
 
 <br />
 
@@ -187,9 +197,9 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 ==========
 
 <br />
- 
+
 | 👍     | M5Stack             | https://github.com/m5stack/M5Stack           |  
-| ------ |:------------------- | :------------------------------------------- | 
+| ------ |:------------------- | :------------------------------------------- |  
 | 👍     | M5StackSam          | https://github.com/tomsuch/M5StackSAM        |   
 | 👍     | ArduinoJSON         | https://github.com/bblanchon/ArduinoJson/    |    
 | 👍     | QRCode              | https://github.com/bblanchon/ArduinoJson/    |    
