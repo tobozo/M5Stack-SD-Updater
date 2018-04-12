@@ -6,12 +6,19 @@ It is inspired by gamebuino, however it does not use a modified bootloader.
 [![License: MIT](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tobozo/M5Stack-SD-Updater/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/tobozo/M5Stack-SD-Updater.svg?branch=master)](https://travis-ci.org/tobozo/M5Stack-SD-Updater)
 
-[![ M5Stack Apps loaded from SD Card](https://img.youtube.com/vi/myQfeYxyc3o/0.jpg)](https://www.youtube.com/watch?v=myQfeYxyc3o)
 
-[<img alt="Visual demo for M5Stack Info Window with QR Code" title="M5Stack Info Window with Credits and QR Code" src="https://camo.githubusercontent.com/06570c553f4ca575d60e7d7ff81ea2d8d555e40d/68747470733a2f2f7062732e7477696d672e636f6d2f6d656469612f44596d4c75396e573041416c71682d2e6a7067" data-canonical-src="https://pbs.twimg.com/media/DYmLu9nW0AAlqh-.jpg" width=480>](https://twitter.com/TobozoTagada/status/972845518966743040)
+
+![SD Card Loader](SDCardLoaderpic.png) 
+
+
+
+
+<br />
 
 🏭 PREREQUISITES:
 -----------------
+<br />
+
 **Make sure you have the following libraries:**
   
 - M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
@@ -25,6 +32,8 @@ It is inspired by gamebuino, however it does not use a modified bootloader.
 
 - QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode) available in the Arduino Library Manager
 
+
+<br />
 
 
 🍱 UNPACKING
@@ -67,6 +76,8 @@ Open both sketches from the "examples/M5Stack-SD-Update" menu.
 
 **3) Repeat this for all applications**, jpg images or json meta files to import
 
+<br />
+
 
 📚 USAGE:
 ---------
@@ -93,6 +104,7 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
   jpg/json files are optional but must both be set if provided.
   The value for *projectURL* property will be rendered as a QR Code in the info window.
 
+<br />
 
 🚫 LIMITATIONS:
 ---------------
@@ -100,6 +112,7 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
 - FAT specifications prevent having more than 512 files on the SD Card, but this menu is limited to 256 Items anyway.
 - Long file names will eventually get covered by the jpg image, better stay under 8 chars (not including the extension).
 
+<br />
 
 🔘 OPTIONAL:
 ------------
@@ -108,6 +121,8 @@ The M5Stack automatically detects and uses the [M5Stack-Faces](https://github.co
 The JoyPSP Controls for M5Stack SD Menu necessary code is now disabled in the menu example but the code stays here and can be used as a boilerplate for any other two-wires input device.
 
 The code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, but it shouldn't be a problem to adapt/extend to other analog joystick models.
+
+<br />
 
 KNONW ISSUES
 ------------
@@ -132,11 +147,13 @@ See [#3](https://github.com/tobozo/M5Stack-SD-Updater/issues/3)
 
 vMicro: currently can't compile at all, see [#5](https://github.com/tobozo/M5Stack-SD-Updater/issues/5). Looking for a solution that works with both vMicro and Arduino IDE.
 
+<br />
 
 🛣 ROADMAP:
 ----------
 Not defined yet, but looking at how fast this [library landed in platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater), there's a possibility it will soon exist in different flavours (i.e. as an ESP-IDF component) or with more [features](https://github.com/m5stack/faces). Contributors welcome!
 
+<br />
 
 #️⃣  REFERENCES:
 --------------
@@ -145,6 +162,7 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 - :clapper: [NyanCat Demo](https://youtu.be/Zxh2mtWwfaE) ([source](https://github.com/tobozo/M5Stack-NyanCat))
 - 🎓 [Macsbug's article](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) (Japanese)
 
+<br />
 
 🙏 CREDITS
 ==========
