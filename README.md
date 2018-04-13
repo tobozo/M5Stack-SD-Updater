@@ -209,7 +209,7 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 | ------ |:------------------- | :--------------- | :------------------------------------------- |  
 | 👍     | M5StackSam          | Tom Such         | https://github.com/tomsuch/M5StackSAM        |   
 | 👍     | ArduinoJSON         | Benoît Blanchon  | https://github.com/bblanchon/ArduinoJson/    |    
-| 👍     | QRCode              | Benoît Blanchon  | https://github.com/bblanchon/ArduinoJson/    |    
+| 👍     | QRCode              | Richard Moore    | https://github.com/ricmoo/qrcode    |    
 | 👍     | @Reaper7            | Reaper7          | https://github.com/reaper7                   |    
  
  
