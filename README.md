@@ -104,9 +104,6 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
 
 <br />
 
-**4) Repeat this for all applications**, jpg images or json meta files to import
-
-<br />
 
 
 📚 USAGE:
