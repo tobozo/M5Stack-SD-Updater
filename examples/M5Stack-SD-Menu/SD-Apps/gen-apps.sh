@@ -13,7 +13,7 @@ for D in *; do
       arduino --verbose-build --verify --preserve-temp-files --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
       ls $TRAVIS_BUILD_DIR/build -la
     else
-      echo "Not compiling ${PATH_TO_INO_FILE} as it needs injection first";
+      echo "Not compiling ${D} as it needs injection first";
     fi
     cd ..
   fi
