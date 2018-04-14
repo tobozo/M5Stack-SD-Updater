@@ -38,11 +38,8 @@ install:
   - unzip -d ~/Arduino/libraries M5Stack.zip
   
 script:
-  - function arduinocompile { 
-      arduino --verbose-build --verify --board $BOARD $1 
-    }
   - arduino --pref "build.path=${TRAVIS_BUILD_DIR}/build" --save-prefs
-  - arduinocompile $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
+  - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
   - echo "Main APP Compilation successful, now compiling deps"
   - cd SDAPP_FOLDER
   - for D in *; do
@@ -53,7 +50,7 @@ script:
         if (( $m5enabled == 1 )); then
           export PATH_TO_INO_FILE="$(find SDAPP_FOLDER/$D -type f -iname '*.ino*')"
           echo $PATH_TO_INO_FILE
-          arduinocompile $PATH_TO_INO_FILE
+          arduino --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE
         else
           echo bof
         fi
