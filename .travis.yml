@@ -2,9 +2,10 @@ language: generic
 env:
   global:
     - IDE_VERSION=1.8.5
+    - SDAPP_FOLDER=$TRAVIS_BUILD_DIR/M5Stack-SD-Menu/examples/M5Stack-SD-Menu/SD-Apps
   matrix:
     - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
-    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
+#    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
 before_install:
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
   - sleep 3
@@ -13,6 +14,7 @@ before_install:
   - tar xf arduino-$IDE_VERSION-linux64.tar.xz
   - mv arduino-$IDE_VERSION ~/arduino-ide
   - export PATH=$PATH:~/arduino-ide
+  - mkdir -p $TRAVIS_BUILD_DIR/build
   - if [[ "$BOARD" =~ "espressif:esp32:" ]]; then
       mkdir -p ~/Arduino/hardware/espressif &&
       cd ~/Arduino/hardware/espressif &&
@@ -23,6 +25,7 @@ before_install:
     fi
   
 install:
+  - git submodule update --init --recursive
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
   - wget https://github.com/bblanchon/ArduinoJson/archive/master.zip --output-document=Arduinojson-master.zip
@@ -35,5 +38,31 @@ install:
   - unzip -d ~/Arduino/libraries M5Stack.zip
   
 script:
-  - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
+  - function arduinocompile { 
+      arduino --verbose-build --verify --board $BOARD $1 
+    }
+  - arduino --pref "build.path=${TRAVIS_BUILD_DIR}/build" --save-prefs
+  - arduinocompile $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
+  - echo "Main APP Compilation successful, now compiling deps"
+  - cd SDAPP_FOLDER
+  - for D in *; do
+      if [ -d "${D}" ]; then
+        echo "${D}"   # your processing here
+        cd ${D}
+        egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0
+        if (( $m5enabled == 1 )); then
+          export PATH_TO_INO_FILE="$(find SDAPP_FOLDER/$D -type f -iname '*.ino*')"
+          echo $PATH_TO_INO_FILE
+          arduinocompile $PATH_TO_INO_FILE
+        else
+          echo bof
+        fi
+      fi
+    done
+  #- find /tmp -name \*.bin -exec ls -lrt {} \; #<-- you need that backslash before and space after the semicolon
+  #- find /tmp -name \*.bin -exec cp {} $TRAVIS_BUILD_DIR/build/$BINNAME \; #<-- you need that backslash before and space after the semicolon
+  #- find $TRAVIS_BUILD_DIR/build -name \*.bin -exec ls -lrt {} \; #<-- you need that backslash before and space after the semicolon
+  - ls $TRAVIS_BUILD_DIR/build/ -la
+  - sleep 15 # give some time to the logs to come up  
+
  
