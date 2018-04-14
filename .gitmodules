@@ -22,9 +22,6 @@
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-SpaceShooter"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-SpaceShooter
 	url = https://github.com/PartsandCircuits/M5Stack-SpaceShooter
-[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5-Colour-Picker"]
-	path = examples/M5Stack-SD-Menu/SD-Apps/M5-Colour-Picker
-	url = https://github.com/Kongduino/M5-Colour-Picker
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Sokoban"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Sokoban
 	url = https://github.com/robo8080/M5Stack_Sokoban
@@ -40,12 +37,12 @@
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-MegaChess"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-MegaChess
 	url = https://github.com/PartsandCircuits/M5Stack-MegaChess
-[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Tetris"]
-	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Tetris
-	url = https://github.com/PartsandCircuits/M5Stack-Tetris
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-PacketMonitor"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-PacketMonitor
 	url = https://github.com/tobozo/M5Stack-PacketMonitor
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/mp3-player-m5stack"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/mp3-player-m5stack
 	url = https://github.com/dsiberia9s/mp3-player-m5stack
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Tetris"]
+        path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Tetris
+        url = https://github.com/PartsandCircuits/M5Stack-Tetris
