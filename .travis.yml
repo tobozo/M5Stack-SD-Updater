@@ -36,26 +36,26 @@ install:
 #  - unzip -d ~/Arduino/libraries QRCode-master.zip
   - wget https://github.com/m5stack/M5Stack/archive/0.1.7.zip --output-document=M5Stack.zip
   - unzip -d ~/Arduino/libraries M5Stack.zip
-  
+
 script:
   - arduino --pref "build.path=${TRAVIS_BUILD_DIR}/build" --save-prefs
   - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
   - echo "Main APP Compilation successful, now compiling deps"
   - cd SDAPP_FOLDER
-  - for D in *; do
+  - 'for D in *; do
       if [ -d "${D}" ]; then
         echo "${D}"   # your processing here
         cd ${D}
         egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0
         if (( $m5enabled == 1 )); then
-          export PATH_TO_INO_FILE="$(find SDAPP_FOLDER/$D -type f -iname '*.ino*')"
+          export PATH_TO_INO_FILE="$(find SDAPP_FOLDER/$D -type f -iname *.ino)"
           echo $PATH_TO_INO_FILE
           arduino --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE
         else
           echo bof
         fi
       fi
-    done
+    done'
   #- find /tmp -name \*.bin -exec ls -lrt {} \; #<-- you need that backslash before and space after the semicolon
   #- find /tmp -name \*.bin -exec cp {} $TRAVIS_BUILD_DIR/build/$BINNAME \; #<-- you need that backslash before and space after the semicolon
   #- find $TRAVIS_BUILD_DIR/build -name \*.bin -exec ls -lrt {} \; #<-- you need that backslash before and space after the semicolon
