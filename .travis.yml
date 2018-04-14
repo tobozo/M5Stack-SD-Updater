@@ -19,7 +19,9 @@ before_install:
       mkdir -p ~/Arduino/hardware/espressif &&
       cd ~/Arduino/hardware/espressif &&
       git clone https://github.com/espressif/arduino-esp32.git esp32 &&
-      cd esp32/tools/ &&
+      cd esp32/ &&
+      git submodule update --init --recursive &&
+      cd tools/ &&
       python get.py &&
       cd $TRAVIS_BUILD_DIR;
     fi
@@ -36,6 +38,10 @@ install:
 #  - unzip -d ~/Arduino/libraries QRCode-master.zip
   - wget https://github.com/m5stack/M5Stack/archive/0.1.7.zip --output-document=M5Stack.zip
   - unzip -d ~/Arduino/libraries M5Stack.zip
+  - wget http://www.buildlog.net/blog/wp-content/uploads/2018/02/Game_Audio.zip --output-document=Game_Audio.zip
+  - mkdir -p ~/Arduino/libraries/Game_Audio
+  - unzip -d ~/Arduino/libraries/Game_Audio Game_Audio.zip
+  - ls ~/Arduino/libraries -la
 
 script:
   - arduino --pref "build.path=${TRAVIS_BUILD_DIR}/build" --save-prefs
