@@ -10,7 +10,7 @@ for D in *; do
     if (( $m5enabled == 1 )); then
       export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
       echo "Compiling ${PATH_TO_INO_FILE}";
-      arduino --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
+      arduino --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
       ls $TRAVIS_BUILD_DIR/build -la
     else
       echo "Not compiling ${D} as it needs injection first";
