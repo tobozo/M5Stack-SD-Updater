@@ -8,7 +8,7 @@ for D in *; do
     ls -la
     egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0;
     if (( $m5enabled == 1 )); then
-      export PATH_TO_INO_FILE="$(find . -type f -iname *.ino)";
+      export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
       echo "Compiling ${PATH_TO_INO_FILE}";
       arduino  --pref "build.path=${TRAVIS_BUILD_DIR}/build" --pref "sketchbook.path=${SDAPP_FOLDER}/${D}" --verbose-build --verify --preserve-temp-files --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
       ls $TRAVIS_BUILD_DIR/build -la
