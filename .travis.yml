@@ -44,6 +44,7 @@ install:
   - ls ~/Arduino/libraries -la
 
 script:
+  - arduino --pref "compiler.warning_level=default"
   - arduino --pref "build.path=${TRAVIS_BUILD_DIR}/build" --save-prefs
   - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
   - echo "Main APP Compilation successful, now compiling deps"
