@@ -41,18 +41,18 @@ script:
   - arduino --pref "build.path=${TRAVIS_BUILD_DIR}/build" --save-prefs
   - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino;
   - echo "Main APP Compilation successful, now compiling deps"
-  - cd SDAPP_FOLDER
+  - cd $SDAPP_FOLDER
   - 'for D in *; do
       if [ -d "${D}" ]; then
-        echo "${D}"   # your processing here
-        cd ${D}
-        egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0
+        echo "${D}";
+        cd ${D};
+        egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0;
         if (( $m5enabled == 1 )); then
-          export PATH_TO_INO_FILE="$(find SDAPP_FOLDER/$D -type f -iname *.ino)"
-          echo $PATH_TO_INO_FILE
-          arduino --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE
+          export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/{$D} -type f -iname *.ino)";
+          echo $PATH_TO_INO_FILE;
+          arduino --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE;
         else
-          echo bof
+          echo bof;
         fi
       fi
     done'
