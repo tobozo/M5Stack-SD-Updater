@@ -3,7 +3,9 @@
 
 
 wget https://gist.githubusercontent.com/Kongduino/36d152c81bbb1214a2128a2712ecdd18/raw/8ac549b98595856123359cbbd61444f16079bb99/Colours.h
-cat Colours.h >> /home/travis/Arduino/libraries/M5Stack-0.1.7/src/utility/Display.h 
+cat Colours.h >> /home/travis/Arduino/libraries/M5Stack-0.1.7/src/utility/Display.h
+
+
 
 for D in *; do
   if [ -d "${D}" ]; then
@@ -14,6 +16,7 @@ for D in *; do
     if (( $m5enabled == 1 )); then
       export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
       echo "Compiling ${PATH_TO_INO_FILE}";
+      arduino --pref "sketchbook.path=${SDAPP_FOLDER}/${D}" --save-prefs
       arduino --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
       ls $TRAVIS_BUILD_DIR/build -la
     else
