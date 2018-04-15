@@ -1,6 +1,6 @@
 function movebin {
+ find /tmp -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
  find /tmp -name \*.bin -exec cp {} $TRAVIS_BUILD_DIR/build/ \; #<-- you need that backslash before and space after the semicolon
- find $TRAVIS_BUILD_DIR/build -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
 }
 
 function injectupdater {
