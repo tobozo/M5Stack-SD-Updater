@@ -1,8 +1,4 @@
 language: generic
-addons:
-  apt:
-    packages:
-      - "imagemagick"
 env:
   global:
     - IDE_VERSION=1.8.5
