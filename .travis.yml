@@ -85,3 +85,5 @@ deploy:
   file_glob: true
   file: $TRAVIS_BUILD_DIR/build/*
   skip_cleanup: true
+  on:
+    branch: M5Stack-SD-Apps
