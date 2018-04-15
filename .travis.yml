@@ -3,6 +3,7 @@ env:
   global:
     - IDE_VERSION=1.8.5
     - SDAPP_FOLDER=$PWD/examples/M5Stack-SD-Menu/SD-Apps
+    - ${TRAVIS_TAG}="SD-Extras-1.0.0"
   matrix:
     - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
 #    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
@@ -64,4 +65,22 @@ script:
   - ls $TRAVIS_BUILD_DIR/build/ -la
   - sleep 15 # give some time to the logs to come up  
 
- 
+ before_deploy:
+  # Set up git user name and tag this commit
+  - git config --global user.email "travis@travis-ci.org"
+  - git config --global user.name "Travis CI"
+  - git tag ${TRAVIS_TAG}
+  # - export BODY=$(cat CHANGELOG.md) # boo! Travis doesn't like multiline body
+  
+deploy:
+  provider: releases
+  api_key: $GITHUB_TOKEN
+  overwrite: true
+  target_commitish: $TRAVIS_COMMIT
+  tag_name: ${TRAVIS_TAG}
+  name: SD-Extras-autorelease ${TRAVIS_TAG}
+  body: "${BODY}" # Automated release from Travis CI with added binary files from Arduino compilation 
+  draft: true
+  file_glob: true
+  file: $TRAVIS_BUILD_DIR/build/*
+skip_cleanup: true
