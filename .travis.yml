@@ -3,7 +3,7 @@ env:
   global:
     - IDE_VERSION=1.8.5
     - SDAPP_FOLDER=$PWD/examples/M5Stack-SD-Menu/SD-Apps
-    - ${TRAVIS_TAG}="SD-Extras-1.0.0"
+    - TRAVIS_TAG="SD-Extras-1.0.0"
   matrix:
     - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
 #    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
