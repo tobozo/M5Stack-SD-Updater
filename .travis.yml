@@ -4,6 +4,7 @@ env:
     - IDE_VERSION=1.8.5
     - SDAPP_FOLDER=$PWD/examples/M5Stack-SD-Menu/SD-Apps
     - TRAVIS_TAG="v0.1.0-SD-Extras"
+    - M5_SD_BUILD_DIR=$TRAVIS_BUILD_DIR/build/SD-Content
   matrix:
     - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
 #    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
@@ -14,8 +15,9 @@ before_install:
   - wget http://downloads.arduino.cc/arduino-$IDE_VERSION-linux64.tar.xz
   - tar xf arduino-$IDE_VERSION-linux64.tar.xz
   - mv arduino-$IDE_VERSION ~/arduino-ide
+  - rm arduino-$IDE_VERSION-linux64.tar.xz
   - export PATH=$PATH:~/arduino-ide
-  - mkdir -p $TRAVIS_BUILD_DIR/build
+  - mkdir -p $M5_SD_BUILD_DIR
   - if [[ "$BOARD" =~ "espressif:esp32:" ]]; then
       mkdir -p ~/Arduino/hardware/espressif &&
       cd ~/Arduino/hardware/espressif &&
@@ -49,20 +51,21 @@ install:
   - mkdir -p ~/Arduino/libraries/Game_Audio
   - unzip -d ~/Arduino/libraries/Game_Audio Game_Audio.zip
   - ls ~/Arduino/libraries -la
+  - rm *.zip
 
 script:
   - arduino --pref "compiler.warning_level=none" --save-prefs
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
   - arduino  --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino >> $SDAPP_FOLDER/out.log
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
-  - find /tmp -name \*.bin -exec mv {} $TRAVIS_BUILD_DIR/build/menu.bin \; #
+  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/menu.bin \; #
   - echo "Main APP Compilation successful, now compiling deps"
   - cd $SDAPP_FOLDER
   - ./gen-apps.sh
   #- find /tmp -name \*.bin -exec ls -lrt {} \; #<-- you need that backslash before and space after the semicolon
   #- find /tmp -name \*.bin -exec cp {} $TRAVIS_BUILD_DIR/build/$BINNAME \; #<-- you need that backslash before and space after the semicolon
   #- find $TRAVIS_BUILD_DIR/build -name \*.bin -exec ls -lrt {} \; #<-- you need that backslash before and space after the semicolon
-  - ls $TRAVIS_BUILD_DIR/build/ -la
+  - ls $M5_SD_BUILD_DIR/ -la
   - sleep 15 # give some time to the logs to come up  
 
 before_deploy:
@@ -71,12 +74,13 @@ before_deploy:
   - git config --global user.email "travis@travis-ci.org"
   - git config --global user.name "Travis CI"
   - git tag ${TRAVIS_TAG}
-  - cd $TRAVIS_BUILD_DIR/build 
-  - zip -r ../SD-Apps-Folder.zip ./
-  - cd ..
   - cd $PWD/../
   - zip -r $TRAVIS_BUILD_DIR/M5Stack-SD-Updater.zip M5Stack-SD-Updater -x *.git*
   - cd $PWD
+  - cd $M5_SD_BUILD_DIR 
+  - zip -r $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip ./
+  - cd ..
+
   # - export BODY=$(cat CHANGELOG.md) # boo! Travis doesn't like multiline body
   
 deploy:
