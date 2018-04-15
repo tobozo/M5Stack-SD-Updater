@@ -71,6 +71,10 @@ before_deploy:
   - git config --global user.email "travis@travis-ci.org"
   - git config --global user.name "Travis CI"
   - git tag ${TRAVIS_TAG}
+  - cd $TRAVIS_BUILD_DIR/build 
+  - zip -r ../SD-Apps-Folder.zip ./
+  - cd ..
+
   # - export BODY=$(cat CHANGELOG.md) # boo! Travis doesn't like multiline body
   
 deploy:
@@ -80,10 +84,11 @@ deploy:
   target_commitish: $TRAVIS_COMMIT
   tag_name: ${TRAVIS_TAG}
   name: SD-Extras-autorelease ${TRAVIS_TAG}
-  body: "${BODY}" # Automated release from Travis CI with added binary files from Arduino compilation 
+  body: Automated release from Travis CI with added SD Apps binary files from Arduino compilation 
   draft: true
-  file_glob: true
-  file: $TRAVIS_BUILD_DIR/build/*
+  #file_glob: true
+  #file: $TRAVIS_BUILD_DIR/build/*
+  file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
   skip_cleanup: true
   on:
     branch: M5Stack-SD-Apps
