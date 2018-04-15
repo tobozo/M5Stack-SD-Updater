@@ -1,7 +1,7 @@
 function movebin {
  find /tmp -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
  find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; #
- find /tmp -name \*.bin -exec rename -v 's/(_for)?(_|-)?(M5|m5)_?((S|s)tack)?(-|_)//i' {} \; #
+ find /tmp -name \*.bin -exec rename 's/(_for)?(_|-)?(m5)_?(stack)?(-|_)?//ig' {} \; #
  export BIN_FILE=`basename $( find /tmp -name \*.bin )`
  find /tmp -name \*.bin -exec mv {} $TRAVIS_BUILD_DIR/build/ \; #<-- you need that backslash before and space after the semicolon
  echo $BIN_FILE
