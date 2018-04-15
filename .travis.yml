@@ -44,8 +44,8 @@ install:
   - ls ~/Arduino/libraries -la
 
 script:
-  - arduino --pref "compiler.warning_level=none"
-  - arduino --pref "build.warn_data_percentage=75"
+  - arduino --pref "compiler.warning_level=none" --save-prefs
+  - arduino --pref "build.warn_data_percentage=75" --save-prefs
   - arduino --pref "build.path=${TRAVIS_BUILD_DIR}/build" --save-prefs
   - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino >> $SDAPP_FOLDER/out.log
   - echo "Main APP Compilation successful, now compiling deps"
