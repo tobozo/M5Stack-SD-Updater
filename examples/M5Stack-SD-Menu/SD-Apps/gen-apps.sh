@@ -8,8 +8,10 @@ function movebin {
 }
 
 function injectupdater {
-  awk '/#include <M5Stack.h>/{print;print "#include <M5StackUpdater.h>";next}1' $1;
-  awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { updateFromFS(SD); ESP.restart(); } ";next}1' $1;
+  export outfile = $1;
+  awk '/#include <M5Stack.h>/{print;print "#include <M5StackUpdater.h>";next}1' $outfile > tmp && mv tmp $outfile;
+
+  awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { updateFromFS(SD); ESP.restart(); } ";next}1' $outfile > tmp && mv tmp $outfile;
 }
 
 function populatemeta {
