@@ -3,9 +3,10 @@
 
 
 # M5Stack-SD-Updater
- 
 
-![SD Card Loader](M5StackSDUpdaterpic.png) 
+<br />
+
+![SD Card Loader](SDUpdaterpic.png) 
 
 
 ## ABOUT
