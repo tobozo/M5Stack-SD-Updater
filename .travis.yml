@@ -38,6 +38,8 @@ install:
 #  - unzip -d ~/Arduino/libraries QRCode-master.zip
   - wget https://github.com/m5stack/M5Stack/archive/0.1.7.zip --output-document=M5Stack.zip
   - unzip -d ~/Arduino/libraries M5Stack.zip
+  - wget https://github.com/earlephilhower/ESP8266Audio/archive/master.zip --output-document=ESP8266Audio.zip
+  - unzip -d ~/Arduino/libraries ESP8266Audio.zip
   - wget http://www.buildlog.net/blog/wp-content/uploads/2018/02/Game_Audio.zip --output-document=Game_Audio.zip
   - mkdir -p ~/Arduino/libraries/Game_Audio
   - unzip -d ~/Arduino/libraries/Game_Audio Game_Audio.zip
