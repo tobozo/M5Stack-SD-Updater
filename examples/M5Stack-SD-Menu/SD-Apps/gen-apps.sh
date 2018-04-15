@@ -14,17 +14,35 @@ for D in *; do
     ls -la
     egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0;
     if (( $m5enabled == 1 )); then
+
+      #export OLDPATH=$PATH;
+      #export PATH=$PATH:$SDAPP_FOLDER/$D;
+
+      case "$D" in
+
+      'M5-Colours-Demo'
+        echo "Downloading/applying Display.h patch"
+        wget https://gist.githubusercontent.com/Kongduino/36d152c81bbb1214a2128a2712ecdd18/raw/8ac549b98595856123359cbbd61444f16079bb99/Colours.h
+        cat Colours.h >> /home/travis/Arduino/libraries/M5Stack-0.1.7/src/utility/Display.h
+      ;;
+
+      'Pixel-Fun-M5Stack')
+        echo "Renaming $D ino file"
+        mv PixelFun.ino Pixel-Fun-M5Stack.ino
+      ;;
+
+
+      #*)
+      #;;
+
+      esac
+
       export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
       echo "Compiling ${PATH_TO_INO_FILE}";
-#      arduino --pref "sketchbook.path=${SDAPP_FOLDER}/${D}" --save-prefs
-#      arduino --pref "compiler.warning_level=none" --save-prefs
-#      arduino --pref "build.warn_data_percentage=75" --save-prefs
-#      arduino --pref "build.path=${TRAVIS_BUILD_DIR}/build" --save-prefs
-      export OLDPATH=$PATH;
-      export PATH=$PATH:$SDAPP_FOLDER/$D;
-      arduino --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
+      arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
       ls $TRAVIS_BUILD_DIR/build -la;
-      export PATH=$OLDPATH;
+
+      #export PATH=$OLDPATH;
     else
       echo "Not compiling ${D} as it needs injection first";
     fi
