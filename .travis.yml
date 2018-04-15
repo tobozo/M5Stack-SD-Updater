@@ -75,7 +75,7 @@ before_deploy:
   - git config --global user.name "Travis CI"
   - git tag ${TRAVIS_TAG}
   - cd $PWD/../
-  - zip -r $TRAVIS_BUILD_DIR/M5Stack-SD-Updater.zip $PWD -x *.git*
+  - zip -r $TRAVIS_BUILD_DIR/M5Stack-SD-Updater.zip M5Stack-SD-Updater -x *.git*
   - cd $M5_SD_BUILD_DIR 
   - zip -r $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip ./
   - cd $TRAVIS_BUILD_DIR
