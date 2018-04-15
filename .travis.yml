@@ -67,7 +67,7 @@ script:
 
 before_deploy:
   # Set up git user name and tag this commit
-  - cd $TRAVIS_BUILD_DIR
+  - cd $PWD
   - git config --global user.email "travis@travis-ci.org"
   - git config --global user.name "Travis CI"
   - git tag ${TRAVIS_TAG}
