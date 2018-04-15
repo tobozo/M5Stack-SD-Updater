@@ -20,7 +20,7 @@ function populatemeta {
   echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
   wget $AVATAR_URL --output-document=temp
   convert temp -resize 120x120 $TRAVIS_BUILD_DIR/build/jpg/$IMG_NAME
-  identify $TRAVIS_BUILD_DIR/build/$IMG_NAME
+  identify $TRAVIS_BUILD_DIR/build/jpg/$IMG_NAME
 }
 
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/* $TRAVIS_BUILD_DIR/build/
