@@ -50,8 +50,9 @@ install:
 script:
   - arduino --pref "compiler.warning_level=none" --save-prefs
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
-  #- arduino --pref "build.path=${TRAVIS_BUILD_DIR}/build" --save-prefs
-  - arduino --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino >> $SDAPP_FOLDER/out.log
+  - arduino  --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino >> $SDAPP_FOLDER/out.log
+  - find /tmp -name \*.partitions.bin -exec rm {} \; #
+  - find /tmp -name \*.bin -exec cp {} $TRAVIS_BUILD_DIR/build/menu.bin \; #
   - echo "Main APP Compilation successful, now compiling deps"
   - cd $SDAPP_FOLDER
   - ./gen-apps.sh
