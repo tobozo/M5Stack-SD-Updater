@@ -13,7 +13,7 @@ function injectupdater {
 }
 
 function populatemeta {
-  export IMG_NAME=${BIN_FILE%.bin}.jpg
+  export IMG_NAME=${BIN_FILE%.bin}_gh.jpg
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
   export AVATAR_URL=$REPO_OWNER_URL.png?size=200
@@ -21,9 +21,11 @@ function populatemeta {
   wget $AVATAR_URL --output-document=temp
   convert temp -resize 120x120 $TRAVIS_BUILD_DIR/build/jpg/$IMG_NAME
   identify $TRAVIS_BUILD_DIR/build/jpg/$IMG_NAME
+  rm temp
 }
 
-cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/* $TRAVIS_BUILD_DIR/build/
+cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/jpg $TRAVIS_BUILD_DIR/build/
+cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/json $TRAVIS_BUILD_DIR/build/
 
 
 for D in *; do
@@ -102,7 +104,4 @@ for D in *; do
   fi
 done
 
-#cd $TRAVIS_BUILD_DIR/build
-#zip -r ../SD-Apps-Folder.zip ./
-#cd ..
 
