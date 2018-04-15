@@ -23,6 +23,7 @@ function populatemeta {
   identify $TRAVIS_BUILD_DIR/build/$IMG_NAME
 }
 
+cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/* $TRAVIS_BUILD_DIR/build/
 
 
 for D in *; do
@@ -100,3 +101,8 @@ for D in *; do
     cd ..
   fi
 done
+
+#cd $TRAVIS_BUILD_DIR/build
+#zip -r ../SD-Apps-Folder.zip ./
+#cd ..
+
