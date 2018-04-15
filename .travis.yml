@@ -42,6 +42,8 @@ install:
   - unzip -d ~/Arduino/libraries ESP8266Audio.zip
   - wget https://github.com/Kongduino/M5Widgets/archive/master.zip --output-document=M5Widgets.zip
   - unzip -d ~/Arduino/libraries M5Widgets.zip
+  - wget https://github.com/Gianbacchio/ESP8266_Spiram/archive/master.zip --output-document=ESP8266_Spiram.zip
+  - unzip -d ~/Arduino/libraries ESP8266_Spiram.zip
   - wget http://www.buildlog.net/blog/wp-content/uploads/2018/02/Game_Audio.zip --output-document=Game_Audio.zip
   - mkdir -p ~/Arduino/libraries/Game_Audio
   - unzip -d ~/Arduino/libraries/Game_Audio Game_Audio.zip
