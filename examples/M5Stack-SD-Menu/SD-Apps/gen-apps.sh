@@ -12,6 +12,16 @@ function injectupdater {
   awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { updateFromFS(SD); ESP.restart(); } ";next}1' $1 > $1;
 }
 
+function populatemeta {
+  export JPEG_NAME=${BIN_FILE%.bin}.jpg
+  export REPO_URL=`git config remote.origin.url`
+  export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
+  export AVATAR_URL=$( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
+  echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
+  wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$JPEG_NAME
+}
+
+
 
 for D in *; do
   if [ -d "${D}" ]; then
@@ -79,15 +89,14 @@ for D in *; do
     export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
     echo "**** Compiling ${PATH_TO_INO_FILE}";
 
-    arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
+    arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log && movebin && populatemeta
 
-    movebin
-    export JPEG_NAME=${BIN_FILE%.bin}.jpg
-    export REPO_URL=`git config remote.origin.url`
-    export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
-    export AVATAR_URL=$( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
-    echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
-    wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$JPEG_NAME
+#    export JPEG_NAME=${BIN_FILE%.bin}.jpg
+#    export REPO_URL=`git config remote.origin.url`
+#    export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
+#    export AVATAR_URL=$( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
+#    echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
+#    wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$JPEG_NAME
 
     ls $TRAVIS_BUILD_DIR/build -la;
 
