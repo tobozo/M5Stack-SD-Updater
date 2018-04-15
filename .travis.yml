@@ -87,10 +87,8 @@ deploy:
   name: SD-Extras-autorelease $TRAVIS_TAG
   body: Automated release from Travis CI with added SD Apps binary files from Arduino compilation 
   draft: true
-  file_glob: true
-  file: 
-    - $PWD/**/*
-    - $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
+  #file_glob: true
+  file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
   #file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
   on:
     branch: M5Stack-SD-Apps
