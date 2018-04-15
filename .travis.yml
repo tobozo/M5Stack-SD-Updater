@@ -81,14 +81,14 @@ deploy:
   provider: releases
   api_key: $GH_TOKEN
   overwrite: true
+  skip_cleanup: true
   target_commitish: $TRAVIS_COMMIT
-  tag_name: ${TRAVIS_TAG}
-  name: SD-Extras-autorelease ${TRAVIS_TAG}
+  tag_name: $TRAVIS_TAG
+  name: SD-Extras-autorelease $TRAVIS_TAG
   body: Automated release from Travis CI with added SD Apps binary files from Arduino compilation 
   draft: true
   #file_glob: true
   #file: $TRAVIS_BUILD_DIR/build/*
   file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
-  skip_cleanup: true
   on:
     branch: M5Stack-SD-Apps
