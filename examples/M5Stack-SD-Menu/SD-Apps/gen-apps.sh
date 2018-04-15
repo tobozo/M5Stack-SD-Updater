@@ -13,15 +13,13 @@ function injectupdater {
 }
 
 function populatemeta {
-  export IMG_NAME=${BIN_FILE%.bin}.png
+  export IMG_NAME=${BIN_FILE%.bin}.jpg
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
-  #export AVATAR_URL=$( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
-  export AVATAR_URL=$REPO_OWNER_URL.png?size=120
+  export AVATAR_URL=$REPO_OWNER_URL.png?size=200
   echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
-  #wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$IMG_NAME
   wget $AVATAR_URL --output-document=temp
-  convert -resize 120x120 temp $TRAVIS_BUILD_DIR/build/$IMG_NAME
+  convert temp -resize 120x120 $TRAVIS_BUILD_DIR/build/$IMG_NAME
   identify $TRAVIS_BUILD_DIR/build/$IMG_NAME
 }
 
@@ -77,8 +75,10 @@ for D in *; do
 #      ;;
 #      'M5_LoRa_Frequency_Hopping')
 #      ;;
-#      'M5Stack_FlappyBird_game')
-#      ;;
+      'M5Stack_FlappyBird_game')
+        # add a space to prevent syntax error
+        sed -i -e 's/By Ponticelli Domenico/ By Ponticelli Domenico/g' $PATH_TO_INO_FILE
+      ;;
 #      'M5Stack-PacketMonitor')
 #      ;;
 #      'M5Stack_Sokoban')
@@ -94,13 +94,6 @@ for D in *; do
     echo "**** Compiling ${PATH_TO_INO_FILE}";
 
     arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log && movebin && populatemeta
-
-#    export JPEG_NAME=${BIN_FILE%.bin}.jpg
-#    export REPO_URL=`git config remote.origin.url`
-#    export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
-#    export AVATAR_URL=$( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
-#    echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
-#    wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$JPEG_NAME
 
     ls $TRAVIS_BUILD_DIR/build -la;
 
