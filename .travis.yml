@@ -65,8 +65,9 @@ script:
   - ls $TRAVIS_BUILD_DIR/build/ -la
   - sleep 15 # give some time to the logs to come up  
 
- before_deploy:
+before_deploy:
   # Set up git user name and tag this commit
+  - cd $TRAVIS_BUILD_DIR
   - git config --global user.email "travis@travis-ci.org"
   - git config --global user.name "Travis CI"
   - git tag ${TRAVIS_TAG}
@@ -83,4 +84,4 @@ deploy:
   draft: true
   file_glob: true
   file: $TRAVIS_BUILD_DIR/build/*
-skip_cleanup: true
+  skip_cleanup: true
