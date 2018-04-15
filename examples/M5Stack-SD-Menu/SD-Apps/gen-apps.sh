@@ -1,6 +1,10 @@
 function movebin {
  find /tmp -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
+ find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; #
+ find /tmp -name \*.bin -exec rename -v 's/(_for)?(_|-)?(M5|m5)_?((S|s)tack)?(-|_)//i' {} \; #
+ export BIN_FILE=`basename $( find /tmp -name \*.bin )`
  find /tmp -name \*.bin -exec mv {} $TRAVIS_BUILD_DIR/build/ \; #<-- you need that backslash before and space after the semicolon
+ echo $BIN_FILE
 }
 
 function injectupdater {
@@ -79,9 +83,20 @@ for D in *; do
 
     arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
 
-    movebin
-    rename 's/.ino.bin/.bin/' $TRAVIS_BUILD_DIR/build/*.ino.bin
+    export BIN_FILE=`movebin`
+    export JPEG_NAME= ${BIN_FILE%.bin}.jpg
+    # cleanup redundant extensions
+    #rename 's/.ino.bin/.bin/' $TRAVIS_BUILD_DIR/build/*.ino.bin
+    # remove redundant "M5 Stack" variations from the filename
+    #rename -v 's/(_for)?(_|-)?(M5|m5)_?((S|s)tack)?(-|_)//i' $TRAVIS_BUILD_DIR/build/*.bin
     ls $TRAVIS_BUILD_DIR/build -la;
+
+    export REPO_URL=`git config remote.origin.url`
+    export REPO_OWNER_URL = `echo ${REPO_URL%/*}`
+    export AVATAR_URL= $( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
+    wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$JPEG_NAME
+
+    #git config remote.origin.url
 
     cd ..
   fi
