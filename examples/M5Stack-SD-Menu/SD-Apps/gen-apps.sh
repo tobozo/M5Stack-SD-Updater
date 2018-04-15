@@ -19,6 +19,7 @@ function populatemeta {
   export AVATAR_URL=$( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
   echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
   wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$JPEG_NAME
+  file $TRAVIS_BUILD_DIR/build/$JPEG_NAME
 }
 
 
