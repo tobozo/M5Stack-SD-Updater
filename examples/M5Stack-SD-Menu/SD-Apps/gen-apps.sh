@@ -13,8 +13,6 @@ function injectupdater {
 }
 
 
-movebin
-
 for D in *; do
   if [ -d "${D}" ]; then
     echo "moving to ${D}";
@@ -84,7 +82,7 @@ for D in *; do
     arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
 
     export BIN_FILE=`movebin`
-    export JPEG_NAME= ${BIN_FILE%.bin}.jpg
+    export JPEG_NAME=${BIN_FILE%.bin}.jpg
     # cleanup redundant extensions
     #rename 's/.ino.bin/.bin/' $TRAVIS_BUILD_DIR/build/*.ino.bin
     # remove redundant "M5 Stack" variations from the filename
@@ -92,8 +90,8 @@ for D in *; do
     ls $TRAVIS_BUILD_DIR/build -la;
 
     export REPO_URL=`git config remote.origin.url`
-    export REPO_OWNER_URL = `echo ${REPO_URL%/*}`
-    export AVATAR_URL= $( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
+    export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
+    export AVATAR_URL=$( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
     wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$JPEG_NAME
 
     #git config remote.origin.url
