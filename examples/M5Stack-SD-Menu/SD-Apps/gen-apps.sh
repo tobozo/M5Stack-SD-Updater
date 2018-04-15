@@ -4,7 +4,6 @@ function movebin {
  find /tmp -name \*.bin -exec rename 's/(_for)?(_|-)?(m5)_?(stack)?(-|_)?//ig' {} \; #
  export BIN_FILE=`basename $( find /tmp -name \*.bin )`
  find /tmp -name \*.bin -exec mv {} $TRAVIS_BUILD_DIR/build/ \; #<-- you need that backslash before and space after the semicolon
- 
  echo $BIN_FILE
 }
 
@@ -18,10 +17,12 @@ function populatemeta {
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
   #export AVATAR_URL=$( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
-  export AVATAR_URL=$REPO_OWNER_URL.png?size=200
+  export AVATAR_URL=$REPO_OWNER_URL.png?size=120
   echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
-  wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$IMG_NAME
-  file $TRAVIS_BUILD_DIR/build/$IMG_NAME
+  #wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$IMG_NAME
+  wget $AVATAR_URL --output-document=temp
+  convert -rezise 120x120 temp $TRAVIS_BUILD_DIR/build/$IMG_NAME
+  identify $TRAVIS_BUILD_DIR/build/$IMG_NAME
 }
 
 
