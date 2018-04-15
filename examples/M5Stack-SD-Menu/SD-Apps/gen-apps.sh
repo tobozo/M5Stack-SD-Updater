@@ -3,7 +3,7 @@ function movebin {
  find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; #
  find /tmp -name \*.bin -exec rename 's/(_for)?(_|-)?(m5)_?(stack)?(-|_)?//ig' {} \; #
  export BIN_FILE=`basename $( find /tmp -name \*.bin )`
- find /tmp -name \*.bin -exec mv {} $TRAVIS_BUILD_DIR/build/ \; #<-- you need that backslash before and space after the semicolon
+ find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/ \; #<-- you need that backslash before and space after the semicolon
  echo $BIN_FILE
 }
 
@@ -19,13 +19,13 @@ function populatemeta {
   export AVATAR_URL=$REPO_OWNER_URL.png?size=200
   echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
   wget $AVATAR_URL --output-document=temp
-  convert temp -resize 120x120 $TRAVIS_BUILD_DIR/build/jpg/$IMG_NAME
-  identify $TRAVIS_BUILD_DIR/build/jpg/$IMG_NAME
+  convert temp -resize 120x120 $M5_SD_BUILD_DIR/jpg/$IMG_NAME
+  identify $M5_SD_BUILD_DIR/jpg/$IMG_NAME
   rm temp
 }
 
-cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/jpg $TRAVIS_BUILD_DIR/build/
-cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/json $TRAVIS_BUILD_DIR/build/
+cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/jpg $M5_SD_BUILD_DIR/
+cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/json $M5_SD_BUILD_DIR/
 
 
 for D in *; do
@@ -98,7 +98,7 @@ for D in *; do
 
     arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log && movebin && populatemeta
 
-    ls $TRAVIS_BUILD_DIR/build -la;
+    ls $M5_SD_BUILD_DIR -la;
 
     cd ..
   fi
