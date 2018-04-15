@@ -74,7 +74,9 @@ before_deploy:
   - cd $TRAVIS_BUILD_DIR/build 
   - zip -r ../SD-Apps-Folder.zip ./
   - cd ..
-
+  - CD $PWD/../
+  - zip -r $TRAVIS_BUILD_DIR/M5Stack-SD-Updater.zip M5Stack-SD-Updater -x *.git*
+  - cd $PWD
   # - export BODY=$(cat CHANGELOG.md) # boo! Travis doesn't like multiline body
   
 deploy:
@@ -88,7 +90,9 @@ deploy:
   body: Automated release from Travis CI with added SD Apps binary files from Arduino compilation 
   draft: true
   #file_glob: true
-  file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
+  file: 
+    - $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
+    - $TRAVIS_BUILD_DIR/M5Stack-SD-Updater.zip
   #file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
   on:
     branch: M5Stack-SD-Apps
