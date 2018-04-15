@@ -77,24 +77,19 @@ for D in *; do
     fi
 
     export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
-    echo "Compiling ${PATH_TO_INO_FILE}";
+    echo "**** Compiling ${PATH_TO_INO_FILE}";
 
     arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
 
     export BIN_FILE=`movebin`
     export JPEG_NAME=${BIN_FILE%.bin}.jpg
-    # cleanup redundant extensions
-    #rename 's/.ino.bin/.bin/' $TRAVIS_BUILD_DIR/build/*.ino.bin
-    # remove redundant "M5 Stack" variations from the filename
-    #rename -v 's/(_for)?(_|-)?(M5|m5)_?((S|s)tack)?(-|_)//i' $TRAVIS_BUILD_DIR/build/*.bin
-    ls $TRAVIS_BUILD_DIR/build -la;
-
     export REPO_URL=`git config remote.origin.url`
     export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
     export AVATAR_URL=$( wget -O - $REPO_OWNER_URL | grep "avatar width-full" | sed -n 's/.*src="\([^"]*\)".*/\1/p' )
+    echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
     wget $AVATAR_URL --output-document=$TRAVIS_BUILD_DIR/build/$JPEG_NAME
 
-    #git config remote.origin.url
+    ls $TRAVIS_BUILD_DIR/build -la;
 
     cd ..
   fi
