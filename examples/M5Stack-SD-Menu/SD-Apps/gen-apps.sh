@@ -80,6 +80,7 @@ for D in *; do
     arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
 
     movebin
+    rename 's/.ino.bin/.bin/' $TRAVIS_BUILD_DIR/build/*.ino.bin
     ls $TRAVIS_BUILD_DIR/build -la;
 
     cd ..
