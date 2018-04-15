@@ -1,6 +1,6 @@
 function movebin {
  find /tmp -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
- find /tmp -name \*.bin -exec cp {} $TRAVIS_BUILD_DIR/build/ \; #<-- you need that backslash before and space after the semicolon
+ find /tmp -name \*.bin -exec mv {} $TRAVIS_BUILD_DIR/build/ \; #<-- you need that backslash before and space after the semicolon
 }
 
 function injectupdater {
@@ -15,7 +15,7 @@ for D in *; do
   if [ -d "${D}" ]; then
     echo "moving to ${D}";
     cd ${D};
-    ls -la
+    # ls -la
     egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0;
     if (( $m5enabled == 1 )); then
 
