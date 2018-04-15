@@ -81,7 +81,7 @@ for D in *; do
 
     arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log;
 
-    export BIN_FILE=`movebin`
+    movebin
     export JPEG_NAME=${BIN_FILE%.bin}.jpg
     export REPO_URL=`git config remote.origin.url`
     export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
