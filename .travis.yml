@@ -75,7 +75,7 @@ before_deploy:
   
 deploy:
   provider: releases
-  api_key: $GITHUB_TOKEN
+  api_key: $GH_TOKEN
   overwrite: true
   target_commitish: $TRAVIS_COMMIT
   tag_name: ${TRAVIS_TAG}
