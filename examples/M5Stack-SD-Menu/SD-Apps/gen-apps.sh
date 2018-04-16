@@ -10,8 +10,9 @@ function movebin {
 function injectupdater {
   export outfile=$1;
   awk '/#include <M5Stack.h>/{print;print "#include <M5StackUpdater.h>";next}1' $outfile > tmp && mv tmp $outfile;
-
   awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { updateFromFS(SD); ESP.restart(); } ";next}1' $outfile > tmp && mv tmp $outfile;
+  # the M5StackUpdater requires Wire.begin(), inject it if necessary
+  egrep -R "Wire.begin()" || awk '/M5.begin()/{print;print "Wire.begin();";next}1' $outfile > tmp && mv tmp $outfile;
 }
 
 function populatemeta {
@@ -73,8 +74,10 @@ for D in *; do
 #      'M5Stack-Rickroll')
 #      ;;
       'M5Stack-Tetris')
-         echo "Renaming Tetris to M5Stack-Tetris"
+         echo "Renaming Tetris to M5Stack-Tetris + changing path to bg image"
          mv Tetris.ino M5Stack-Tetris.ino
+         sed -i 's/tetris.jpg/\/jpg\/tetris_bg.jpg/g' M5Stack-Tetris.ino
+         cp tetris.jpg $M5_SD_BUILD_DIR/jpg/tetris_bg.jpg
       ;;
 #      'SpaceDefense-m5stack')
 #      ;;
@@ -82,7 +85,7 @@ for D in *; do
 #      ;;
       'M5Stack_FlappyBird_game')
         # add a space to prevent syntax error
-        sed -i -e 's/By Ponticelli Domenico/ By Ponticelli Domenico/g' $PATH_TO_INO_FILE
+        sed -i -e 's/By Ponticelli Domenico/ By Ponticelli Domenico/g' M5Stack_FlappyBird.ino
       ;;
 #      'M5Stack-PacketMonitor')
 #      ;;
