@@ -106,4 +106,6 @@ for D in *; do
   fi
 done
 
+egrep -R M5StackUpdater $SDAPP_FOLDER/* 
+egrep -R updateFromFS $SDAPP_FOLDER/*
 
