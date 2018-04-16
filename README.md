@@ -203,8 +203,7 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 | :clapper:   | Video demonstration      | https://youtu.be/myQfeYxyc3o                 |
 | :clapper:   | [Video demo of Pacman + sound](https://youtu.be/36fgNCecoEg) | [Source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP) | 
 | :clapper:   | [Video demo of NyanCat](https://youtu.be/Zxh2mtWwfaE) |  [Source](https://github.com/tobozo/M5Stack-NyanCat)  |
-| 🎓        | [Macsbug's article on M5Stack SD-Updater](https://translate.google.com/translate?hl=en&sl=ja&tl=en&u=https%3A%2F%2Fmacsbug.wordpress.com%2F2018%2F03%2F12%2Fm5stack-sd-updater%2F) | (English translation) |
-| 🎓        | [Macsbug's article on M5Stack SD-Updater](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) | (Japanese) |
+| 🎓        | [Macsbug's article on M5Stack SD-Updater](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) | [🇯🇵](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) [🇬🇧](https://translate.google.com/translate?hl=en&sl=ja&tl=en&u=https%3A%2F%2Fmacsbug.wordpress.com%2F2018%2F03%2F12%2Fm5stack-sd-updater%2F) (google translate)|
 
 <br />
 
