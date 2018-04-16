@@ -1,42 +1,87 @@
-# M5Stack-SD-Updater
-
-**M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) to package you apps on a SD card and load them from a menu.**
-It is inspired by gamebuino, however it does not use a modified bootloader.
-
 [![License: MIT](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tobozo/M5Stack-SD-Updater/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/tobozo/M5Stack-SD-Updater.svg?branch=master)](https://travis-ci.org/tobozo/M5Stack-SD-Updater)
 
-[![ M5Stack Apps loaded from SD Card](https://img.youtube.com/vi/myQfeYxyc3o/0.jpg)](https://www.youtube.com/watch?v=myQfeYxyc3o)
 
-[<img alt="Visual demo for M5Stack Info Window with QR Code" title="M5Stack Info Window with Credits and QR Code" src="https://camo.githubusercontent.com/06570c553f4ca575d60e7d7ff81ea2d8d555e40d/68747470733a2f2f7062732e7477696d672e636f6d2f6d656469612f44596d4c75396e573041416c71682d2e6a7067" data-canonical-src="https://pbs.twimg.com/media/DYmLu9nW0AAlqh-.jpg" width=480>](https://twitter.com/TobozoTagada/status/972845518966743040)
+# M5Stack-SD-Updater
+
+<br />
+
+
+
+[![Click to enlarge](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic.png "Click to enlarge")](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic02.png)
+
+
+
+
+
+
+
+<br />
+
+## ABOUT
+
+- **M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) to package you apps on a SD card and load them from a menu.**
+
+- It is inspired by gamebuino, however it does not use a modified bootloader.
+
+- [Video demonstration](https://www.youtube.com/watch?v=myQfeYxyc3o)
+
+- This project by [tobozo](https://github.com/tobozo) - built on M5Stack-SAM by Tom Such. Further credits listed below.
+
+- Contributors welcome !
+
+
+<br />
 
 🏭 PREREQUISITES:
 -----------------
-**Make sure you have the following libraries:**
-  
+<br />
+
+**Micro SD Card (TF Card)** - formatted using FAT32. Max size 32 Gb.
+
+<br />
+
+**Make sure you have the following libraries:** - they should be installed in: ....\Documents\Arduino\libraries
+
+- [M5Stack library](https://github.com/m5stack/M5Stack) - this is probably already installed - if not you can get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+
 - M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
-- [M5Stack](https://github.com/m5stack/M5Stack) get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
 - M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
 
-**If your version of [M5Stack is (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7) you're done.**
+<br />
 
-**If your version of M5Stack is 0.1.6 or earlier, install this additional library:**
+**If your version of [M5Stack is (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7) you are set and can move on.**
+
+<br />
+
+**If your version of M5Stack is 0.1.6 or earlier, you need to install this additional library:**
 
 - QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode) available in the Arduino Library Manager
 
 
+<br />
+
 
 🍱 UNPACKING
 ------------
-Open both sketches from the "examples/M5Stack-SD-Update" menu.
 
+**1) Open both sketches from the "examples/M5Stack-SD-Update" menu.**
 
-**1) Compile the "M5Stack-SD-Menu.ino" example.** This sketch is the menu app. It must be compiled once (sketch / export compiled binary) and saved on the SD Card root directory as "menu.bin" for persistence. It should also be flashed on the M5Stack.
+<br />
 
+**2) Compile the "M5Stack-SD-Menu.ino" example.** <br />
+This sketch is the menu app. It must be (a) compiled and saved to the root directory of a micro SD card for persistence and (b) flashed onto the M5Stack.
 
-**2) Merge and compile the "M5Stack-SDLoader-Snippet.ino" example.** It is possible to embed any M5 app by implementing the 
-  M5Stack SD Loader Snippet. This sketch can be used as a boilerplate to code an app from scratch.
+(a) In the Arduino IDE, go to Sketch / Export compiled binary , and compile the file. Rename the file "menu.bin" and copy it to the micro SD card. (b) Next, flash "menu.bin" to the M5Stack. 
+
+<br />
+
+**3) Make sketches compatible with the SD-Updater Menu .** <br />
+
+The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used to make any Arduino compatible sketch compatible for use with the SD-Updater menu.
+
 
   For an existing M5 app, find the line:
 
@@ -58,14 +103,17 @@ Open both sketches from the "examples/M5Stack-SD-Update" menu.
         updateFromFS(SD);
         ESP.restart();
       }
-      
-  Export the compiled binary (Sketch/Export Compiled Binary) and choose one of the above methods to get the app on the M5Stack:
+
+<br />
+
+  Export the compiled binary (Sketch/Export Compiled Binary) and choose one of the following ways to get the app on the M5Stack:
 
   - Manually copy it to the sd card
+  
   - Existing installations (menu.bin already copied and loaded on the M5Stack): clear the content of the [examples/M5Stack-SD-Menu/data](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/data) folder, copy the compiled binary there and use the [ESP32 Sketch Data Uploader](https://github.com/me-no-dev/arduino-esp32fs-plugin) utility (available from the Tools menu in the Arduino IDE).
 
+<br />
 
-**3) Repeat this for all applications**, jpg images or json meta files to import
 
 
 📚 USAGE:
@@ -88,11 +136,14 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
   
   `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://blah","credits":"thanks"}`
 
+<br />
 
   ⚠️ The jpg/json file names must match the bin file name, case matters!
   jpg/json files are optional but must both be set if provided.
   The value for *projectURL* property will be rendered as a QR Code in the info window.
 
+<br />
+<br />
 
 🚫 LIMITATIONS:
 ---------------
@@ -100,6 +151,7 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
 - FAT specifications prevent having more than 512 files on the SD Card, but this menu is limited to 256 Items anyway.
 - Long file names will eventually get covered by the jpg image, better stay under 8 chars (not including the extension).
 
+<br />
 
 🔘 OPTIONAL:
 ------------
@@ -109,7 +161,9 @@ The JoyPSP Controls for M5Stack SD Menu necessary code is now disabled in the me
 
 The code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, but it shouldn't be a problem to adapt/extend to other analog joystick models.
 
-KNONW ISSUES
+<br />
+
+ ⚠️ KNOWN ISSUES
 ------------
 *qrcode.h not found*, or *duplicate declarations* errors can occur during compilation of M5Stack-SD-Menu.ino.
 
@@ -132,27 +186,37 @@ See [#3](https://github.com/tobozo/M5Stack-SD-Updater/issues/3)
 
 vMicro: currently can't compile at all, see [#5](https://github.com/tobozo/M5Stack-SD-Updater/issues/5). Looking for a solution that works with both vMicro and Arduino IDE.
 
+<br />
 
 🛣 ROADMAP:
 ----------
 Not defined yet, but looking at how fast this [library landed in platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater), there's a possibility it will soon exist in different flavours (i.e. as an ESP-IDF component) or with more [features](https://github.com/m5stack/faces). Contributors welcome!
 
+<br />
 
-#️⃣  REFERENCES:
+#️⃣  REFERENCES: 
 --------------
-- :clapper: [Generic Demo](https://youtu.be/myQfeYxyc3o)
-- :clapper: [Demo with Pacman+sound](https://youtu.be/36fgNCecoEg) ([source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP))
-- :clapper: [NyanCat Demo](https://youtu.be/Zxh2mtWwfaE) ([source](https://github.com/tobozo/M5Stack-NyanCat))
-- 🎓 [Macsbug's article](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) (Japanese)
+<br />
 
+| :clapper:   | Video demonstration      | https://youtu.be/myQfeYxyc3o                 |
+| ------------ |:------------------------ | :------------------------------------------- |
+| :clapper:   | [Video demo of Pacman + sound](https://youtu.be/36fgNCecoEg) | [Source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP) | 
+| :clapper:   | [Video demo of NyanCat](https://youtu.be/Zxh2mtWwfaE) |  [Source](https://github.com/tobozo/M5Stack-NyanCat)  |
+| 🎓        | [Macsbug's article on M5Stack SD-Updater](https://translate.google.com/translate?hl=en&sl=ja&tl=en&u=https%3A%2F%2Fmacsbug.wordpress.com%2F2018%2F03%2F12%2Fm5stack-sd-updater%2F) | (English translation) |
+| 🎓        | [Macsbug's article on M5Stack SD-Updater](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) | (Japanese) |
 
-🙏 CREDITS
-==========
-- 👍 MSStack: [https://github.com/m5stack/M5Stack](https://github.com/m5stack/M5Stack)
-- 👍 M5StackSam [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
-- 👍 ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/)
-- 👍 QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode)
-- 👍 [@Reaper7](https://github.com/reaper7) [https://github.com/reaper7](https://github.com/reaper7)
+<br />
 
+🙏 CREDITS:
+-----------
 
+<br />
+
+| 👍     | M5Stack             | M5Stack          | https://github.com/m5stack/M5Stack           |  
+| ------ |:------------------- | :--------------- | :------------------------------------------- |  
+| 👍     | M5StackSam          | Tom Such         | https://github.com/tomsuch/M5StackSAM        |   
+| 👍     | ArduinoJSON         | Benoît Blanchon  | https://github.com/bblanchon/ArduinoJson/    |    
+| 👍     | QRCode              | Richard Moore    | https://github.com/ricmoo/qrcode    |    
+| 👍     | @Reaper7            | Reaper7          | https://github.com/reaper7                   |    
+ 
  
