@@ -86,7 +86,7 @@ for D in *; do
         awk '/M5Stack.h/{print;print "#include <M5Widget.h>";next}1' $outfile > tmp && mv tmp $outfile;
         # gotta patch the library too
         outfile=/home/travis/Arduino/libraries/M5Widgets-master/src/M5QRCode.h
-        egrep -R "utility/qrcode" $outfile || (sed -i 's/qrcode.h/\/jpg\/utility/qrcode.h/g' $outfile);
+        egrep -R "utility/qrcode" $outfile || (sed -i 's/qrcode.h/utility\/qrcode.h/g' $outfile);
       ;;
       'M5Stack_FlappyBird_game')
         # add a space to prevent syntax error
