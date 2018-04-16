@@ -8,7 +8,7 @@
 
 
 
-[![Click to enlarge](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic.png)](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic02.png)
+![Click to enlarge](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic.png)](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic02.png)
 
 
 
