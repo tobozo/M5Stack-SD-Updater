@@ -198,8 +198,9 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 --------------
 <br />
 
-| :clapper:   | Video demonstration      | https://youtu.be/myQfeYxyc3o                 |
+|              |                          |                                              |
 | ------------ |:------------------------ | :------------------------------------------- |
+| :clapper:   | Video demonstration      | https://youtu.be/myQfeYxyc3o                 |
 | :clapper:   | [Video demo of Pacman + sound](https://youtu.be/36fgNCecoEg) | [Source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP) | 
 | :clapper:   | [Video demo of NyanCat](https://youtu.be/Zxh2mtWwfaE) |  [Source](https://github.com/tobozo/M5Stack-NyanCat)  |
 | 🎓        | [Macsbug's article on M5Stack SD-Updater](https://translate.google.com/translate?hl=en&sl=ja&tl=en&u=https%3A%2F%2Fmacsbug.wordpress.com%2F2018%2F03%2F12%2Fm5stack-sd-updater%2F) | (English translation) |
@@ -212,11 +213,13 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 
 <br />
 
-| 👍     | M5Stack             | M5Stack          | https://github.com/m5stack/M5Stack           |  
-| ------ |:------------------- | :--------------- | :------------------------------------------- |  
-| 👍     | M5StackSam          | Tom Such         | https://github.com/tomsuch/M5StackSAM        |   
-| 👍     | ArduinoJSON         | Benoît Blanchon  | https://github.com/bblanchon/ArduinoJson/    |    
-| 👍     | QRCode              | Richard Moore    | https://github.com/ricmoo/qrcode    |    
-| 👍     | @Reaper7            | Reaper7          | https://github.com/reaper7                   |    
+|        |                     |                  |                                              |
+| ------ |:------------------- | :--------------- | :------------------------------------------- |
+| 👍     | M5Stack             | M5Stack          | https://github.com/m5stack/M5Stack           |
+| 👍     | M5StackSam          | Tom Such         | https://github.com/tomsuch/M5StackSAM        |
+| 👍     | ArduinoJSON         | Benoît Blanchon  | https://github.com/bblanchon/ArduinoJson/    |
+| 👍     | QRCode              | Richard Moore    | https://github.com/ricmoo/qrcode             |
+| 👍     | @Reaper7            | Reaper7          | https://github.com/reaper7                   |
+| 👍     | @PartsandCircuits   | PartsandCircuits | https://github.com/PartsandCircuits          |
  
  
