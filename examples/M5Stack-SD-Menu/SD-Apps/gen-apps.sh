@@ -83,7 +83,7 @@ for D in *; do
 #      ;;
       'M5_LoRa_Frequency_Hopping')
         outfile=M5_Lora_Frequency_Hopping.ino
-        awk '/M5Widget.h/{print;print "#include <M5Widget.h>";next}1' $outfile > tmp && mv tmp $outfile;
+        awk '/M5Stack.h/{print;print "#include <M5Widget.h>";next}1' $outfile > tmp && mv tmp $outfile;
       ;;
       'M5Stack_FlappyBird_game')
         # add a space to prevent syntax error
