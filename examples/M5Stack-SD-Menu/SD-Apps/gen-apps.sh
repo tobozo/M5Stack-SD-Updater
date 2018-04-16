@@ -91,8 +91,8 @@ for D in *; do
         egrep -R "utility/qrcode" $outfile || (sed -i 's/qrcode.h/utility\/qrcode.h/g' $outfile);
       ;;
       'M5Stack_FlappyBird_game')
-        # add a space to prevent syntax error
-        sed -i -e 's/By Ponticelli Domenico/ By Ponticelli Domenico/g' M5Stack_FlappyBird.ino
+        # put real comments prevent syntax error
+        sed -i -e 's/#By Ponticelli Domenico/\/\/By Ponticelli Domenico/g' M5Stack_FlappyBird.ino
       ;;
 #      'M5Stack-PacketMonitor')
 #      ;;
