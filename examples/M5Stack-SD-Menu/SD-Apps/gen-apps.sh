@@ -10,8 +10,9 @@ function movebin {
 function injectupdater {
   export outfile=$1;
   awk '/#include <M5Stack.h>/{print;print "#include <M5StackUpdater.h>";next}1' $outfile > tmp && mv tmp $outfile;
-
   awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { updateFromFS(SD); ESP.restart(); } ";next}1' $outfile > tmp && mv tmp $outfile;
+  # the M5StackUpdater requires Wire.begin(), inject it if necessary
+  egrep -R "Wire.begin()" || (awk '/M5.begin()/{print;print "  Wire.begin();";next}1' $outfile > tmp && mv tmp $outfile);
 }
 
 function populatemeta {
@@ -19,6 +20,8 @@ function populatemeta {
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
   export AVATAR_URL=$REPO_OWNER_URL.png?size=200
+  # no gist in URL is valid to retrieve the profile pic
+  AVATAR_URL=`sed 's/gist.//g' <<< $AVATAR_URL`
   echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
   wget $AVATAR_URL --output-document=temp
   convert temp -resize 120x120 $M5_SD_BUILD_DIR/jpg/$IMG_NAME
@@ -73,16 +76,23 @@ for D in *; do
 #      'M5Stack-Rickroll')
 #      ;;
       'M5Stack-Tetris')
-         echo "Renaming Tetris to M5Stack-Tetris"
+         echo "Renaming Tetris to M5Stack-Tetris + changing path to bg image"
          mv Tetris.ino M5Stack-Tetris.ino
+         sed -i 's/tetris.jpg/\/jpg\/tetris_bg.jpg/g' M5Stack-Tetris.ino
+         cp tetris.jpg $M5_SD_BUILD_DIR/jpg/tetris_bg.jpg
       ;;
 #      'SpaceDefense-m5stack')
 #      ;;
-#      'M5_LoRa_Frequency_Hopping')
-#      ;;
+      'M5_LoRa_Frequency_Hopping')
+        outfile=M5_Lora_Frequency_Hopping.ino
+        awk '/M5Stack.h/{print;print "#include <M5Widget.h>";next}1' $outfile > tmp && mv tmp $outfile;
+        # gotta patch the library too
+        outfile=/home/travis/Arduino/libraries/M5Widgets-master/src/M5QRCode.h
+        egrep -R "utility/qrcode" $outfile || (sed -i 's/qrcode.h/utility\/qrcode.h/g' $outfile);
+      ;;
       'M5Stack_FlappyBird_game')
-        # add a space to prevent syntax error
-        sed -i -e 's/By Ponticelli Domenico/ By Ponticelli Domenico/g' $PATH_TO_INO_FILE
+        # put real comments prevent syntax error
+        sed -i -e 's/#By Ponticelli Domenico/\/\/By Ponticelli Domenico/g' M5Stack_FlappyBird.ino
       ;;
 #      'M5Stack-PacketMonitor')
 #      ;;
