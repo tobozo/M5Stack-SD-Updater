@@ -46,6 +46,7 @@
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Tetris"]
         path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Tetris
         url = https://github.com/PartsandCircuits/M5Stack-Tetris
+        ignore = dirty
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-DrawNumber"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-DrawNumber
 	url = https://gist.github.com/ksasao/c67d6fff5641e6fd40c7705352f6759e
