@@ -20,6 +20,8 @@ function populatemeta {
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
   export AVATAR_URL=$REPO_OWNER_URL.png?size=200
+  # no gist in URL is valid to retrieve the profile pic
+  AVATAR_URL=`sed 's/gist.//g' <<< $AVATAR_URL`
   echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
   wget $AVATAR_URL --output-document=temp
   convert temp -resize 120x120 $M5_SD_BUILD_DIR/jpg/$IMG_NAME
