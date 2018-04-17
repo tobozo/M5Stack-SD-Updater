@@ -8,7 +8,6 @@ function movebin {
 }
 
 function injectupdater {
-  export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
   export outfile=$PATH_TO_INO_FILE;
   echo "***** Injecting $1"
   awk '/#include <M5Stack.h>/{print;print "#include <M5StackUpdater.h>";next}1' $outfile > tmp && mv tmp $outfile;
@@ -62,6 +61,7 @@ for D in *; do
       #*)
       #;;
       esac
+      export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
 
     else
 
@@ -110,7 +110,7 @@ for D in *; do
 #      'mp3-player-m5stack')
 #      ;;
       esac
-      
+      export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
       injectupdater # $PATH_TO_INO_FILE
     fi
 
