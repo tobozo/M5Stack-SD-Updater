@@ -50,3 +50,6 @@
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-DrawNumber"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-DrawNumber
 	url = https://gist.github.com/ksasao/c67d6fff5641e6fd40c7705352f6759e
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/d_invader"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/d_invader
+	url = https://github.com/NibblesLab/d_invader
