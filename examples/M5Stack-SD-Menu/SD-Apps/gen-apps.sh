@@ -61,6 +61,9 @@ for D in *; do
     else
 
       case "$D" in
+       'd_invader')
+         # esp_deep_sleep => esp_sleep
+       ;;
 #      'M5Stack_CrackScreen')
 #      ;;
 #      'M5Stack-MegaChess')
@@ -108,7 +111,8 @@ for D in *; do
     export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
     echo "**** Compiling ${PATH_TO_INO_FILE}";
 
-    arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log && movebin && populatemeta
+    #arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log && movebin && populatemeta
+    arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE && movebin && populatemeta
 
     ls $M5_SD_BUILD_DIR -la;
 
