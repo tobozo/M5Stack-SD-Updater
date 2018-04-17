@@ -80,7 +80,7 @@ void displayUpdateUI(String label) {
 }
 
 
-void progress(int state, int size) {
+void M5SDMenuProgress(int state, int size) {
   int percent = (state*100) / size;
   Serial.printf("percent = %d\n", percent);
   if (percent > 0) {
@@ -91,7 +91,7 @@ void progress(int state, int size) {
 // perform the actual update from a given stream
 void performUpdate(Stream &updateSource, size_t updateSize, String fileName) {
    displayUpdateUI("LOADING " + fileName);
-   Update.onProgress(progress);
+   Update.onProgress(M5SDMenuProgress);
    if (Update.begin(updateSize)) {      
       size_t written = Update.writeStream(updateSource);
       if (written == updateSize) {

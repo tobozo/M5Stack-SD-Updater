@@ -504,7 +504,7 @@ void scanDataFolder() {
             while(file.read(buf, 512)) {
               destFile.write(buf, 512);
               packets++;
-              progress((packets*512)-511, fileSize);
+              M5SDMenuProgress((packets*512)-511, fileSize);
             }
             destFile.close();
             Serial.println();
@@ -593,7 +593,7 @@ void setup() {
   // TODO: animate loading screen
   /* fake loading progress, looks kool ;-) */
   for(uint8_t i=1;i<100;i++) {
-    progress(i, 100);
+    M5SDMenuProgress(i, 100);
   }
 
   M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
