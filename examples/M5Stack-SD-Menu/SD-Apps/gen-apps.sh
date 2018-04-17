@@ -8,8 +8,9 @@ function movebin {
 }
 
 function injectupdater {
-  export outfile=$1;
-  echo "***** Injecting ${1}"
+  export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
+  export outfile=$PATH_TO_INO_FILE;
+  echo "***** Injecting $1"
   awk '/#include <M5Stack.h>/{print;print "#include <M5StackUpdater.h>";next}1' $outfile > tmp && mv tmp $outfile;
   awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { updateFromFS(SD); ESP.restart(); } ";next}1' $outfile > tmp && mv tmp $outfile;
   # the M5StackUpdater requires Wire.begin(), inject it if necessary
@@ -109,11 +110,10 @@ for D in *; do
 #      'mp3-player-m5stack')
 #      ;;
       esac
-
-      injectupdater $PATH_TO_INO_FILE
+      
+      injectupdater # $PATH_TO_INO_FILE
     fi
 
-    export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
     echo "**** Compiling ${PATH_TO_INO_FILE}";
 
     #arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log && movebin && populatemeta
