@@ -9,13 +9,16 @@ function movebin {
 
 function injectupdater {
   export outfile=$1;
+  echo "***** Injecting ${1}"
   awk '/#include <M5Stack.h>/{print;print "#include <M5StackUpdater.h>";next}1' $outfile > tmp && mv tmp $outfile;
   awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { updateFromFS(SD); ESP.restart(); } ";next}1' $outfile > tmp && mv tmp $outfile;
   # the M5StackUpdater requires Wire.begin(), inject it if necessary
   egrep -R "Wire.begin()" || (awk '/M5.begin()/{print;print "  Wire.begin();";next}1' $outfile > tmp && mv tmp $outfile);
+  echo "***** Injection successful"
 }
 
 function populatemeta {
+  echo "***** Populating meta"
   export IMG_NAME=${BIN_FILE%.bin}_gh.jpg
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
@@ -27,6 +30,7 @@ function populatemeta {
   convert temp -resize 120x120 $M5_SD_BUILD_DIR/jpg/$IMG_NAME
   identify $M5_SD_BUILD_DIR/jpg/$IMG_NAME
   rm temp
+  echo "***** Populating successful"
 }
 
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/jpg $M5_SD_BUILD_DIR/
@@ -62,6 +66,7 @@ for D in *; do
 
       case "$D" in
        'd_invader')
+         echo "Should replace esp_deep_sleep => esp_sleep"
          # esp_deep_sleep => esp_sleep
        ;;
 #      'M5Stack_CrackScreen')
