@@ -2,6 +2,7 @@ language: generic
 env:
   global:
     - IDE_VERSION=1.8.5
+    - REPO_NAME=M5Stack-SD-Updater
     - SDAPP_FOLDER=$PWD/examples/M5Stack-SD-Menu/SD-Apps
     - TRAVIS_TAG="v0.1.0-SD-Extras"
     - M5_SD_BUILD_DIR=$TRAVIS_BUILD_DIR/build/SD-Content
@@ -77,7 +78,9 @@ before_deploy:
   - git config --global user.name "Travis CI"
   - git tag ${TRAVIS_TAG}
   - cd /home/travis/build/tobozo/
-  - zip -r $TRAVIS_BUILD_DIR/M5Stack-SD-Updater.zip M5Stack-SD-Updater -x *.git*
+  - echo "const char * sketchVersion = \"$(git describe --tags --always --dirty)\";" > $REPO_NAME/src/gitTagVersion.h
+  - rm -Rf $REPO_NAME/examples/M5Stack-SD-Menu/SD-Apps
+  - zip -r $TRAVIS_BUILD_DIR/$REPO_NAME.zip $REPO_NAME -x *.git*
   - cd $M5_SD_BUILD_DIR 
   - zip -r $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip ./
   - cd $TRAVIS_BUILD_DIR
@@ -97,7 +100,7 @@ deploy:
   #file_glob: true
   file: 
     - $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
-    - $TRAVIS_BUILD_DIR/M5Stack-SD-Updater.zip
+    - $TRAVIS_BUILD_DIR/$REPO_NAME.zip
   #file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
   on:
     branch: M5Stack-SD-Apps
