@@ -44,7 +44,7 @@ install:
   - unzip -d ~/Arduino/libraries M5Stack.zip
   - wget https://github.com/earlephilhower/ESP8266Audio/archive/master.zip --output-document=ESP8266Audio.zip
   - unzip -d ~/Arduino/libraries ESP8266Audio.zip
-  - wget https://github.com/Kongduino/M5Widgets/archive/master.zip --output-document=M5Widgets.zip
+  - wget https://github.com/tobozo/M5Widgets/archive/master.zip --output-document=M5Widgets.zip
   - unzip -d ~/Arduino/libraries M5Widgets.zip
   - wget https://github.com/Seeed-Studio/Grove_BMP280/archive/1.0.1.zip --output-document=Grove_BMP280.zip
   - unzip -d ~/Arduino/libraries Grove_BMP280.zip
