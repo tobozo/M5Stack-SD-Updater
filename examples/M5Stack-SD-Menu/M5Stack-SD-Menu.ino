@@ -67,7 +67,7 @@
 #include "SPIFFS.h"
 #include <M5Stack.h>             // https://github.com/m5stack/M5Stack/
 #ifdef M5_LIB_VERSION
-  #include "utilities/qrcode.h" // if M5Stack version >= 0.1.8 : qrCode from M5Stack
+  #include "utility/qrcode.h" // if M5Stack version >= 0.1.8 : qrCode from M5Stack
 #else 
   #include "qrcode.h" // if M5Stack version <= 0.1.6 : qrCode from https://github.com/ricmoo/qrcode
 #endif 
