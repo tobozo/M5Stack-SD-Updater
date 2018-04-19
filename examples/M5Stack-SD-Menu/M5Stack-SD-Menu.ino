@@ -66,8 +66,11 @@
  
 #include "SPIFFS.h"
 #include <M5Stack.h>             // https://github.com/m5stack/M5Stack/
-#include "utility/qrcode.h"      // if M5Stack version >= 0.1.7 : qrCode from M5Stack
-//#include "qrcode.h"            // if M5Stack version <= 0.1.6 : qrCode from https://github.com/ricmoo/qrcode
+#ifdef M5_LIB_VERSION
+  #include "utility/qrcode.h" // if M5Stack version >= 0.1.8 : qrCode from M5Stack
+#else 
+  #include "qrcode.h" // if M5Stack version <= 0.1.6 : qrCode from https://github.com/ricmoo/qrcode
+#endif 
 #include "M5StackUpdater.h"      // https://github.com/tobozo/M5Stack-SD-Updater
 #include <M5StackSAM.h>          // https://github.com/tomsuch/M5StackSAM
 #include <ArduinoJson.h>         // https://github.com/bblanchon/ArduinoJson/
@@ -97,8 +100,8 @@ String allowedExtensions[extensionsCount] = {
 
 /* Storing json meta file information r */
 struct JSONMeta {
-  int width;
-  int height;
+  int width; // app image width
+  int height; // app image height
   String authorName = "";
   String projectURL = "";
   String credits = ""; // scroll this ?
@@ -110,9 +113,11 @@ struct FileInfo {
   String fileName;  // the binary name
   String metaName;  // a json file with all meta info on the binary
   String iconName;  // a jpeg image representing the binary
+  String faceName;  // a jpeg image representing the author
   uint32_t fileSize;
   bool hasIcon = false;
   bool hasMeta = false;
+  bool hasFace = false; // github avatar
   JSONMeta jsonMeta;
 };
 
@@ -226,15 +231,19 @@ void renderIcon(uint16_t MenuID) {
   renderIcon(fileInfo[MenuID]);
 }
 
+void renderFace(String face) {
+  M5.Lcd.drawJpgFile(SD, face.c_str(), 5, 85, 120, 120, 0, 0, JPEG_DIV_NONE);
+}
+
 
 void renderMeta(JSONMeta &jsonMeta) {
   M5.Lcd.setTextSize(1);
   M5.Lcd.setTextColor(WHITE);
-  M5.Lcd.setCursor(10, (M5.Lcd.height()/2)-25);
+  M5.Lcd.setCursor(10, 35);
   M5.Lcd.print(fileInfo[MenuID].fileName);
-  M5.Lcd.setCursor(10, (M5.Lcd.height()/2)+10);
+  M5.Lcd.setCursor(10, 70);
   M5.Lcd.print(String(fileInfo[MenuID].fileSize) + String(FILESIZE_UNITS));
-  M5.Lcd.setCursor(10,(M5.Lcd.height()/2)-10);  
+  M5.Lcd.setCursor(10, 50);
   
   if(jsonMeta.authorName!="" && jsonMeta.projectURL!="" ) { // both values provided
     M5.Lcd.print(AUTHOR_PREFIX);
@@ -254,13 +263,13 @@ void qrRender(String text, float sizeinpixels) {
   // see https://github.com/Kongduino/M5_QR_Code/blob/master/M5_QRCode_Test.ino
   // Create the QR code
   QRCode qrcode;
-  uint8_t version = 6;
+  uint8_t version = 4;
   uint8_t qrcodeData[qrcode_getBufferSize(version)];
   qrcode_initText(&qrcode, qrcodeData, version, 0, text.c_str());
 
   uint8_t thickness = sizeinpixels / qrcode.size;
   uint16_t lineLength = qrcode.size * thickness;
-  uint8_t xOffset = ((M5.Lcd.width() - (lineLength)) / 2) + 60;
+  uint8_t xOffset = ((M5.Lcd.width() - (lineLength)) / 2) + 70;
   uint8_t yOffset = (M5.Lcd.height() - (lineLength)) / 2;
 
   M5.Lcd.fillRect(xOffset-5, yOffset-5, lineLength+10, lineLength+10, WHITE);
@@ -291,12 +300,19 @@ void getFileInfo(File &file) {
     fileInfo[appsCount].hasIcon = true;
     fileInfo[appsCount].iconName = currentIconFile;
   }
+  currentIconFile.replace(".jpg", "_gh.jpg");
+  if(SD.exists(currentIconFile.c_str())) {
+    fileInfo[appsCount].hasFace = true;
+    fileInfo[appsCount].faceName = currentIconFile;
+  }  
   String currentMetaFile = "/json" + fileName;
   currentMetaFile.replace(".bin", ".json");
   if(SD.exists(currentMetaFile.c_str())) {
     fileInfo[appsCount].hasMeta = true;
     fileInfo[appsCount].metaName = currentMetaFile;
   }
+
+  
   if(fileInfo[appsCount].hasMeta == true) {
     getMeta(fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta);
   }
@@ -419,6 +435,9 @@ void menuInfo() {
   inInfoMenu = true;
   M5Menu.windowClr();
   renderMeta(fileInfo[MenuID].jsonMeta);
+  if(fileInfo[MenuID].hasFace) {
+    renderFace(fileInfo[MenuID].faceName);
+  }
   lastpush = millis();
 }
 
@@ -488,7 +507,7 @@ void scanDataFolder() {
             while(file.read(buf, 512)) {
               destFile.write(buf, 512);
               packets++;
-              progress((packets*512)-511, fileSize);
+              M5SDMenuProgress((packets*512)-511, fileSize);
             }
             destFile.close();
             Serial.println();
@@ -577,7 +596,7 @@ void setup() {
   // TODO: animate loading screen
   /* fake loading progress, looks kool ;-) */
   for(uint8_t i=1;i<100;i++) {
-    progress(i, 100);
+    M5SDMenuProgress(i, 100);
   }
 
   M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
@@ -617,12 +636,13 @@ void loop() {
     case UI_INERT:
       if(inInfoMenu) {
         // !! scrolling text also prevents sleep mode !!
-        renderScroll(fileInfo[MenuID].jsonMeta.projectURL, 0, 5, 320);
+        renderScroll(fileInfo[MenuID].jsonMeta.credits, 0, 5, 320);
       }
-      M5.update();
     break;
   }
 
+  M5.update();
+  
   // go to sleep after 10 minutes if nothing happens
   if(lastpush+600000<millis()) {
     Serial.println(GOTOSLEEP_MESSAGE);

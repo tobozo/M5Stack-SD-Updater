@@ -80,7 +80,7 @@ void displayUpdateUI(String label) {
 }
 
 
-void progress(int state, int size) {
+void M5SDMenuProgress(int state, int size) {
   int percent = (state*100) / size;
   Serial.printf("percent = %d\n", percent);
   if (percent > 0) {
@@ -91,7 +91,7 @@ void progress(int state, int size) {
 // perform the actual update from a given stream
 void performUpdate(Stream &updateSource, size_t updateSize, String fileName) {
    displayUpdateUI("LOADING " + fileName);
-   Update.onProgress(progress);
+   Update.onProgress(M5SDMenuProgress);
    if (Update.begin(updateSize)) {      
       size_t written = Update.writeStream(updateSource);
       if (written == updateSize) {
@@ -116,11 +116,13 @@ void performUpdate(Stream &updateSource, size_t updateSize, String fileName) {
 
 // check given FS for valid menu.bin and perform update if available
 void updateFromFS(fs::FS &fs, String fileName = MENU_BIN ) {
-  // Thanks to Macbug for the hint, my old ears couldn't hear 
-  // the buzzing :-) 
-  dacWrite(25, 0); // turn speaker off
+  // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-) 
   // See Macbug's excellent article on this tool:
   // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
+  dacWrite(25, 0); // turn speaker signal off
+  // Also thanks to @Kongduino for a complementary way to turn off the speaker:
+  // https://twitter.com/Kongduino/status/980466157701423104
+  ledcDetachPin(25); // detach DAC
   File updateBin = fs.open(fileName);
   if (updateBin) {
     if(updateBin.isDirectory()){
