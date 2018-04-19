@@ -636,7 +636,7 @@ void loop() {
     case UI_INERT:
       if(inInfoMenu) {
         // !! scrolling text also prevents sleep mode !!
-        renderScroll(fileInfo[MenuID].jsonMeta.projectURL, 0, 5, 320);
+        renderScroll(fileInfo[MenuID].jsonMeta.credits, 0, 5, 320);
       }
     break;
   }
