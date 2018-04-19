@@ -70,8 +70,11 @@ for D in *; do
          echo "Should replace esp_deep_sleep => esp_sleep"
          # esp_deep_sleep => esp_sleep
        ;;
-#      'M5Stack_CrackScreen')
-#      ;;
+       'M5Stack_CrackScreen')
+         echo "Fixing path to crack.jpg"
+         sed -i 's/crack.jpg.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
+         cp crack.jpg $M5_SD_BUILD_DIR/jpg/crack.jpg
+       ;;
 #      'M5Stack-MegaChess')
 #      ;;
 #      'M5Stack-Pacman-JoyPSP')
@@ -107,8 +110,11 @@ for D in *; do
 #      ;;
 #      'M5Stack_Sokoban')
 #      ;;
-#      'mp3-player-m5stack')
-#      ;;
+      'mp3-player-m5stack')
+        echo "Changing mp3 path in sketch"
+        mv Tetris.ino M5Stack-Tetris.ino
+        sed -i 's/createTrackList("\/")/createTrackList("\/mp3\/")/g' mp3-player-m5stack.ino
+      ;;
       esac
       export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
       injectupdater # $PATH_TO_INO_FILE
