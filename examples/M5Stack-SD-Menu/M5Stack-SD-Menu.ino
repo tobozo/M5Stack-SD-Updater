@@ -66,8 +66,11 @@
  
 #include "SPIFFS.h"
 #include <M5Stack.h>             // https://github.com/m5stack/M5Stack/
-#include "utility/qrcode.h"      // if M5Stack version >= 0.1.7 : qrCode from M5Stack
-//#include "qrcode.h"            // if M5Stack version <= 0.1.6 : qrCode from https://github.com/ricmoo/qrcode
+#ifdef M5_LIB_VERSION
+  #include "utilities/qrcode.h" // if M5Stack version >= 0.1.8 : qrCode from M5Stack
+#else 
+  #include "qrcode.h" // if M5Stack version <= 0.1.6 : qrCode from https://github.com/ricmoo/qrcode
+#endif 
 #include "M5StackUpdater.h"      // https://github.com/tobozo/M5Stack-SD-Updater
 #include <M5StackSAM.h>          // https://github.com/tomsuch/M5StackSAM
 #include <ArduinoJson.h>         // https://github.com/bblanchon/ArduinoJson/
