@@ -112,7 +112,6 @@ for D in *; do
 #      ;;
       'mp3-player-m5stack')
         echo "Changing mp3 path in sketch"
-        mv Tetris.ino M5Stack-Tetris.ino
         sed -i 's/createTrackList("\/")/createTrackList("\/mp3\/")/g' mp3-player-m5stack.ino
       ;;
       esac
