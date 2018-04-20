@@ -11,11 +11,6 @@
 [![Click to enlarge](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic.png "Click to enlarge")](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic02.png)
 
 
-
-
-
-
-
 <br />
 
 ## ABOUT
@@ -85,6 +80,7 @@ This sketch is the menu app. It must be (a) compiled and saved to the root direc
 <br />
 
 **4) Make sketches compatible with the SD-Updater Menu .** <br />
+
 
 The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used to make any Arduino compatible sketch compatible for use with the SD-Updater menu.
 
