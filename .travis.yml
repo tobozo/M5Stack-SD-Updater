@@ -103,4 +103,4 @@ deploy:
     - $TRAVIS_BUILD_DIR/$REPO_NAME.zip
   #file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
   on:
-    branch: M5Stack-SD-Apps
+    branch: master
