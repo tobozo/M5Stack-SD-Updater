@@ -11,11 +11,6 @@
 [![Click to enlarge](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic.png "Click to enlarge")](https://github.com/PartsandCircuits/M5Stack-SD-Updater/blob/master/SDUpdaterpic02.png)
 
 
-
-
-
-
-
 <br />
 
 ## ABOUT
@@ -52,11 +47,11 @@
 
 <br />
 
-**If your version of [M5Stack is (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7) you are set and can move on.**
+**If your version of [M5Stack is (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7) or major you are set and can move on.**
 
 <br />
 
-**If your version of M5Stack is 0.1.6 or earlier, you need to install this additional library:**
+**If your version of M5Stack is 0.1.6 or minor, you need to install this additional library:**
 
 - QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode) available in the Arduino Library Manager
 
@@ -71,14 +66,21 @@
 
 <br />
 
-**2) Compile the "M5Stack-SD-Menu.ino" example.** <br />
+**2) Download the SD-Content folder from the release page and unzip it into the root of the SD Card.** Then put the SD Card into the M5Stack. This zip file comes preloaded with [18 precompiled apps](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/SD-Apps) and the relative meta information for the menu.
+
+<br />
+
+**3) Compile the "M5Stack-SD-Menu.ino" example.** <br />
 This sketch is the menu app. It must be (a) compiled and saved to the root directory of a micro SD card for persistence and (b) flashed onto the M5Stack.
 
 (a) In the Arduino IDE, go to Sketch / Export compiled binary , and compile the file. Rename the file "menu.bin" and copy it to the micro SD card. (b) Next, flash "menu.bin" to the M5Stack. 
 
+ Note that you won't need to (a) copy it if you previously extracted the SD-Content folder on the SD card.
+
 <br />
 
-**3) Make sketches compatible with the SD-Updater Menu .** <br />
+**4) Make sketches compatible with the SD-Updater Menu .** <br />
+
 
 The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used to make any Arduino compatible sketch compatible for use with the SD-Updater menu.
 
@@ -134,13 +136,15 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
     
   - .json file with dimensions descriptions: 
   
-  `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://blah","credits":"thanks"}`
+  `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://short.url","credits":"** http://very.very.long.url ~~"}`
+
+
 
 <br />
 
   ⚠️ The jpg/json file names must match the bin file name, case matters!
   jpg/json files are optional but must both be set if provided.
-  The value for *projectURL* property will be rendered as a QR Code in the info window.
+  The value for "credits" JSON property will be scrolled on the top of the screen while the value for *projectURL* JSON property will be rendered as a QR Code in the info window. It is better provide a short URL for *projectURL* so the resulting QR Code has more error correction.
 
 <br />
 <br />
@@ -159,7 +163,7 @@ The M5Stack automatically detects and uses the [M5Stack-Faces](https://github.co
 
 The JoyPSP Controls for M5Stack SD Menu necessary code is now disabled in the menu example but the code stays here and can be used as a boilerplate for any other two-wires input device.
 
-The code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, but it shouldn't be a problem to adapt/extend to other analog joystick models.
+The JoyPSP code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, but it shouldn't be a problem to adapt/extend to other analog joystick models.
 
 <br />
 
@@ -167,10 +171,10 @@ The code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/
 ------------
 *qrcode.h not found*, or *duplicate declarations* errors can occur during compilation of M5Stack-SD-Menu.ino.
 
-Reason: M5Stack recently embedded the `qrcode.h` library into their own core, but the current M5Stack-SD-Menu.ino is using a version of qrcode.h bundled with a more recent version of [M5Stack (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7).
-If your version of M5stack library is older, Arduino IDE will probably complain.
+Reason: M5Stack recently embedded the `qrcode.h` library into their own core.
+If your version of M5stack core is older than 0.1.8, Arduino IDE will probably complain.
 
-Solution 1: comment out one of the two includes in M5Stack-SD-Menu.ino:
+Solution 1: choose between one of the two includes in M5Stack-SD-Menu.ino:
 
 `#include "qrcode.h"` ← use this with M5Stack-Core 0.1.6 and older, comment out the other one
 
@@ -178,8 +182,9 @@ or
 
 `#include "utilities/qrcode.h` ← use this with M5Stack-Core 0.1.7, comment out the other one
 
-Solution 2: in your library manager, downgrade the M5Stack-SD-Menu to the previous version (0.0.1) until you update M5Stack library
+Solution 2: in your library manager, downgrade the M5Stack-SD-Menu to an earlier version (0.0.1) until you update M5Stack library
 
+Solution 3: upgrade your M5Stack core version to 0.1.8
 
 Compilation `#pragma` warnings/errors in the Arduino IDE can be solved by setting the debug level to `default` in the Arduino preferences window.
 See [#3](https://github.com/tobozo/M5Stack-SD-Updater/issues/3) 
