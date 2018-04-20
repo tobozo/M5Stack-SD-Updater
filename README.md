@@ -31,12 +31,13 @@ It is inspired by gamebuino, however it does not use a modified bootloader.
 ------------
 Open both sketches from the "examples/M5Stack-SD-Update" menu.
 
+**1) Download the SD-Content folder from the release page and unzip it into the root of the SD Card.** Then put the SD Card into the M5Stack. This zip file comes preloaded with [18 precompiled apps](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/SD-Apps) and the relative meta information for the menu.
 
-**1) Compile the "M5Stack-SD-Menu.ino" example.** This sketch is the menu app. It must be compiled once (sketch / export compiled binary) and saved on the SD Card root directory as "menu.bin" for persistence. It should also be flashed on the M5Stack.
+
+**2) Compile the "M5Stack-SD-Menu.ino" example.** This sketch is the menu app. It must be compiled (sketch / export compiled binary) and saved on the SD Card root directory as "menu.bin" for persistence and flashed on the M5 as well. Note that you won't need to copy it on the SD card if you previously unzipped the SD-Content folder as it's already bundled.
 
 
-**2) Merge and compile the "M5Stack-SDLoader-Snippet.ino" example.** It is possible to embed any M5 app by implementing the 
-  M5Stack SD Loader Snippet. This sketch can be used as a boilerplate to code an app from scratch.
+**3) [optional] Merge and compile the "M5Stack-SDLoader-Snippet.ino" example.** It is possible to embed any M5 app by implementing the M5Stack SD Loader Snippet. This sketch can be used as a boilerplate to code an app from scratch.
 
   For an existing M5 app, find the line:
 
@@ -65,7 +66,10 @@ Open both sketches from the "examples/M5Stack-SD-Update" menu.
   - Existing installations (menu.bin already copied and loaded on the M5Stack): clear the content of the [examples/M5Stack-SD-Menu/data](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/data) folder, copy the compiled binary there and use the [ESP32 Sketch Data Uploader](https://github.com/me-no-dev/arduino-esp32fs-plugin) utility (available from the Tools menu in the Arduino IDE).
 
 
-**3) Repeat this for all applications**, jpg images or json meta files to import
+**4) [optional] Repeat this for all new applications**, jpg images or json meta files to import
+
+
+
 
 
 📚 USAGE:
@@ -86,12 +90,12 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
     
   - .json file with dimensions descriptions: 
   
-  `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://blah","credits":"thanks"}`
+  `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://short.url","credits":"** http://very.very.long.url ~~"}`
 
 
   ⚠️ The jpg/json file names must match the bin file name, case matters!
   jpg/json files are optional but must both be set if provided.
-  The value for *projectURL* property will be rendered as a QR Code in the info window.
+  The value for *projectURL* property will be rendered as a QR Code in the info window, it is better provide a short URL there so the resulting QR Code has more error correction.
 
 
 🚫 LIMITATIONS:
@@ -103,11 +107,11 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
 
 🔘 OPTIONAL:
 ------------
-The M5Stack automatically detects and uses the [M5Stack-Faces](https://github.com/m5stack/faces) addon (gameboy only).
+The M5Stack automatically detects and uses the [M5Stack-Faces](https://github.com/m5stack/faces) plugin (gameboy faces only).
 
 The JoyPSP Controls for M5Stack SD Menu necessary code is now disabled in the menu example but the code stays here and can be used as a boilerplate for any other two-wires input device.
 
-The code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, but it shouldn't be a problem to adapt/extend to other analog joystick models.
+This disabled code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, but it shouldn't be a problem to adapt/extend to other analog joystick models.
 
 KNONW ISSUES
 ------------
@@ -126,6 +130,7 @@ or
 
 Solution 2: in your library manager, downgrade the M5Stack-SD-Menu to the previous version (0.0.1) until you update M5Stack library
 
+Solution 3: upgrade your M5Stack core version to 0.1.8
 
 Compilation `#pragma` warnings/errors in the Arduino IDE can be solved by setting the debug level to `default` in the Arduino preferences window.
 See [#3](https://github.com/tobozo/M5Stack-SD-Updater/issues/3) 
