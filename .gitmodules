@@ -53,3 +53,9 @@
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/d_invader"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/d_invader
 	url = https://github.com/NibblesLab/d_invader
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_lifegame"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_lifegame
+	url = https://gist.github.com/shioken/fa2c3f5923170d86dd358b313d6ab244
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5_reversi"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5_reversi
+	url = https://gist.github.com/shioken/e90b9fa3b43d8b067adde77a75768efd
