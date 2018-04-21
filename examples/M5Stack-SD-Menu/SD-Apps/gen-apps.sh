@@ -87,6 +87,10 @@ for D in *; do
 #      ;;
 #      'M5Stack-Rickroll')
 #      ;;
+      'M5Stack_lifegame')
+        echo "Renaming file to .ino"
+        mv M5Stack_lifegame M5Stack_lifegame.ino
+      ;;
       'M5Stack-Tetris')
          echo "Renaming Tetris to M5Stack-Tetris + changing path to bg image"
          mv Tetris.ino M5Stack-Tetris.ino
