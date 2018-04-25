@@ -72,7 +72,7 @@ for D in *; do
        ;;
        'M5Stack_CrackScreen')
          echo "Fixing path to crack.jpg"
-         sed -i 's/crack.jpg.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
+         sed -i 's/\/crack.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
          cp crack.jpg $M5_SD_BUILD_DIR/jpg/crack.jpg
        ;;
 #      'M5Stack-MegaChess')
@@ -87,6 +87,15 @@ for D in *; do
 #      ;;
 #      'M5Stack-Rickroll')
 #      ;;
+      'M5Stack_NyanCat_Ext'
+        echo "Renaming file to prevent namespace collision"
+        mv M5Stack_NyanCat.ino M5Stack_NyanCat_Ext.ino
+        wget https://github.com/jimpo/nyancat/raw/master/nyancat.mp3 --output-document=$M5_SD_BUILD_DIR/mp3/NyanCat.mp3
+        sed -i 's/\/NyanCat.mp3/\/mp3\/NyanCat.mp3/g' M5Stack_NyanCat_Ext.ino
+      ;;
+
+
+
       'M5Stack_lifegame')
         echo "Renaming file to .ino"
         mv M5Stack_lifegame M5Stack_lifegame.ino
@@ -94,7 +103,7 @@ for D in *; do
       'M5Stack-Tetris')
          echo "Renaming Tetris to M5Stack-Tetris + changing path to bg image"
          mv Tetris.ino M5Stack-Tetris.ino
-         sed -i 's/tetris.jpg/\/jpg\/tetris_bg.jpg/g' M5Stack-Tetris.ino
+         sed -i 's/\/tetris.jpg/\/jpg\/tetris_bg.jpg/g' M5Stack-Tetris.ino
          cp tetris.jpg $M5_SD_BUILD_DIR/jpg/tetris_bg.jpg
       ;;
 #      'SpaceDefense-m5stack')
@@ -116,6 +125,7 @@ for D in *; do
 #      ;;
       'mp3-player-m5stack')
         echo "Changing mp3 path in sketch"
+        // TODO: fix this
         sed -i 's/createTrackList("\/")/createTrackList("\/mp3\/")/g' mp3-player-m5stack.ino
       ;;
       esac
