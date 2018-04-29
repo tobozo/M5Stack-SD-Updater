@@ -108,14 +108,21 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
 
 <br />
 
-  Export the compiled binary (Sketch/Export Compiled Binary) and choose one of the following ways to get the app on the M5Stack:
+
+
+
+ 
+  Export the compiled binary ( on the Arduino IDE menu go to:  Sketch / Export Compiled Binary ).
+  
+  (Optional) Rename the file to remove unnecessary additions to the name. The filename will be saved as "filename.ino.esp32.bin". Edit the name so it reads "filename.bin". This is purely for display purposes. The file will work without this change.
+  
+  Use one of following methods to get the app on the M5Stack:
 
   - Manually copy it to the sd card
   
   - Existing installations (menu.bin already copied and loaded on the M5Stack): clear the content of the [examples/M5Stack-SD-Menu/data](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/data) folder, copy the compiled binary there and use the [ESP32 Sketch Data Uploader](https://github.com/me-no-dev/arduino-esp32fs-plugin) utility (available from the Tools menu in the Arduino IDE).
 
 <br />
-
 
 
 📚 USAGE:
