@@ -10,8 +10,8 @@ function movebin {
 function injectupdater {
   export outfile=$PATH_TO_INO_FILE;
   echo "***** Injecting $1"
-  awk '/#include <M5Stack.h>/{print;print "#include <M5StackUpdater.h>";next}1' $outfile > tmp && mv tmp $outfile;
-  awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { updateFromFS(SD); ESP.restart(); } ";next}1' $outfile > tmp && mv tmp $outfile;
+  awk '/#include <M5Stack.h>/{print;print "#include <M5StackUpdater.h>\nSDUpdater sdUpdater;";next}1' $outfile > tmp && mv tmp $outfile;
+  awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { sdUpdater.updateFromFS(SD); ESP.restart(); } ";next}1' $outfile > tmp && mv tmp $outfile;
   # the M5StackUpdater requires Wire.begin(), inject it if necessary
   egrep -R "Wire.begin()" || (awk '/M5.begin()/{print;print "  Wire.begin();";next}1' $outfile > tmp && mv tmp $outfile);
   echo "***** Injection successful"
