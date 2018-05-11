@@ -43,6 +43,7 @@
  * And add this:
  * 
  *  #include "M5StackUpdater.h"
+ *  SDUpdater sdUpdater;
  *  
  * 
  * In your setup() function, find the following statements:
@@ -54,7 +55,7 @@
  * 
  *   if(digitalRead(BUTTON_A_PIN) == 0) {
  *     Serial.println("Will Load menu binary");
- *     updateFromFS(SD);
+ *     sdUpdater.updateFromFS(SD);
  *     ESP.restart();
  *   }
  * 
@@ -69,77 +70,13 @@
 #include <Update.h>
 #define MENU_BIN F("/menu.bin")
 
-void displayUpdateUI(String label) {
-  M5.Lcd.setBrightness(100);
-  M5.Lcd.fillScreen(BLACK);
-  M5.Lcd.setCursor(10, 10);
-  M5.Lcd.setTextColor(WHITE);
-  M5.Lcd.setTextSize(2);
-  M5.Lcd.printf(label.c_str());
-  M5.Lcd.drawRect(110, 130, 102, 20, WHITE);
-}
+class SDUpdater {
+  public: 
+    void updateFromFS(fs::FS &fs, String fileName = MENU_BIN );
+    static void M5SDMenuProgress(int state, int size);
+    void displayUpdateUI(String label);
+  private:
+    void performUpdate(Stream &updateSource, size_t updateSize, String fileName);
+};
 
-
-void M5SDMenuProgress(int state, int size) {
-  int percent = (state*100) / size;
-  Serial.printf("percent = %d\n", percent);
-  if (percent > 0) {
-    M5.Lcd.drawRect(111, 131, percent, 18, GREEN);
-  }
-}
-
-// perform the actual update from a given stream
-void performUpdate(Stream &updateSource, size_t updateSize, String fileName) {
-   displayUpdateUI("LOADING " + fileName);
-   Update.onProgress(M5SDMenuProgress);
-   if (Update.begin(updateSize)) {      
-      size_t written = Update.writeStream(updateSource);
-      if (written == updateSize) {
-         Serial.println("Written : " + String(written) + " successfully");
-      } else {
-         Serial.println("Written only : " + String(written) + "/" + String(updateSize) + ". Retry?");
-      }
-      if (Update.end()) {
-         Serial.println("OTA done!");
-         if (Update.isFinished()) {
-            Serial.println("Update successfully completed. Rebooting.");
-         } else {
-            Serial.println("Update not finished? Something went wrong!");
-         }
-      } else {
-         Serial.println("Error Occurred. Error #: " + String(Update.getError()));
-      }
-   } else {
-      Serial.println("Not enough space to begin OTA");
-   }
-}
-
-// check given FS for valid menu.bin and perform update if available
-void updateFromFS(fs::FS &fs, String fileName = MENU_BIN ) {
-  // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-) 
-  // See Macbug's excellent article on this tool:
-  // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
-  dacWrite(25, 0); // turn speaker signal off
-  // Also thanks to @Kongduino for a complementary way to turn off the speaker:
-  // https://twitter.com/Kongduino/status/980466157701423104
-  ledcDetachPin(25); // detach DAC
-  File updateBin = fs.open(fileName);
-  if (updateBin) {
-    if(updateBin.isDirectory()){
-      Serial.println("Error, this is not a file");
-      updateBin.close();
-      return;
-    }
-    size_t updateSize = updateBin.size();
-    if (updateSize > 0) {
-      Serial.println("Try to start update");
-      performUpdate(updateBin, updateSize, fileName);
-    } else {
-       Serial.println("Error, file is empty");
-    }
-    updateBin.close();
-  } else {
-    Serial.println("Could not load binary from sd root");
-  }
-}
 #endif
