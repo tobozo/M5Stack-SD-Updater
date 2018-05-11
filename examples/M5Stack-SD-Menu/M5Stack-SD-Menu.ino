@@ -95,7 +95,7 @@ String allowedExtensions[extensionsCount] = {
     // do NOT remove jpg and json or the menu will crash !!!
     "jpg", "json", "mod", "mp3"
 };
-
+String appDataFolder = "/data"; // if an app needs spiffs data, it's stored here
 
 
 /* Storing json meta file information r */
@@ -118,10 +118,11 @@ struct FileInfo {
   bool hasIcon = false;
   bool hasMeta = false;
   bool hasFace = false; // github avatar
+  bool hasData = false; // app requires a spiffs /data folder
   JSONMeta jsonMeta;
 };
 
-
+SDUpdater sdUpdater;
 FileInfo fileInfo[MAX_FILES];
 M5SAM M5Menu;
 
@@ -135,6 +136,12 @@ int16_t scrollPointer = 0; // pointer to the scrollText position
 unsigned long lastScrollRender = micros(); // timer for scrolling
 String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
+
+/* vMicro compliance, see https://github.com/tobozo/M5Stack-SD-Updater/issues/5#issuecomment-386749435 */
+void getMeta(String metaFileName, JSONMeta &jsonMeta);
+void renderIcon(FileInfo &fileInfo);
+void renderMeta(JSONMeta &jsonMeta);
+
 
 
 void getMeta(String metaFileName, JSONMeta &jsonMeta) {
@@ -304,7 +311,13 @@ void getFileInfo(File &file) {
   if(SD.exists(currentIconFile.c_str())) {
     fileInfo[appsCount].hasFace = true;
     fileInfo[appsCount].faceName = currentIconFile;
-  }  
+  }
+  String currentDataFolder = appDataFolder + fileName;
+  currentDataFolder.replace(".bin", "");
+  if(SD.exists(currentDataFolder.c_str())) {
+    fileInfo[appsCount].hasData = true;
+  }
+  
   String currentMetaFile = "/json" + fileName;
   currentMetaFile.replace(".bin", ".json");
   if(SD.exists(currentMetaFile.c_str())) {
@@ -460,6 +473,12 @@ void scanDataFolder() {
   Serial.println(DEBUG_SPIFFS_SCAN);
   /* check if mandatory folders exists and create if necessary */
 
+  // data folder
+  if(!SD.exists(appDataFolder)) {
+    SD.mkdir(appDataFolder);
+  }
+
+
   for(uint8_t i=0;i<extensionsCount;i++) {
     String dir = "/" + allowedExtensions[i];
     if(!SD.exists(dir)) {
@@ -493,7 +512,7 @@ void scanDataFolder() {
         }
 
         if(destName!="") {
-          displayUpdateUI(String(MOVINGFILE_MESSAGE) + fileName);
+          sdUpdater.displayUpdateUI(String(MOVINGFILE_MESSAGE) + fileName);
           size_t fileSize = file.size();
           File destFile = SD.open(destName, FILE_WRITE);
           
@@ -507,7 +526,7 @@ void scanDataFolder() {
             while(file.read(buf, 512)) {
               destFile.write(buf, 512);
               packets++;
-              M5SDMenuProgress((packets*512)-511, fileSize);
+              sdUpdater.M5SDMenuProgress((packets*512)-511, fileSize);
             }
             destFile.close();
             Serial.println();
@@ -596,7 +615,7 @@ void setup() {
   // TODO: animate loading screen
   /* fake loading progress, looks kool ;-) */
   for(uint8_t i=1;i<100;i++) {
-    M5SDMenuProgress(i, 100);
+    sdUpdater.M5SDMenuProgress(i, 100);
   }
 
   M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
@@ -629,7 +648,7 @@ void loop() {
       }
     break;
     case UI_LOAD:
-      updateFromFS(SD, fileInfo[ M5Menu.getListID() ].fileName);
+      sdUpdater.updateFromFS(SD, fileInfo[ M5Menu.getListID() ].fileName);
       ESP.restart();
     break;
     default:
