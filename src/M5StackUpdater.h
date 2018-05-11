@@ -79,4 +79,10 @@ class SDUpdater {
     void performUpdate(Stream &updateSource, size_t updateSize, String fileName);
 };
 
+/* don't break older versions of the M5Stack SD Updater */
+static void updateFromFS(fs::FS &fs, String fileName = MENU_BIN ) {
+  SDUpdater sdUpdater;
+  sdUpdater.updateFromFS(fs, fileName);
+}
+
 #endif
