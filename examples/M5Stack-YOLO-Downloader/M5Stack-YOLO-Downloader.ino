@@ -53,6 +53,12 @@
 SDUpdater sdUpdater;
 HTTPClient http;
 
+const uint8_t extensionsCount = 4; // change this if you add / remove an extension
+String allowedExtensions[extensionsCount] = {
+    // do NOT remove jpg and json or the menu will crash !!!
+    "jpg", "json", "mod", "mp3"
+};
+
 const String API_URL = "https://phpsecu.re/m5stack/sd-updater/";
 
 bool done = false;
@@ -538,6 +544,14 @@ void setup() {
       M5.powerOFF();
     }
   }
+
+  for(uint8_t i=0;i<extensionsCount;i++) {
+    String dir = "/" + allowedExtensions[i];
+    if(!SD.exists(dir)) {
+      SD.mkdir(dir);
+    }
+  }
+  
   WiFi.mode(WIFI_STA);
   WiFi.begin(); // set SSID/PASS from another app (i.e. WiFi Manager) and reload this app
 
