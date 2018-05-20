@@ -34,6 +34,8 @@ install:
   - git submodule update --init --recursive
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
+  - wget https://github.com/adafruit/Adafruit_AMG88xx/archive/1.0.2.zip --output-document=Adafruit_AMG88xx.zip
+  - unzip -d ~/Arduino/libraries Adafruit_AMG88xx.zip
   - wget https://github.com/bblanchon/ArduinoJson/archive/master.zip --output-document=Arduinojson-master.zip
   - unzip -d ~/Arduino/libraries Arduinojson-master.zip
   - wget https://github.com/tomsuch/M5StackSAM/archive/master.zip --output-document=M5StackSAM-master.zip

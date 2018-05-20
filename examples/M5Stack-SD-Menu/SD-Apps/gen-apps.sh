@@ -125,6 +125,10 @@ for D in *; do
 #      ;;
 #      'M5Stack_Sokoban')
 #      ;;
+      'M5Stack-Thermal-Camera')
+         echo "Renaming to M5Stack-Thermal-Camera.ino"
+         mv thermal_cam_interpolate.ino M5Stack-Thermal-Camera.ino
+      ;;
       'mp3-player-m5stack')
         echo "Changing mp3 path in sketch"
         // TODO: fix this
