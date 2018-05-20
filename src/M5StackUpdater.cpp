@@ -2,30 +2,30 @@
  *
  * M5Stack SD Updater
  * Project Page: https://github.com/tobozo/M5Stack-SD-Updater
- * 
+ *
  * Copyright 2018 tobozo http://github.com/tobozo
  *
- * Permission is hereby granted, free of charge, to any person 
- * obtaining a copy of this software and associated documentation 
- * files ("M5Stack SD Updater"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sublicense, and/or 
- * sell copies of the Software, and to permit persons to whom the 
- * Software is furnished to do so, subject to the following 
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files ("M5Stack SD Updater"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
- * The above copyright notice and this permission notice shall be 
+ *
+ * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 
 #include "M5StackUpdater.h"
@@ -45,16 +45,27 @@ void SDUpdater::displayUpdateUI(String label) {
 void SDUpdater::M5SDMenuProgress(int state, int size) {
   int percent = (state*100) / size;
   Serial.printf("percent = %d\n", percent);
-  if (percent > 0) {
-    M5.Lcd.drawRect(111, 131, percent, 18, GREEN);
+  uint16_t x = M5.Lcd.getCursorX();
+  uint16_t y = M5.Lcd.getCursorY();
+
+  M5.Lcd.setTextColor(WHITE, BLACK);
+
+  if (percent > 0 && percent < 101) {
+    M5.Lcd.fillRect(111, 131, percent, 18, GREEN);
+    M5.Lcd.fillRect(111+percent, 131, 100-percent, 18, BLACK);
+  } else {
+    M5.Lcd.fillRect(111, 131, 100, 18, BLACK);
   }
+  M5.Lcd.setCursor(150, 155);
+  M5.Lcd.print(String(percent) + "% "); // trailing space is important
+  M5.Lcd.setCursor(x, y);
 }
 
 // perform the actual update from a given stream
 void SDUpdater::performUpdate(Stream &updateSource, size_t updateSize, String fileName) {
    displayUpdateUI("LOADING " + fileName);
    Update.onProgress(M5SDMenuProgress);
-   if (Update.begin(updateSize)) {      
+   if (Update.begin(updateSize)) {
       size_t written = Update.writeStream(updateSource);
       if (written == updateSize) {
          Serial.println("Written : " + String(written) + " successfully");
@@ -78,7 +89,7 @@ void SDUpdater::performUpdate(Stream &updateSource, size_t updateSize, String fi
 
 // check given FS for valid menu.bin and perform update if available
 void SDUpdater::updateFromFS(fs::FS &fs, String fileName) {
-  // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-) 
+  // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-)
   // See Macbug's excellent article on this tool:
   // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
   dacWrite(25, 0); // turn speaker signal off
