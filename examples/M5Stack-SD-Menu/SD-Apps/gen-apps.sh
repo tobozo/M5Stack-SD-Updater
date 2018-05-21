@@ -52,7 +52,7 @@ for D in *; do
       'M5-Colours-Demo')
         echo "Downloading/applying Display.h patch"
         wget https://gist.githubusercontent.com/Kongduino/36d152c81bbb1214a2128a2712ecdd18/raw/8ac549b98595856123359cbbd61444f16079bb99/Colours.h
-        cat Colours.h >> /home/travis/Arduino/libraries/M5Stack-0.1.9/src/utility/ILI9341_Defines.h
+        cat Colours.h >> /home/travis/Arduino/libraries/M5Stack/src/utility/ILI9341_Defines.h
         rm Colours.h
       ;;
 
