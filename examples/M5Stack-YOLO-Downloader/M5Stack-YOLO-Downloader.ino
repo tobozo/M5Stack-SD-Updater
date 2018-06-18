@@ -259,15 +259,24 @@ void syncAppRegistry(String API_URL, const char* ca) {
   
   String payload = http.getString();
   http.end();
-  //Serial.println(payload);
-  DynamicJsonBuffer jsonBuffer;
-  // Parse JSON object
-  JsonObject& root = jsonBuffer.parseObject(payload);
-  if (!root.success()) {
-    Serial.println(F("JSON Parsing failed!"));
-    delay(10000);
-    return;
-  }
+  #if ARDUINOJSON_VERSION_MAJOR==6
+    DynamicJsonDocument jsonBuffer;
+    DeserializationError error = deserializeJson(jsonBuffer, payload);
+    if (error) {
+      Serial.println(F("JSON Parsing failed!"));
+      delay(10000);
+      return;
+    }
+    JsonObject &root = jsonBuffer.as<JsonObject>();
+  #else
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& root = jsonBuffer.parseObject(payload);
+    if (!root.success()) {
+      Serial.println(F("JSON Parsing failed!"));
+      delay(10000);
+      return;
+    }
+  #endif
   //Serial.println("Parsed JSON");
   appsCount = root["apps_count"].as<uint16_t>();
   progress_modulo = 100/appsCount;
