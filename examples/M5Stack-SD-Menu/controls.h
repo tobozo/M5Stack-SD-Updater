@@ -15,7 +15,7 @@ enum HIDSignal {
 /* PSP JoyPad control plugin is provided as an example for custom controls.  */
 //#define USE_PSP_JOY
 /* M5Stack Faces Gameboy control plugin */
-#define USE_FACES_GAMEBOY
+//#define USE_FACES_GAMEBOY
 
 
 #ifdef USE_PSP_JOY
