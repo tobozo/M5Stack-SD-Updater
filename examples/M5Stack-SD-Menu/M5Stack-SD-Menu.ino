@@ -146,9 +146,18 @@ void renderMeta(JSONMeta &jsonMeta);
 
 void getMeta(String metaFileName, JSONMeta &jsonMeta) {
   File file = SD.open(metaFileName);
+#if ARDUINOJSON_VERSION_MAJOR==6
+  StaticJsonDocument<512> jsonBuffer;
+  DeserializationError error = deserializeJson(jsonBuffer, file);
+  if (error) return;
+  JsonObject root = jsonBuffer.as<JsonObject>();
+  if (!root.isNull())
+#else
   StaticJsonBuffer<512> jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(file);
-  if (root.success()) {
+  if (root.success())
+#endif
+  {
     jsonMeta.width  = root["width"];
     jsonMeta.height = root["height"];
     jsonMeta.authorName = root["authorName"].as<String>();
