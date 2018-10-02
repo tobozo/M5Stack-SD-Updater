@@ -185,7 +185,7 @@ void getApp(String appURL, const char* &ca) {
       delay(10000);
       return;
     }
-    JsonObject &root = jsonBuffer.as<JsonObject>();
+    JsonObject root = jsonBuffer.as<JsonObject>();
   #else
     DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(payload);
@@ -267,7 +267,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
       delay(10000);
       return;
     }
-    JsonObject &root = jsonBuffer.as<JsonObject>();
+    JsonObject root = jsonBuffer.as<JsonObject>();
   #else
     DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(payload);
