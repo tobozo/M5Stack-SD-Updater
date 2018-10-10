@@ -65,3 +65,6 @@ url = https://gist.github.com/shioken/e90b9fa3b43d8b067adde77a75768efd
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Thermal-Camera"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Thermal-Camera
 	url = https://github.com/hkoffer/M5Stack-Thermal-Camera-
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Tube"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Tube
+	url = https://github.com/tobozo/M5Tube
