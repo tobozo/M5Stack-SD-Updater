@@ -137,7 +137,7 @@ for D in *; do
       ;;
       'mp3-player-m5stack')
         echo "Changing mp3 path in sketch"
-        // TODO: fix this
+        # TODO: fix this
         sed -i 's/createTrackList("\/")/createTrackList("\/mp3\/")/g' mp3-player-m5stack.ino
       ;;
       esac
