@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function movebin {
  find /tmp -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
  find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; #
@@ -32,6 +34,10 @@ function populatemeta {
   rm temp
   echo "***** Populating successful"
 }
+
+readonly ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX='(^\[SocketListener\(travis-job-*|^  *[0-9][0-9]*: [0-9a-g][0-9a-g]*|^dns\[query,[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*:[0-9][0-9]*, length=[0-9][0-9]*, id=|^dns\[response,[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*:[0-9][0-9]*, length=[0-9][0-9]*, id=|^questions:$|\[DNSQuestion@|type: TYPE_IGNORE|^\.\]$|^\.\]\]$|^.\.\]$|^.\.\]\]$)'
+readonly ARDUINO_CI_SCRIPT_SUCCESS_EXIT_STATUS=0
+readonly ARDUINO_CI_SCRIPT_FAILURE_EXIT_STATUS=1
 
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/jpg $M5_SD_BUILD_DIR/
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/json $M5_SD_BUILD_DIR/
@@ -142,10 +148,14 @@ for D in *; do
     echo "**** Compiling ${PATH_TO_INO_FILE}";
 
     #arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log && movebin && populatemeta
-    arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE && movebin && populatemeta
-
+    set +o errexit
+    # shellcheck disable=SC2086
+    arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
+      local -r arduinoInstallPackageExitStatus="${PIPESTATUS[0]}"
+    if [[ "$arduinoPreferenceSettingExitStatus" != "$ARDUINO_CI_SCRIPT_SUCCESS_EXIT_STATUS" ]]; then
+      movebin && populatemeta
+    fi
     ls $M5_SD_BUILD_DIR -la;
-
     cd ..
   fi
 done
