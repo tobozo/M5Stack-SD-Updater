@@ -150,8 +150,11 @@ for D in *; do
     #arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log && movebin && populatemeta
     set +o errexit
     # shellcheck disable=SC2086
-    arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
-      local -r arduinoInstallPackageExitStatus="${PIPESTATUS[0]}"
+    eval \"arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE\" &>/dev/null | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
+    local -r arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
+    set -o errexit
+    #arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
+    #  local -r arduinoInstallPackageExitStatus="${PIPESTATUS[0]}"
     if [[ "$arduinoPreferenceSettingExitStatus" != "$ARDUINO_CI_SCRIPT_SUCCESS_EXIT_STATUS" ]]; then
       movebin && populatemeta
     fi
