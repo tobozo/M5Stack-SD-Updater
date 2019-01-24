@@ -35,7 +35,7 @@ function populatemeta {
   echo "***** Populating successful"
 }
 
-readonly ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX='' # '(^\[SocketListener\(travis-job-*|^  *[0-9][0-9]*: [0-9a-g][0-9a-g]*|^dns\[query,[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*:[0-9][0-9]*, length=[0-9][0-9]*, id=|^dns\[response,[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*:[0-9][0-9]*, length=[0-9][0-9]*, id=|^questions:$|\[DNSQuestion@|type: TYPE_IGNORE|^\.\]$|^\.\]\]$|^.\.\]$|^.\.\]\]$)'
+readonly ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX='(^\[SocketListener\(travis-job-*|^  *[0-9][0-9]*: [0-9a-g][0-9a-g]*|^dns\[query,[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*:[0-9][0-9]*, length=[0-9][0-9]*, id=|^dns\[response,[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*:[0-9][0-9]*, length=[0-9][0-9]*, id=|^questions:$|\[DNSQuestion@|type: TYPE_IGNORE|^\.\]$|^\.\]\]$|^.\.\]$|^.\.\]\]$)'
 readonly ARDUINO_CI_SCRIPT_SUCCESS_EXIT_STATUS=0
 readonly ARDUINO_CI_SCRIPT_FAILURE_EXIT_STATUS=1
 
@@ -150,9 +150,10 @@ for D in *; do
     #arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE >> $SDAPP_FOLDER/out.log && movebin && populatemeta
     set +o errexit
     # shellcheck disable=SC2086
-    eval \"arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE\" &>/dev/null | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
+    # eval \"arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE\" &>/dev/null | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
+    arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE
     # local -r arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
-    readonly arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
+    export arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
     set -o errexit
     #arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
     #  local -r arduinoInstallPackageExitStatus="${PIPESTATUS[0]}"
