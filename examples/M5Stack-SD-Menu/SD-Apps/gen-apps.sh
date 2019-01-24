@@ -55,13 +55,6 @@ for D in *; do
 
       case "$D" in
 
-      'M5-Colours-Demo')
-        echo "Downloading/applying Display.h patch"
-        wget https://gist.githubusercontent.com/Kongduino/36d152c81bbb1214a2128a2712ecdd18/raw/8ac549b98595856123359cbbd61444f16079bb99/Colours.h
-        cat Colours.h >> /home/travis/Arduino/libraries/M5Stack/src/utility/ILI9341_Defines.h
-        rm Colours.h
-      ;;
-
       'Pixel-Fun-M5Stack')
         echo "Renaming $D ino file"
         mv PixelFun.ino Pixel-Fun-M5Stack.ino
@@ -102,8 +95,6 @@ for D in *; do
         sed -i 's/\/NyanCat.mp3/\/mp3\/NyanCat.mp3/g' M5Stack_NyanCat_Ext.ino
       ;;
 
-
-
       'M5Stack_lifegame')
         echo "Renaming file to .ino"
         mv M5Stack_lifegame M5Stack_lifegame.ino
@@ -116,13 +107,7 @@ for D in *; do
       ;;
 #      'SpaceDefense-m5stack')
 #      ;;
-      'M5_LoRa_Frequency_Hopping')
-        outfile=M5_Lora_Frequency_Hopping.ino
-        awk '/M5Stack.h/{print;print "#include <M5Widget.h>";next}1' $outfile > tmp && mv tmp $outfile;
-        # gotta patch the library too
-        outfile=/home/travis/Arduino/libraries/M5Widgets-master/src/M5QRCode.h
-        egrep -R "utility/qrcode" $outfile || (sed -i 's/qrcode.h/utility\/qrcode.h/g' $outfile);
-      ;;
+
       'M5Stack_FlappyBird_game')
         # put real comments prevent syntax error
         sed -i -e 's/#By Ponticelli Domenico/\/\/By Ponticelli Domenico/g' M5Stack_FlappyBird.ino
@@ -151,7 +136,7 @@ for D in *; do
     set +o errexit
     # shellcheck disable=SC2086
     # eval \"arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE\" &>/dev/null | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
-    arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE
+    arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE
     # local -r arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
     export arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
     set -o errexit
@@ -159,6 +144,8 @@ for D in *; do
     #  local -r arduinoInstallPackageExitStatus="${PIPESTATUS[0]}"
     if [[ "$arduinoPreferenceSettingExitStatus" != "$ARDUINO_CI_SCRIPT_SUCCESS_EXIT_STATUS" ]]; then
       movebin && populatemeta
+    else
+      echo "**** Bad exit status"
     fi
     ls $M5_SD_BUILD_DIR -la;
     cd ..
