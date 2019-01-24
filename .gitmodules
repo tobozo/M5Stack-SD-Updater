@@ -22,9 +22,6 @@
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Sokoban"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Sokoban
 	url = https://github.com/robo8080/M5Stack_Sokoban
-[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5_LoRa_Frequency_Hopping"]
-	path = examples/M5Stack-SD-Menu/SD-Apps/M5_LoRa_Frequency_Hopping
-	url = https://github.com/Kongduino/M5_LoRa_Frequency_Hopping
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-NyanCat"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-NyanCat
 	url = https://github.com/tobozo/M5Stack-NyanCat
