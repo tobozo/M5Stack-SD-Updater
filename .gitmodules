@@ -1,6 +1,3 @@
-[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5-Colours-Demo"]
-	path = examples/M5Stack-SD-Menu/SD-Apps/M5-Colours-Demo
-	url = https://github.com/Kongduino/M5-Colours-Demo
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_CrackScreen"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_CrackScreen
 	url = https://github.com/nomolk/M5Stack_CrackScreen
