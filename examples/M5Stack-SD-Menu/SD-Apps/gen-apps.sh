@@ -2,7 +2,8 @@
 
 function movebin {
  find /tmp -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
- find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; #
+ find /tmp -name \*.ino.elf -exec rename 's/.ino.elf/.bin/' {} \; # sometimes arduino produces ELF, sometimes it's BIN
+ find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; # 
  find /tmp -name \*.bin -exec rename 's/(_for)?(_|-)?(m5)_?(stack)?(-|_)?//ig' {} \; #
  export BIN_FILE=`basename $( find /tmp -name \*.bin )`
  find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/ \; #<-- you need that backslash before and space after the semicolon
@@ -142,11 +143,11 @@ for D in *; do
     set -o errexit
     #arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
     #  local -r arduinoInstallPackageExitStatus="${PIPESTATUS[0]}"
-    if [[ "$arduinoPreferenceSettingExitStatus" != "$ARDUINO_CI_SCRIPT_SUCCESS_EXIT_STATUS" ]]; then
+    #if [[ "$arduinoPreferenceSettingExitStatus" != "$ARDUINO_CI_SCRIPT_SUCCESS_EXIT_STATUS" ]]; then
       movebin && populatemeta
-    else
-      echo "**** Bad exit status"
-    fi
+    #else
+    #  echo "**** Bad exit status"
+    #fi
     ls $M5_SD_BUILD_DIR -la;
     cd ..
   fi
