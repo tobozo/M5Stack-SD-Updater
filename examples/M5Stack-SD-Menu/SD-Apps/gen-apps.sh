@@ -2,7 +2,7 @@
 
 function movebin {
  find /tmp -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
- find /tmp -name \*.ino.elf -exec rename 's/.ino.elf/.ino.bin/' {} \; # sometimes arduino produces ELF, sometimes it's BIN
+ #find /tmp -name \*.ino.elf -exec rename 's/.ino.elf/.ino.bin/' {} \; # sometimes arduino produces ELF, sometimes it's BIN
  find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; # 
  find /tmp -name \*.bin -exec rename 's/(_for)?(_|-)?(m5)_?(stack)?(-|_)?//ig' {} \; #
  export BIN_FILE=`basename $( find /tmp -name \*.bin )`
@@ -137,7 +137,7 @@ for D in *; do
     set +o errexit
     # shellcheck disable=SC2086
     # eval \"arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE\" &>/dev/null | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
-    arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE
+    arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE &>/dev/null
     # local -r arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
     export arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
     set -o errexit
