@@ -31,9 +31,6 @@
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-ESP32-Oscilloscope"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-ESP32-Oscilloscope
 	url = https://github.com/botofancalin/M5Stack-ESP32-Oscilloscope
-[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-MegaChess"]
-	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-MegaChess
-	url = https://github.com/PartsandCircuits/M5Stack-MegaChess
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-PacketMonitor"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-PacketMonitor
 	url = https://github.com/tobozo/M5Stack-PacketMonitor
