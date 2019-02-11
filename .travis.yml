@@ -1,7 +1,7 @@
 language: generic
 env:
   global:
-    - IDE_VERSION=1.8.5
+    - IDE_VERSION=nightly
     - REPO_NAME=M5Stack-SD-Updater
     - SDAPP_FOLDER=$PWD/examples/M5Stack-SD-Menu/SD-Apps
     - TRAVIS_TAG="v0.1.0-SD-Extras"
@@ -13,6 +13,7 @@ before_install:
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
   - sleep 3
   - export DISPLAY=:1.0
+  - export JAVA_ARGS="-Djavax.jmdns.level=OFF"
   - wget http://downloads.arduino.cc/arduino-$IDE_VERSION-linux64.tar.xz
   - tar xf arduino-$IDE_VERSION-linux64.tar.xz
   - mv arduino-$IDE_VERSION ~/arduino-ide
@@ -42,14 +43,12 @@ install:
   - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
 #  - wget https://github.com/ricmoo/QRCode/archive/master.zip --output-document=QRCode-master.zip
 #  - unzip -d ~/Arduino/libraries QRCode-master.zip
-#  - wget https://github.com/m5stack/M5Stack/archive/0.2.0.zip --output-document=M5Stack.zip
-  - wget https://github.com/tobozo/M5Stack/archive/master.zip --output-document=M5Stack.zip
+  - wget https://github.com/m5stack/M5Stack/archive/master.zip --output-document=M5Stack.zip
+#  - wget https://github.com/tobozo/M5Stack/archive/master.zip --output-document=M5Stack.zip
   - unzip -d ~/Arduino/libraries M5Stack.zip
   - mv ~/Arduino/libraries/M5Stack-master ~/Arduino/libraries/M5Stack
   - wget https://github.com/earlephilhower/ESP8266Audio/archive/master.zip --output-document=ESP8266Audio.zip
   - unzip -d ~/Arduino/libraries ESP8266Audio.zip
-  - wget https://github.com/Kongduino/M5Widgets/archive/master.zip --output-document=M5Widgets.zip
-  - unzip -d ~/Arduino/libraries M5Widgets.zip
   - wget https://github.com/Seeed-Studio/Grove_BMP280/archive/1.0.1.zip --output-document=Grove_BMP280.zip
   - unzip -d ~/Arduino/libraries Grove_BMP280.zip
   - wget https://github.com/Gianbacchio/ESP8266_Spiram/archive/master.zip --output-document=ESP8266_Spiram.zip
@@ -63,7 +62,7 @@ install:
 script:
   - arduino --pref "compiler.warning_level=none" --save-prefs
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
-  - arduino  --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino >> $SDAPP_FOLDER/out.log
+  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
   - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/menu.bin \; #
   - echo "Main APP Compilation successful, now compiling deps"
