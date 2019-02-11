@@ -57,10 +57,10 @@ install:
   - mkdir -p ~/Arduino/libraries/Game_Audio
   - unzip -d ~/Arduino/libraries/Game_Audio Game_Audio.zip
   - wget https://github.com/lovyan03/M5TreeView/archive/master.zip --output-document=M5TreeView.zip
-  - mkdir -p ~/Arduino/libraries/M5TreeView
+  #- mkdir -p ~/Arduino/libraries/M5TreeView
   - unzip -d ~/Arduino/libraries/M5TreeView M5TreeView.zip
   - wget https://github.com/lovyan03/M5OnScreenKeyboard/archive/master.zip --output-document=M5OnScreenKeyboard.zip
-  - mkdir -p ~/Arduino/libraries/M5OnScreenKeyboard
+  #- mkdir -p ~/Arduino/libraries/M5OnScreenKeyboard
   - unzip -d ~/Arduino/libraries/M5OnScreenKeyboard M5OnScreenKeyboard.zip
   
   - ls ~/Arduino/libraries -la
