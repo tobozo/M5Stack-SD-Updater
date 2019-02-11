@@ -62,3 +62,6 @@ url = https://gist.github.com/shioken/e90b9fa3b43d8b067adde77a75768efd
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-MegaChess"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-MegaChess
 	url = https://github.com/m4k3r-net/M5Stack-MegaChess
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Raytracer"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-Raytracer
+	url = https://github.com/tobozo/M5Stack-Raytracer
