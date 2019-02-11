@@ -30,12 +30,14 @@
 
 #include "M5StackUpdater.h"
 
+static int M5_UI_Progress;
 
 void SDUpdater::displayUpdateUI(String label) {
   M5.Lcd.setBrightness(100);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setCursor(10, 10);
   M5.Lcd.setTextColor(WHITE);
+  M5.Lcd.setTextFont(0);
   M5.Lcd.setTextSize(2);
   M5.Lcd.printf(label.c_str());
   M5.Lcd.drawRect(110, 130, 102, 20, WHITE);
@@ -44,21 +46,34 @@ void SDUpdater::displayUpdateUI(String label) {
 
 void SDUpdater::M5SDMenuProgress(int state, int size) {
   int percent = (state*100) / size;
+  if( percent == M5_UI_Progress ) {
+    return;
+  }
   Serial.printf("percent = %d\n", percent);
-  uint16_t x = M5.Lcd.getCursorX();
-  uint16_t y = M5.Lcd.getCursorY();
-
-  M5.Lcd.setTextColor(WHITE, BLACK);
-
+  M5_UI_Progress = percent;
+  uint16_t x      = M5.Lcd.getCursorX();
+  uint16_t y      = M5.Lcd.getCursorY();
+  int textfont    = M5.Lcd.textfont;
+  int textsize    = M5.Lcd.textsize;
+  int textcolor   = M5.Lcd.textcolor;
+  int textbgcolor = M5.Lcd.textbgcolor;
+  
   if (percent > 0 && percent < 101) {
     M5.Lcd.fillRect(111, 131, percent, 18, GREEN);
     M5.Lcd.fillRect(111+percent, 131, 100-percent, 18, BLACK);
   } else {
     M5.Lcd.fillRect(111, 131, 100, 18, BLACK);
   }
+  M5.Lcd.setTextFont(0); // Select font 0 which is the Adafruit font
+  M5.Lcd.setTextSize(1);
+  M5.Lcd.setTextColor(WHITE, BLACK);
   M5.Lcd.setCursor(150, 155);
   M5.Lcd.print(String(percent) + "% "); // trailing space is important
   M5.Lcd.setCursor(x, y);
+  M5.Lcd.setTextFont(textfont); // Select font 0 which is the Adafruit font
+  M5.Lcd.setTextSize(textsize);
+  M5.Lcd.setTextColor(textcolor, textbgcolor);
+  
 }
 
 // perform the actual update from a given stream
