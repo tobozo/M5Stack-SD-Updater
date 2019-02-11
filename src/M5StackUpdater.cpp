@@ -121,7 +121,10 @@ void SDUpdater::updateFromFS(fs::FS &fs, String fileName) {
     size_t updateSize = updateBin.size();
     if (updateSize > 0) {
       Serial.println("Try to start update");
+      // disable WDT it as suggested by twitter.com/@lovyan03
+      disableCore0WDT();
       performUpdate(updateBin, updateSize, fileName);
+      enableCore0WDT();
     } else {
        Serial.println("Error, file is empty");
     }
