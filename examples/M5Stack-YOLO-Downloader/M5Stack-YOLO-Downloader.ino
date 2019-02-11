@@ -178,14 +178,14 @@ void getApp(String appURL, const char* &ca) {
   String payload = http.getString();
   http.end();
   #if ARDUINOJSON_VERSION_MAJOR==6
-    DynamicJsonDocument jsonBuffer;
+    DynamicJsonDocument jsonBuffer(2048);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
       Serial.println(F("JSON Parsing failed!"));
       delay(10000);
       return;
     }
-    JsonObject &root = jsonBuffer.as<JsonObject>();
+    JsonObject root = jsonBuffer.as<JsonObject>();
   #else
     DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(payload);
@@ -207,10 +207,11 @@ void getApp(String appURL, const char* &ca) {
     String filePath = root["apps"][0]["json_meta"]["assets"][i]["path"].as<String>();
     String fileName = root["apps"][0]["json_meta"]["assets"][i]["name"].as<String>();
     size_t appSize  = root["apps"][0]["json_meta"]["assets"][i]["size"].as<size_t>();
+    size_t mySize   = 0;
     
-    if(SD.exists(filePath + fileName) && false) {
+    if(SD.exists(filePath + fileName)) {
       File myFile = SD.open(filePath + fileName);
-      size_t mySize = myFile.size();
+      mySize = myFile.size();
       myFile.close();
       if(mySize == appSize) {
         Serial.println("Skipping " + fileName);
@@ -225,7 +226,7 @@ void getApp(String appURL, const char* &ca) {
       Serial.print("Creating ");
       M5.Lcd.print("Creating ");
     }
-    Serial.println(fileName);
+    Serial.printf("%s ( L:%d / R:%d) \n", fileName.c_str(), mySize, appSize);
     M5.Lcd.println(fileName);
     wget (base_url + filePath + fileName, filePath + fileName, phpsecure_ca);
     uint16_t myprogress = progress + (i* float(progress_modulo/assets_count));
@@ -238,7 +239,7 @@ void getApp(String appURL, const char* &ca) {
 
 void syncAppRegistry(String API_URL, const char* ca) {
 
-  wget("https://github.com/tobozo/M5Stack-SD-Updater/releases/download/v0.3.0/SD-Apps-Folder.zip", "/SD-Apps-Folder.zip", github_ca);
+  // wget("https://github.com/tobozo/M5Stack-SD-Updater/releases/download/v0.3.0/SD-Apps-Folder.zip", "/SD-Apps-Folder.zip", github_ca);
 
   http.setReuse(true);
   http.begin(API_URL + "catalog.json", ca);
@@ -260,14 +261,14 @@ void syncAppRegistry(String API_URL, const char* ca) {
   String payload = http.getString();
   http.end();
   #if ARDUINOJSON_VERSION_MAJOR==6
-    DynamicJsonDocument jsonBuffer;
+    DynamicJsonDocument jsonBuffer(2048);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
       Serial.println(F("JSON Parsing failed!"));
       delay(10000);
       return;
     }
-    JsonObject &root = jsonBuffer.as<JsonObject>();
+    JsonObject root = jsonBuffer.as<JsonObject>();
   #else
     DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(payload);
@@ -279,6 +280,12 @@ void syncAppRegistry(String API_URL, const char* ca) {
   #endif
   //Serial.println("Parsed JSON");
   appsCount = root["apps_count"].as<uint16_t>();
+  if( appsCount==0 ) {
+    Serial.println("No apps found, aborting");
+    while(1) {
+      ;
+    }
+  }
   progress_modulo = 100/appsCount;
   String base_url = root["base_url"].as<String>();
   Serial.println("Found " + String(appsCount) + " apps at " + base_url);
