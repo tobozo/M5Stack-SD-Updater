@@ -73,11 +73,11 @@ script:
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
   - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/menu.bin \; #
   
-  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/M5Stack-YOLO-Downloader/M5Stack-YOLO-Downloader.ino #&>/dev/null
+  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/M5Stack-YOLO-Downloader/M5Stack-YOLO-Downloader.ino &>/dev/null
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
   - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/M5Stack-YOLO-Downloader.bin \; #
   
-  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD ~/Arduino/libraries/M5TreeView/examples/SD-Updater/SD-Updater.ino &>/dev/null
+  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD ~/Arduino/libraries/M5TreeView/examples/SD-Updater/SD-Updater.ino #&>/dev/null
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
   - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/SD-Updater.bin \; #
   
