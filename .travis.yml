@@ -56,6 +56,13 @@ install:
   - wget http://www.buildlog.net/blog/wp-content/uploads/2018/02/Game_Audio.zip --output-document=Game_Audio.zip
   - mkdir -p ~/Arduino/libraries/Game_Audio
   - unzip -d ~/Arduino/libraries/Game_Audio Game_Audio.zip
+  - wget https://github.com/lovyan03/M5TreeView/archive/master.zip --output-document=M5TreeView.zip
+  - mkdir -p ~/Arduino/libraries/M5TreeView
+  - unzip -d ~/Arduino/libraries/M5TreeView M5TreeView.zip
+  - wget https://github.com/lovyan03/M5OnScreenKeyboard/archive/master.zip --output-document=M5OnScreenKeyboard.zip
+  - mkdir -p ~/Arduino/libraries/M5OnScreenKeyboard
+  - unzip -d ~/Arduino/libraries/M5OnScreenKeyboard M5OnScreenKeyboard.zip
+  
   - ls ~/Arduino/libraries -la
   - rm *.zip
 
@@ -65,6 +72,15 @@ script:
   - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
   - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/menu.bin \; #
+  
+  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/M5Stack-YOLO-Downloader/M5Stack-YOLO-Downloader.ino &>/dev/null
+  - find /tmp -name \*.partitions.bin -exec rm {} \; #
+  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/M5Stack-YOLO-Downloader.bin \; #
+  
+  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD ~/Arduino/libraries/M5TreeView/examples/SD-Updater/SD-Updater.ino &>/dev/null
+  - find /tmp -name \*.partitions.bin -exec rm {} \; #
+  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/SD-Updater.bin \; #
+  
   - echo "Main APP Compilation successful, now compiling deps"
   - cd $SDAPP_FOLDER
   - ./gen-apps.sh
