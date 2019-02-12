@@ -15,7 +15,7 @@
 
 ## ABOUT
 
-- **M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) to package you apps on a SD card and load them from a menu.**
+- **M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) to package your apps on a SD card and load them from a menu such as the [default SD Menu example](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu) of this project or [@lovyan03](https://github.com/lovyan03)'s [Treeview based SD Menu](https://github.com/lovyan03/M5TreeView/tree/master/examples/SD-Updater).**
 
 - It is inspired by gamebuino, however it does not use a modified bootloader.
 
@@ -66,7 +66,7 @@
 
 <br />
 
-**2) Download the [SD-Content :floppy_disk:](https://github.com/tobozo/M5Stack-SD-Updater/releases/download/v0.2.2/SD-Apps-Folder.zip) folder from the release page and unzip it into the root of the SD Card.** Then put the SD Card into the M5Stack. This zip file comes preloaded with [18 precompiled apps](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/SD-Apps) and the relative meta information for the menu.
+**2) Download the [SD-Content :floppy_disk:](https://github.com/tobozo/M5Stack-SD-Updater/releases/download/v0.3.2/SD-Apps-Folder.zip) folder from the release page and unzip it into the root of the SD Card.** Then put the SD Card into the M5Stack. This zip file comes preloaded with [precompiled apps](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/SD-Apps) and the relative meta information for the menu.
 
 <br />
 
@@ -232,5 +232,5 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 | 👍     | QRCode              | Richard Moore    | https://github.com/ricmoo/qrcode             |
 | 👍     | @Reaper7            | Reaper7          | https://github.com/reaper7                   |
 | 👍     | @PartsandCircuits   | PartsandCircuits | https://github.com/PartsandCircuits          |
- 
+| 👍     | @lovyan03           | らびやん           | https://github.com/lovyan03                  |
  
