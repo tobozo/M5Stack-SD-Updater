@@ -19,6 +19,9 @@ function injectupdater {
   egrep -R "Wire.begin()" || (awk '/M5.begin()/{print;print "  Wire.begin();";next}1' $outfile > tmp && mv tmp $outfile);
   # the display driver changed, get rid of default rotation in setup
   sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' $outfile
+  # remove any hardcoded credentials so wifi auth can be done from another app (e.g. wifimanager)
+  sed -i -e 's/WiFi.begin(ssid, password);/WiFi.begin();/g' $outfile
+  sed -i -e 's/WiFi.begin(SSID, PASSWORD);/WiFi.begin();/g' $outfile
   echo "***** Injection successful"
 }
 
@@ -81,6 +84,24 @@ for D in *; do
          echo "Fixing path to crack.jpg"
          sed -i 's/\/crack.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
          cp crack.jpg $M5_SD_BUILD_DIR/jpg/crack.jpg
+       ;;
+       
+       'M5Stack-CrazyAsteroids')
+         cat Crazy_Asteroid.ino EntrySection.ino ExitSection.ino printAsteroid.ino printSpaceShip.ino > out.blah
+         rm *.ino
+         mv out.blah M5Stack-CrazyAsteroids.ino
+       ;;
+       
+       'M5Stack_WebRadio_Avator')
+         echo "Patching esp8266Audio with getLevel()"
+         sed -i -e 's/bool SetOutputModeMono/int getLevel();\nbool  SetOutputModeMono/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.h
+         sed -i -e 's/include "AudioOutputI2S.h"/include "AudioOutputI2S.h"\n\n int aout_level = 0; int AudioOutputI2S::getLevel() { return aout_level; }/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
+         sed -i -e 's/int16_t l/aout_level = (int)sample[RIGHTCHANNEL];\nint16_t  l/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
+       ;;
+       
+       'M5Stack-WiFiScanner')
+         # remove unnecessary include causing an error
+         sed -i -e 's/#include <String.h>/\/\//g' M5Stack-WiFiScanner.ino
        ;;
        #'M5Stack-MegaChess')
        #  # fix rotation problem caused by display driver changes
