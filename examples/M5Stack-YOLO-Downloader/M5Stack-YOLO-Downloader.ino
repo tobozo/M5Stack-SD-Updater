@@ -317,7 +317,7 @@ void setup() {
   Serial.begin(115200);
   M5.begin();
   Wire.begin();
-  Serial.printf("%s %s %s\n", ESP32_CORE_NAME, ESP32_CORE_VERSION, esp_get_idf_version());
+  //Serial.printf("%s %s %s\n", ESP32_CORE_NAME, ESP32_CORE_VERSION, esp_get_idf_version());
 
   delay(100); // need this to avoid a boot loop
   if (digitalRead(BUTTON_A_PIN) == 0) {
