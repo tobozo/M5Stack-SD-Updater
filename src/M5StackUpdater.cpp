@@ -211,6 +211,6 @@ void SDUpdater::updateFromFS(fs::FS &fs, String fileName) {
     }
     updateBin.close();
   } else {
-    Serial.println("Could not load binary from sd root");
+    Serial.printf("Could not load %s binary from sd root", fileName.c_str());
   }
 }

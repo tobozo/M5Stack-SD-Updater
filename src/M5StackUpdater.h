@@ -74,7 +74,9 @@ extern "C" {
 #include <M5Stack.h>
 #include <Update.h>
 #include <Preferences.h>
+#ifndef MENU_BIN
 #define MENU_BIN "/menu.bin"
+#endif
 
 class SDUpdater {
   public: 
