@@ -32,7 +32,7 @@ before_install:
     fi
   
 install:
-  - git submodule update --init --recursive
+  #- git submodule update --init --recursive
   - git submodule foreach --recursive git pull origin
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
