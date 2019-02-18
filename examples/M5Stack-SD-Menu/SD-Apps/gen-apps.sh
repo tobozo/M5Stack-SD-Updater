@@ -94,12 +94,15 @@ for D in *; do
        
        'M5Stack_WebRadio_Avator')
          echo "Patching esp8266Audio with getLevel()"
-         sed -i -e 's/bool SetOutputModeMono/int getLevel();\nbool  SetOutputModeMono/g' ~/Arduino/libraries/ESP8266Audio/src/AudioOutputI2S.h
-         sed -i -e 's/include "AudioOutputI2S.h"/include "AudioOutputI2S.h"\n\n int aout_level = 0; int AudioOutputI2S::getLevel() { return aout_level; }/g' ~/Arduino/libraries/ESP8266Audio/src/AudioOutputI2S.cpp
-         sed -i -e 's/int16_t l/aout_level = (int)sample[RIGHTCHANNEL];\nint16_t  l/g' ~/Arduino/libraries/ESP8266Audio/src/AudioOutputI2S.cpp
+         sed -i -e 's/bool SetOutputModeMono/int getLevel();\nbool  SetOutputModeMono/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.h
+         sed -i -e 's/include "AudioOutputI2S.h"/include "AudioOutputI2S.h"\n\n int aout_level = 0; int AudioOutputI2S::getLevel() { return aout_level; }/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
+         sed -i -e 's/int16_t l/aout_level = (int)sample[RIGHTCHANNEL];\nint16_t  l/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
        ;;
        
-       
+       'M5Stack-WiFiScanner')
+         # remove unnecessary include causing an error
+         sed -i -e 's/#include <String.h>/\/\//g' M5Stack-WiFiScanner.ino
+       ;;
        #'M5Stack-MegaChess')
        #  # fix rotation problem caused by display driver changes
        #  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' arduinomegachess_for_m5stack.ino
