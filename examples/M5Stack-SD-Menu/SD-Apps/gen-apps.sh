@@ -17,6 +17,8 @@ function injectupdater {
   awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { sdUpdater.updateFromFS(SD); ESP.restart(); } ";next}1' $outfile > tmp && mv tmp $outfile;
   # the M5StackUpdater requires Wire.begin(), inject it if necessary
   egrep -R "Wire.begin()" || (awk '/M5.begin()/{print;print "  Wire.begin();";next}1' $outfile > tmp && mv tmp $outfile);
+  # the display driver changed, get rid of default rotation in setup
+  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' $outfile
   echo "***** Injection successful"
 }
 
@@ -50,6 +52,7 @@ for D in *; do
   if [ -d "${D}" ]; then
     echo "moving to ${D}";
     cd ${D};
+    export hidecompilelogs=1
     # ls -la
     egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0;
     if (( $m5enabled == 1 )); then
@@ -59,6 +62,8 @@ for D in *; do
       'Pixel-Fun-M5Stack')
         echo "Renaming $D ino file"
         mv PixelFun.ino Pixel-Fun-M5Stack.ino
+        sed -i -e 's/ILI9341/M5Display/g' Mover.cpp # https://github.com/neoxharsh/Pixel-Fun-M5Stack/issues/1
+        #export hidecompilelogs=0
       ;;
       #*)
       #;;
@@ -77,8 +82,10 @@ for D in *; do
          sed -i 's/\/crack.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
          cp crack.jpg $M5_SD_BUILD_DIR/jpg/crack.jpg
        ;;
-#      'M5Stack-MegaChess')
-#      ;;
+       #'M5Stack-MegaChess')
+       #  # fix rotation problem caused by display driver changes
+       #  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' arduinomegachess_for_m5stack.ino
+       #;;
 #      'M5Stack-Pacman-JoyPSP')
 #      ;;
 #      'M5Stack-SpaceShooter')
@@ -137,7 +144,11 @@ for D in *; do
     set +o errexit
     # shellcheck disable=SC2086
     # eval \"arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE\" &>/dev/null | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
-    arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE &>/dev/null
+    if (( $hidecompilelogs == 0 )); then
+      arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE
+    else
+      arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE &>/dev/null
+    fi
     # local -r arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
     export arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
     set -o errexit

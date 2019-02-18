@@ -33,6 +33,9 @@ before_install:
   
 install:
   - git submodule update --init --recursive
+  - cd $SDAPP_FOLDER
+  - git submodule foreach --recursive git pull origin master
+  - cd $TRAVIS_BUILD_DIR;
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
   - wget https://github.com/adafruit/Adafruit_AMG88xx/archive/1.0.2.zip --output-document=Adafruit_AMG88xx.zip
@@ -56,12 +59,12 @@ install:
   - wget http://www.buildlog.net/blog/wp-content/uploads/2018/02/Game_Audio.zip --output-document=Game_Audio.zip
   - mkdir -p ~/Arduino/libraries/Game_Audio
   - unzip -d ~/Arduino/libraries/Game_Audio Game_Audio.zip
-  - wget https://github.com/lovyan03/M5TreeView/archive/master.zip --output-document=M5TreeView.zip
+  - wget https://github.com/lovyan03/M5Stack_TreeView/archive/master.zip --output-document=M5Stack_TreeView.zip
   #- mkdir -p ~/Arduino/libraries/M5TreeView
-  - unzip -d ~/Arduino/libraries M5TreeView.zip
-  - wget https://github.com/lovyan03/M5OnScreenKeyboard/archive/master.zip --output-document=M5OnScreenKeyboard.zip
+  - unzip -d ~/Arduino/libraries M5Stack_TreeView.zip
+  - wget https://github.com/lovyan03/M5Stack_OnScreenKeyboard/archive/master.zip --output-document=M5Stack_OnScreenKeyboard.zip
   #- mkdir -p ~/Arduino/libraries/M5OnScreenKeyboard
-  - unzip -d ~/Arduino/libraries M5OnScreenKeyboard.zip
+  - unzip -d ~/Arduino/libraries M5Stack_OnScreenKeyboard.zip
   
   - ls ~/Arduino/libraries -la
   - rm *.zip
@@ -77,10 +80,10 @@ script:
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
   - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/Downloader.bin \; #
   
-  - cd ~/Arduino/libraries/M5TreeView-master/examples/SD-Updater/
-  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD ./SD-Updater.ino &>/dev/null
-  - find /tmp -name \*.partitions.bin -exec rm {} \; #
-  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/SD-Updater.bin \; #
+#  - cd ~/Arduino/libraries/M5TreeView-master/examples/SD-Updater/
+#  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD ./SD-Updater.ino &>/dev/null
+#  - find /tmp -name \*.partitions.bin -exec rm {} \; #
+#  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/SD-Updater.bin \; #
   
   - echo "Main APPs Compilation successful, now compiling deps"
   - cd $SDAPP_FOLDER
