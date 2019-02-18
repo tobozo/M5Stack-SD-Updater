@@ -50,7 +50,7 @@ for D in *; do
   if [ -d "${D}" ]; then
     echo "moving to ${D}";
     cd ${D};
-    export hidecompilelogs = 1
+    export hidecompilelogs=1
     # ls -la
     egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0;
     if (( $m5enabled == 1 )); then
@@ -60,7 +60,7 @@ for D in *; do
       'Pixel-Fun-M5Stack')
         echo "Renaming $D ino file"
         mv PixelFun.ino Pixel-Fun-M5Stack.ino
-        export hidecompilelogs = 0
+        export hidecompilelogs=0
       ;;
       #*)
       #;;
