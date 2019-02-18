@@ -19,6 +19,9 @@ function injectupdater {
   egrep -R "Wire.begin()" || (awk '/M5.begin()/{print;print "  Wire.begin();";next}1' $outfile > tmp && mv tmp $outfile);
   # the display driver changed, get rid of default rotation in setup
   sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' $outfile
+  # remove any hardcoded credentials so wifi auth can be done from another app (e.g. wifimanager)
+  sed -i -e 's/WiFi.begin(ssid, password);/WiFi.begin();/g' $outfile
+  sed -i -e 's/WiFi.begin(SSID, PASSWORD);/WiFi.begin();/g' $outfile
   echo "***** Injection successful"
 }
 
