@@ -50,6 +50,7 @@ for D in *; do
   if [ -d "${D}" ]; then
     echo "moving to ${D}";
     cd ${D};
+    export hidecompilelogs = 1
     # ls -la
     egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0;
     if (( $m5enabled == 1 )); then
@@ -59,6 +60,7 @@ for D in *; do
       'Pixel-Fun-M5Stack')
         echo "Renaming $D ino file"
         mv PixelFun.ino Pixel-Fun-M5Stack.ino
+        export hidecompilelogs = 0
       ;;
       #*)
       #;;
@@ -137,7 +139,7 @@ for D in *; do
     set +o errexit
     # shellcheck disable=SC2086
     # eval \"arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE\" &>/dev/null | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
-    if (( $m5enabled == 1 )); then
+    if (( $hidecompilelogs == 1 )); then
       arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE
     else
       arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE &>/dev/null
