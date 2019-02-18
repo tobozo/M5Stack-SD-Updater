@@ -94,4 +94,4 @@ url = https://gist.github.com/shioken/e90b9fa3b43d8b067adde77a75768efd
 	url = https://github.com/RJPlog/M5Stack-CrazyAsteroids
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_DigitalClock_NTP"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_DigitalClock_NTP
-	url = https://github.com/FromF/M5Stack_DigitalClock_NTP/
+	url = https://github.com/FromF/M5Stack_DigitalClock_NTP
