@@ -139,7 +139,7 @@ for D in *; do
     set +o errexit
     # shellcheck disable=SC2086
     # eval \"arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE\" &>/dev/null | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
-    if (( $hidecompilelogs == 1 )); then
+    if (( $hidecompilelogs == 0 )); then
       arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE
     else
       arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE &>/dev/null
