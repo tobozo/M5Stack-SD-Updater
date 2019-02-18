@@ -17,6 +17,8 @@ function injectupdater {
   awk '/M5.begin()/{print;print "  if(digitalRead(BUTTON_A_PIN) == 0) { sdUpdater.updateFromFS(SD); ESP.restart(); } ";next}1' $outfile > tmp && mv tmp $outfile;
   # the M5StackUpdater requires Wire.begin(), inject it if necessary
   egrep -R "Wire.begin()" || (awk '/M5.begin()/{print;print "  Wire.begin();";next}1' $outfile > tmp && mv tmp $outfile);
+  # the display driver changed, get rid of default rotation in setup
+  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' $outfile
   echo "***** Injection successful"
 }
 
@@ -80,10 +82,10 @@ for D in *; do
          sed -i 's/\/crack.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
          cp crack.jpg $M5_SD_BUILD_DIR/jpg/crack.jpg
        ;;
-       'M5Stack-MegaChess')
-         # fix rotation problem caused by display driver changes
-         sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' arduinomegachess_for_m5stack.ino
-       ;;
+       #'M5Stack-MegaChess')
+       #  # fix rotation problem caused by display driver changes
+       #  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' arduinomegachess_for_m5stack.ino
+       #;;
 #      'M5Stack-Pacman-JoyPSP')
 #      ;;
 #      'M5Stack-SpaceShooter')
