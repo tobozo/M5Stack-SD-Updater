@@ -32,8 +32,10 @@ before_install:
     fi
   
 install:
-  #- git submodule update --init --recursive
+  - git submodule update --init --recursive
+  - cd $SDAPP_FOLDER
   - git submodule foreach --recursive git pull origin
+  - cd $TRAVIS_BUILD_DIR;
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
   - wget https://github.com/adafruit/Adafruit_AMG88xx/archive/1.0.2.zip --output-document=Adafruit_AMG88xx.zip
