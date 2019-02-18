@@ -166,6 +166,11 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
 
 🔘 OPTIONAL:
 ------------
+The default binary name to be loaded can be changed at compilation time by customizing the `MENU_BIN` constant:
+
+    #define MENU_BIN "/my_custom_menu.bin"
+    #include "M5StackUpdater.h"
+
 The M5Stack automatically detects and uses the [M5Stack-Faces](https://github.com/m5stack/faces) addon (gameboy only).
 
 The JoyPSP Controls for M5Stack SD Menu necessary code is now disabled in the menu example but the code stays here and can be used as a boilerplate for any other two-wires input device.
