@@ -33,6 +33,7 @@ before_install:
   
 install:
   - git submodule update --init --recursive
+  - git submodule foreach --recursive git pull origin
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
   - wget https://github.com/adafruit/Adafruit_AMG88xx/archive/1.0.2.zip --output-document=Adafruit_AMG88xx.zip
