@@ -60,6 +60,7 @@ for D in *; do
       'Pixel-Fun-M5Stack')
         echo "Renaming $D ino file"
         mv PixelFun.ino Pixel-Fun-M5Stack.ino
+        sed -i -e 's/ILI9341/M5Display/g' Mover.cpp # https://github.com/neoxharsh/Pixel-Fun-M5Stack/issues/1
         export hidecompilelogs=0
       ;;
       #*)
