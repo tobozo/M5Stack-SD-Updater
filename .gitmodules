@@ -68,3 +68,27 @@ url = https://gist.github.com/shioken/e90b9fa3b43d8b067adde77a75768efd
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_LovyanLauncher"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_LovyanLauncher
 	url = https://github.com/lovyan03/M5Stack_LovyanLauncher
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_ESP32_radio"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_ESP32_radio
+	url = https://github.com/anton-b/M5Stack_ESP32_radio/
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/nixietubeM5"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/nixietubeM5
+	url = https://github.com/drayde/nixietubeM5
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_WebRadio_Avator"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_WebRadio_Avator
+	url = https://github.com/robo8080/M5Stack_WebRadio_Avator/
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/m5stack_9axis_data_publisher"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/m5stack_9axis_data_publisher
+	url = https://github.com/Tiryoh/m5stack_9axis_data_publisher
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-ISS-Tracker-Updated"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-ISS-Tracker-Updated
+	url = https://github.com/kd8bxp/M5Stack-ISS-Tracker-Updated
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-WiFiScanner"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-WiFiScanner
+	url = https://github.com/PartsandCircuits/M5Stack-WiFiScanner
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5StackMiniOthello"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5StackMiniOthello
+	url = https://github.com/TTtensan/M5StackMiniOthello
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-CrazyAsteroids"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-CrazyAsteroids
+	url = https://github.com/RJPlog/M5Stack-CrazyAsteroids
