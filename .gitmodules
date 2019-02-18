@@ -80,9 +80,6 @@ url = https://gist.github.com/shioken/e90b9fa3b43d8b067adde77a75768efd
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/m5stack_9axis_data_publisher"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/m5stack_9axis_data_publisher
 	url = https://github.com/Tiryoh/m5stack_9axis_data_publisher
-[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-ISS-Tracker-Updated"]
-	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-ISS-Tracker-Updated
-	url = https://github.com/kd8bxp/M5Stack-ISS-Tracker-Updated
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack-WiFiScanner"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack-WiFiScanner
 	url = https://github.com/PartsandCircuits/M5Stack-WiFiScanner
