@@ -66,17 +66,26 @@
  * 
  */
 
+#include <esp_partition.h>
+extern "C" {
+#include "esp_ota_ops.h"
+#include "esp_image_format.h"
+}
 #include <M5Stack.h>
 #include <Update.h>
-#define MENU_BIN F("/menu.bin")
+#include <Preferences.h>
+#define MENU_BIN "/menu.bin"
 
 class SDUpdater {
   public: 
     void updateFromFS(fs::FS &fs, String fileName = MENU_BIN );
     static void M5SDMenuProgress(int state, int size);
     void displayUpdateUI(String label);
+    esp_image_metadata_t getSketchMeta(const esp_partition_t* source_partition);
   private:
     void performUpdate(Stream &updateSource, size_t updateSize, String fileName);
+    void updateNVS();
+    void tryRollback();
 };
 
 /* don't break older versions of the M5Stack SD Updater */
