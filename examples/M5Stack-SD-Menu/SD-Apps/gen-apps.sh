@@ -85,6 +85,13 @@ for D in *; do
          sed -i 's/\/crack.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
          cp crack.jpg $M5_SD_BUILD_DIR/jpg/crack.jpg
        ;;
+       
+       'M5Stack-CrazyAsteroids')
+         cat Crazy_Asteroid.ino EntrySection.ino ExitSection.ino printAsteroid.ino printSpaceShip.ino > out.blah
+         rm *.ino
+         mv out.blah M5Stack-CrazyAsteroids.ino
+         export hidecompilelogs=0
+       ;;
        #'M5Stack-MegaChess')
        #  # fix rotation problem caused by display driver changes
        #  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' arduinomegachess_for_m5stack.ino
