@@ -63,20 +63,20 @@
  * 
  * 
  */
- 
+
 #include "SPIFFS.h"
-#include <M5Stack.h>             // https://github.com/m5stack/M5Stack/
+#include <M5Stack.h>         // https://github.com/m5stack/M5Stack/
 #ifdef M5_LIB_VERSION
   #include "utility/qrcode.h" // if M5Stack version >= 0.1.8 : qrCode from M5Stack
 #else 
   #include "qrcode.h" // if M5Stack version <= 0.1.6 : qrCode from https://github.com/ricmoo/qrcode
 #endif 
-#include "M5StackUpdater.h"      // https://github.com/tobozo/M5Stack-SD-Updater
-#include <M5StackSAM.h>          // https://github.com/tomsuch/M5StackSAM
-#include <ArduinoJson.h>         // https://github.com/bblanchon/ArduinoJson/
-#include "i18n.h"                // language file
-#include "assets.h" // some artwork for the UI
-#include "controls.h"            // keypad / joypad / keyboard controls
+#include "M5StackUpdater.h"  // https://github.com/tobozo/M5Stack-SD-Updater
+#include <M5StackSAM.h>      // https://github.com/tomsuch/M5StackSAM
+#include <ArduinoJson.h>     // https://github.com/bblanchon/ArduinoJson/
+#include "i18n.h"            // language file
+#include "assets.h"          // some artwork for the UI
+#include "controls.h"        // keypad / joypad / keyboard controls
 
 
 
@@ -554,6 +554,118 @@ void scanDataFolder() {
 }
 
 
+enum OTAPartitionNames {
+  NO_PARTITION = -1,
+  CURRENT_PARTITION = 0,
+  NEXT_PARTITION = 1
+};
+
+
+/*
+
+static void getFactoryPartition() {
+  esp_partition_iterator_t pi = esp_partition_find( ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL );
+  if(pi != NULL) {
+    const esp_partition_t* factory = esp_partition_get(pi);
+    esp_partition_iterator_release(pi);
+    if(esp_ota_set_boot_partition(factory) == ESP_OK) {
+      //esp_restart();
+    }
+  }
+}
+
+*/
+
+
+#include <esp_partition.h>
+extern "C" {
+#include "esp_ota_ops.h"
+#include "esp_image_format.h"
+}
+#define SPI_FLASH_SEC_STEP8 SPI_FLASH_SEC_SIZE / 4
+
+static esp_image_metadata_t getSketchMeta(const esp_partition_t* running) {
+  esp_image_metadata_t data;
+  if (!running) return data;
+  const esp_partition_pos_t running_pos  = {
+    .offset = running->address,
+    .size = running->size,
+  };
+  data.start_addr = running_pos.offset;
+  esp_image_verify(ESP_IMAGE_VERIFY, &running_pos, &data);
+  return data;
+}
+
+
+
+void dumpSketchToSD( const char* fileName ) {
+  const esp_partition_t* source_partition = esp_ota_get_running_partition();
+  const char* label = "Current running partition";
+
+  size_t fileSize;
+  {
+    File destFile = SD.open( fileName );
+    if(!destFile) {
+      Serial.printf("Can't open %s\n", fileName);
+      return;
+    }
+    fileSize = destFile.size();
+    destFile.close();
+  }
+
+  esp_image_metadata_t sketchMeta = getSketchMeta( source_partition );
+  uint32_t sketchSize = sketchMeta.image_len;
+
+  Preferences preferences;
+  preferences.begin("sd-menu");
+  uint32_t menuSize = preferences.getInt("menusize", 0);
+  uint8_t image_digest[32];
+  preferences.getBytes("digest", image_digest, 32);
+  preferences.end();
+
+  if( menuSize==sketchSize ) {
+    bool match = true;
+    for(uint8_t i=0;i<32;i++) {
+      if(image_digest[i]!=sketchMeta.image_digest[i]) {
+        Serial.println("NONVSMATCH");
+        match = false;
+        break;
+      }
+    }
+    if( match ) {
+      Serial.printf("%s size (%d bytes) and hashes match %s's expected data from NVS: %d, no replication necessary\n", label, sketchSize, fileName, menuSize);
+      return;
+    }
+  }
+ 
+  Serial.printf("%s (%d bytes) differs from %s's expected NVS size: %d, overwriting\n", label, sketchSize, fileName, fileSize);
+  static uint8_t spi_rbuf[SPI_FLASH_SEC_STEP8];
+
+  Serial.printf(" [INFO] Writing %s ...\n", fileName);
+  File destFile = SD.open( fileName, FILE_WRITE );
+  uint32_t bytescounter = 0;
+  for (uint32_t base_addr = source_partition->address; base_addr < source_partition->address + sketchSize; base_addr += SPI_FLASH_SEC_STEP8) {
+    memset(spi_rbuf, 0, SPI_FLASH_SEC_STEP8);
+    spi_flash_read(base_addr, spi_rbuf, SPI_FLASH_SEC_STEP8);
+    destFile.write(spi_rbuf, SPI_FLASH_SEC_STEP8);
+    bytescounter++;
+    if(bytescounter%128==0) {
+      Serial.println(".");
+    } else {
+      Serial.print(".");
+    }
+  }
+  Serial.println();
+  destFile.close();
+
+  preferences.begin("sd-menu", false);
+  preferences.putInt("menusize", sketchSize);
+  preferences.putBytes("digest", sketchMeta.image_digest, 32);
+  preferences.end();
+
+}
+
+
 
 void setup() {
   Serial.begin(115200);
@@ -627,6 +739,8 @@ void setup() {
     sdUpdater.M5SDMenuProgress(i, 100);
   }
 
+  dumpSketchToSD("/menu.bin");
+
   M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
   M5Menu.showList();
   renderIcon(0);
@@ -679,4 +793,3 @@ void loop() {
   }
 
 }
-

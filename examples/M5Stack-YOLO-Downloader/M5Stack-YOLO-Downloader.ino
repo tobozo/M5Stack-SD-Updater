@@ -312,18 +312,21 @@ void syncAppRegistry(String API_URL, const char* ca) {
 }
 
 
-
-
 void setup() {
   unsigned long startup = millis();
   Serial.begin(115200);
   M5.begin();
   Wire.begin();
+  Serial.printf("%s %s %s\n", ESP32_CORE_NAME, ESP32_CORE_VERSION, esp_get_idf_version());
+
+  delay(100); // need this to avoid a boot loop
   if (digitalRead(BUTTON_A_PIN) == 0) {
     Serial.println("Will Load menu binary");
     updateFromFS(SD);
     ESP.restart();
   }
+
+  
   unsigned long lastcheck = millis();
   bool toggle = true;
 
@@ -367,7 +370,7 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.println("Establishing connection to WiFi..");
-    if(startup + 30000 < millis()) {
+    if(startup + 10000 < millis()) {
       Serial.println("Been waiting too long for WiFi, will restart");
       M5.Lcd.println("Waiting too long, will restart");
       delay(1000);
