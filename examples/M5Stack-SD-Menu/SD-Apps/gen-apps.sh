@@ -137,7 +137,11 @@ for D in *; do
     set +o errexit
     # shellcheck disable=SC2086
     # eval \"arduino --preserve-temp-files --verify --board $BOARD $PATH_TO_INO_FILE\" &>/dev/null | tr --complement --delete '[:print:]\n\t' | tr --squeeze-repeats '\n' | grep --extended-regexp --invert-match "$ARDUINO_CI_SCRIPT_ARDUINO_OUTPUT_FILTER_REGEX"
-    arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE &>/dev/null
+    if (( $m5enabled == 1 )); then
+      arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE
+    else
+      arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PATH_TO_INO_FILE &>/dev/null
+    fi
     # local -r arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
     export arduinoPreferenceSettingExitStatus="${PIPESTATUS[0]}"
     set -o errexit
