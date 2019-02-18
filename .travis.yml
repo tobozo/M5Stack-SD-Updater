@@ -34,7 +34,7 @@ before_install:
 install:
   - git submodule update --init --recursive
   - cd $SDAPP_FOLDER
-  - git submodule foreach --recursive git pull origin
+  - git submodule foreach --recursive git pull origin master
   - cd $TRAVIS_BUILD_DIR;
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
