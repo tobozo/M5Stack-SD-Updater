@@ -8,7 +8,7 @@ function movebin {
  export DIRTY_BIN_FILE=`basename $( find /tmp -name \*.bin )`
  find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/ \; #<-- you need that backslash before and space after the semicolon
  export BIN_FILE="${DIRTY_BIN_FILE^}"
- if (( $BIN_FILE != $DIRTY_BIN_FILE )); then
+ if [ "$BIN_FILE" != "$DIRTY_BIN_FILE" ]; then
    mv $M5_SD_BUILD_DIR/$DIRTY_BIN_FILE $M5_SD_BUILD_DIR/$BIN_FILE
    echo "[++++] UpperCasedFirst() $DIRTY_BIN_FILE to $BIN_FILE"
  fi
