@@ -5,8 +5,15 @@ function movebin {
  #find /tmp -name \*.ino.elf -exec rename 's/.ino.elf/.ino.bin/' {} \; # sometimes arduino produces ELF, sometimes it's BIN
  find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; # 
  find /tmp -name \*.bin -exec rename 's/(_for)?(_|-)?(m5)_?(stack)?(-|_)?//ig' {} \; #
- export BIN_FILE=`basename $( find /tmp -name \*.bin )`
+ export DIRTY_BIN_FILE=`basename $( find /tmp -name \*.bin )`
+ export BIN_FILE="${DIRTY_BIN_FILE^}"
+ export DIRTY_FILE_BASENAME=${DIRTY_BIN_FILE%.bin}
+ export FILE_BASENAME=${BIN_FILE%.bin}
  find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/ \; #<-- you need that backslash before and space after the semicolon
+ if [ "$BIN_FILE" != "$DIRTY_BIN_FILE" ]; then
+   mv $M5_SD_BUILD_DIR/$DIRTY_BIN_FILE $M5_SD_BUILD_DIR/$BIN_FILE
+   echo "[++++] UpperCasedFirst() $DIRTY_BIN_FILE to $BIN_FILE"
+ fi
  echo $BIN_FILE
 }
 
@@ -27,17 +34,38 @@ function injectupdater {
 
 function populatemeta {
   echo "***** Populating meta"
-  export IMG_NAME=${BIN_FILE%.bin}_gh.jpg
+  export IMG_NAME=${FILE_BASENAME}_gh.jpg
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
+  export REPO_USERNAME=$(echo "$REPO_URL" | cut -d "/" -f4)
   export AVATAR_URL=$REPO_OWNER_URL.png?size=200
+  export JSONFILE="$M5_SD_BUILD_DIR/json/$FILE_BASENAME.json"
+  export IMGFILE="$M5_SD_BUILD_DIR/jpg/$FILE_BASENAME.jpg"
+  export AVATARFILE="$M5_SD_BUILD_DIR/jpg/${FILE_BASENAME}_gh.jpg"
+  
+  if [ -f $JSONFILE ]; then
+    echo "JSON Meta file $JSONFILE exists, should check for contents or leave it be"
+  else
+    if [ -f "$M5_SD_BUILD_DIR/json/$DIRTY_FILE_BASENAME.json" ]; then
+      echo "[++++] UpperCasedFirst() $DIRTY_FILE_BASENAME.json, renaming other meta components"
+      mv $M5_SD_BUILD_DIR/json/$DIRTY_FILE_BASENAME.json $JSONFILE
+      mv $M5_SD_BUILD_DIR/jpg/$DIRTY_FILE_BASENAME.jpg $IMGFILE &>/dev/null
+      mv $M5_SD_BUILD_DIR/jpg/${DIRTY_FILE_BASENAME}_gh.jpg $AVATARFILE &>/dev/null
+      sed -i -e "s/$DIRTY_FILE_BASENAME/$FILE_BASENAME/g" $JSONFILE &>/dev/null
+    else
+      echo "[++++] No $JSONFILE JSON Meta file found, creating from the ether"
+      echo "{\"width\":110,\"height\":110, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_URL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE
+    fi
+  fi
+  cat $JSONFILE
   # no gist in URL is valid to retrieve the profile pic
   AVATAR_URL=`sed 's/gist.//g' <<< $AVATAR_URL`
-  echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
+  echo "**** Will download avatar from $AVATAR_URL and save it as $AVATARFILE"
   wget $AVATAR_URL --output-document=temp
-  convert temp -resize 120x120 $M5_SD_BUILD_DIR/jpg/$IMG_NAME
-  identify $M5_SD_BUILD_DIR/jpg/$IMG_NAME
+  convert temp -resize 120x120 $AVATARFILE
+  identify $AVATARFILE
   rm temp
+ 
   echo "***** Populating successful"
 }
 
@@ -104,7 +132,7 @@ for D in *; do
          sed -i -e 's/#include <String.h>/\/\//g' M5Stack-WiFiScanner.ino
        ;;
        #'M5Stack-MegaChess')
-       #  # fix rotation problem caused by display driver changes
+       #  # fix rotation problem caused by display driver changes (now applied globally)
        #  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' arduinomegachess_for_m5stack.ino
        #;;
 #      'M5Stack-Pacman-JoyPSP')
@@ -185,6 +213,9 @@ for D in *; do
   fi
 done
 
-egrep -R M5StackUpdater $SDAPP_FOLDER/* 
-egrep -R updateFromFS $SDAPP_FOLDER/*
+ls $M5_SD_BUILD_DIR/jpg -la;
+ls $M5_SD_BUILD_DIR/json -la;
+
+# egrep -R M5StackUpdater $SDAPP_FOLDER/* 
+# egrep -R updateFromFS $SDAPP_FOLDER/*
 

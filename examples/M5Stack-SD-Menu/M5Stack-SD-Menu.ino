@@ -265,13 +265,35 @@ void renderMeta(JSONMeta &jsonMeta) {
     M5.Lcd.print(AUTHOR_PREFIX);
     M5.Lcd.print(jsonMeta.authorName);
     M5.Lcd.print(AUTHOR_SUFFIX);
-    qrRender(jsonMeta.projectURL, 180);
+    qrRender(jsonMeta.projectURL, 160);
   } else if(jsonMeta.projectURL!="") { // only projectURL
     M5.Lcd.print(jsonMeta.projectURL);
-    qrRender(jsonMeta.projectURL, 180);
+    qrRender(jsonMeta.projectURL, 160);
   } else { // only authorName
     M5.Lcd.drawCentreString(jsonMeta.authorName,M5.Lcd.width()/2,(M5.Lcd.height()/2)-25,2);
   }
+}
+
+
+
+/* give up on redundancy and ECC to produce less and bigger squares */
+uint8_t getLowestQRVersionFromString( String text, uint8_t ecc ) {
+  if(ecc>3) return 4; // fail fast
+  uint16_t len = text.length();
+  uint8_t QRMaxLenByECCLevel[4][3] = {
+    // https://www.qrcode.com/en/about/version.html  
+    { 41, 77, 127 }, // L
+    { 34, 63, 101 }, // M
+    { 27, 48, 77 },  // Q
+    { 17, 34, 58 }   // H
+  };
+  for(uint8_t i=0;i<3;i++) {
+    if(len <= QRMaxLenByECCLevel[ecc][i]) {
+      return i+1;
+    }
+  }
+  // there's no point in doing higher with M5Stack's display
+  return 4;
 }
 
 
@@ -279,9 +301,11 @@ void qrRender(String text, float sizeinpixels) {
   // see https://github.com/Kongduino/M5_QR_Code/blob/master/M5_QRCode_Test.ino
   // Create the QR code
   QRCode qrcode;
-  uint8_t version = 4;
+
+  uint8_t ecc = 0; // QR on TFT can do without ECC
+  uint8_t version = getLowestQRVersionFromString( text, ecc );
   uint8_t qrcodeData[qrcode_getBufferSize(version)];
-  qrcode_initText(&qrcode, qrcodeData, version, 0, text.c_str());
+  qrcode_initText(&qrcode, qrcodeData, version, ecc, text.c_str());
 
   uint8_t thickness = sizeinpixels / qrcode.size;
   uint16_t lineLength = qrcode.size * thickness;
