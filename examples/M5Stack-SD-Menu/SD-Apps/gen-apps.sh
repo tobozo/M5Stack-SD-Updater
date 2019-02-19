@@ -6,8 +6,10 @@ function movebin {
  find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; # 
  find /tmp -name \*.bin -exec rename 's/(_for)?(_|-)?(m5)_?(stack)?(-|_)?//ig' {} \; #
  export DIRTY_BIN_FILE=`basename $( find /tmp -name \*.bin )`
- find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/ \; #<-- you need that backslash before and space after the semicolon
  export BIN_FILE="${DIRTY_BIN_FILE^}"
+ export DIRTY_FILE_BASENAME=${DIRTY_BIN_FILE%.bin}
+ export FILE_BASENAME=${BIN_FILE%.bin}
+ find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/ \; #<-- you need that backslash before and space after the semicolon
  if [ "$BIN_FILE" != "$DIRTY_BIN_FILE" ]; then
    mv $M5_SD_BUILD_DIR/$DIRTY_BIN_FILE $M5_SD_BUILD_DIR/$BIN_FILE
    echo "[++++] UpperCasedFirst() $DIRTY_BIN_FILE to $BIN_FILE"
@@ -32,16 +34,24 @@ function injectupdater {
 
 function populatemeta {
   echo "***** Populating meta"
-  JSONFILE="$M5_SD_BUILD_DIR/json/$BIN_FILE.json"
-  if [ -f $JSONFILE ]; then
-    echo "JSON Meta file $JSONFILE exists, should check for contents or leave it be"
-  else
-    echo "No $JSONFILE JSON Meta file found, should create"
-  fi
-  export IMG_NAME=${BIN_FILE%.bin}_gh.jpg
+  export IMG_NAME=${FILE_BASENAME}_gh.jpg
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
   export AVATAR_URL=$REPO_OWNER_URL.png?size=200
+  export JSONFILE="$M5_SD_BUILD_DIR/json/$FILE_BASENAME.json"
+  if [ -f $JSONFILE ]; then
+    echo "JSON Meta file $JSONFILE exists, should check for contents or leave it be"
+  else
+    if[ -f "$M5_SD_BUILD_DIR/json/${DIRTY_FILE_BASENAME}.json" ]; then
+      echo "[++++] UpperCasedFirst() ${DIRTY_FILE_BASENAME}.json, renaming other meta components"
+      mv $M5_SD_BUILD_DIR/json/${DIRTY_FILE_BASENAME}.json $M5_SD_BUILD_DIR/json/${FILE_BASENAME}.json
+      mv $M5_SD_BUILD_DIR/jpg/${DIRTY_FILE_BASENAME}.jpg $M5_SD_BUILD_DIR/jpg/${FILE_BASENAME}.jpg &>/dev/null
+      mv $M5_SD_BUILD_DIR/jpg/${DIRTY_FILE_BASENAME}_gh.jpg $M5_SD_BUILD_DIR/jpg/${FILE_BASENAME}_gh.jpg &>/dev/null
+      sed -i -e "s/$DIRTY_FILE_BASENAME/$FILE_BASENAME/g" $M5_SD_BUILD_DIR/json/${FILE_BASENAME}.json &>/dev/null
+    else
+      echo "No $JSONFILE JSON Meta file found, should create"
+    fi
+  fi
   # no gist in URL is valid to retrieve the profile pic
   AVATAR_URL=`sed 's/gist.//g' <<< $AVATAR_URL`
   echo "**** Will download avatar from $AVATAR_URL and save it as $IMG_NAME from $BIN_FILE"
