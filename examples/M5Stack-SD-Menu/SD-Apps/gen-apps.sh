@@ -42,12 +42,12 @@ function populatemeta {
   if [ -f $JSONFILE ]; then
     echo "JSON Meta file $JSONFILE exists, should check for contents or leave it be"
   else
-    if[ -f "$M5_SD_BUILD_DIR/json/${DIRTY_FILE_BASENAME}.json" ]; then
-      echo "[++++] UpperCasedFirst() ${DIRTY_FILE_BASENAME}.json, renaming other meta components"
-      mv $M5_SD_BUILD_DIR/json/${DIRTY_FILE_BASENAME}.json $M5_SD_BUILD_DIR/json/${FILE_BASENAME}.json
-      mv $M5_SD_BUILD_DIR/jpg/${DIRTY_FILE_BASENAME}.jpg $M5_SD_BUILD_DIR/jpg/${FILE_BASENAME}.jpg &>/dev/null
+    if [ -f "$M5_SD_BUILD_DIR/json/$DIRTY_FILE_BASENAME.json" ]; then
+      echo "[++++] UpperCasedFirst() $DIRTY_FILE_BASENAME.json, renaming other meta components"
+      mv $M5_SD_BUILD_DIR/json/$DIRTY_FILE_BASENAME.json $M5_SD_BUILD_DIR/json/$FILE_BASENAME.json
+      mv $M5_SD_BUILD_DIR/jpg/$DIRTY_FILE_BASENAME.jpg $M5_SD_BUILD_DIR/jpg/$FILE_BASENAME.jpg &>/dev/null
       mv $M5_SD_BUILD_DIR/jpg/${DIRTY_FILE_BASENAME}_gh.jpg $M5_SD_BUILD_DIR/jpg/${FILE_BASENAME}_gh.jpg &>/dev/null
-      sed -i -e "s/$DIRTY_FILE_BASENAME/$FILE_BASENAME/g" $M5_SD_BUILD_DIR/json/${FILE_BASENAME}.json &>/dev/null
+      sed -i -e "s/$DIRTY_FILE_BASENAME/$FILE_BASENAME/g" $M5_SD_BUILD_DIR/json/$FILE_BASENAME.json &>/dev/null
     else
       echo "No $JSONFILE JSON Meta file found, should create"
     fi
