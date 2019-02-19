@@ -213,7 +213,6 @@ for D in *; do
   fi
 done
 
-ls $M5_SD_BUILD_DIR -la;
 ls $M5_SD_BUILD_DIR/jpg -la;
 ls $M5_SD_BUILD_DIR/json -la;
 
