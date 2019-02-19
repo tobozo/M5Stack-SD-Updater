@@ -132,7 +132,7 @@ for D in *; do
          sed -i -e 's/#include <String.h>/\/\//g' M5Stack-WiFiScanner.ino
        ;;
        #'M5Stack-MegaChess')
-       #  # fix rotation problem caused by display driver changes
+       #  # fix rotation problem caused by display driver changes (now applied globally)
        #  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' arduinomegachess_for_m5stack.ino
        #;;
 #      'M5Stack-Pacman-JoyPSP')
@@ -213,6 +213,10 @@ for D in *; do
   fi
 done
 
-egrep -R M5StackUpdater $SDAPP_FOLDER/* 
-egrep -R updateFromFS $SDAPP_FOLDER/*
+ls $M5_SD_BUILD_DIR -la;
+ls $M5_SD_BUILD_DIR/jpg -la;
+ls $M5_SD_BUILD_DIR/json -la;
+
+# egrep -R M5StackUpdater $SDAPP_FOLDER/* 
+# egrep -R updateFromFS $SDAPP_FOLDER/*
 
