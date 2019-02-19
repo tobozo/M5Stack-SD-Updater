@@ -37,27 +37,33 @@ function populatemeta {
   export IMG_NAME=${FILE_BASENAME}_gh.jpg
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
+  export REPO_USERNAME=$(echo "$REPO_URL" | cut -d "/" -f4)
   export AVATAR_URL=$REPO_OWNER_URL.png?size=200
   export JSONFILE="$M5_SD_BUILD_DIR/json/$FILE_BASENAME.json"
+  export IMGFILE="$M5_SD_BUILD_DIR/jpg/$FILE_BASENAME.jpg"
+  export AVATARFILE="$M5_SD_BUILD_DIR/jpg/${FILE_BASENAME}_gh.jpg"
+  
   if [ -f $JSONFILE ]; then
     echo "JSON Meta file $JSONFILE exists, should check for contents or leave it be"
   else
     if [ -f "$M5_SD_BUILD_DIR/json/$DIRTY_FILE_BASENAME.json" ]; then
       echo "[++++] UpperCasedFirst() $DIRTY_FILE_BASENAME.json, renaming other meta components"
-      mv $M5_SD_BUILD_DIR/json/$DIRTY_FILE_BASENAME.json $M5_SD_BUILD_DIR/json/$FILE_BASENAME.json
-      mv $M5_SD_BUILD_DIR/jpg/$DIRTY_FILE_BASENAME.jpg $M5_SD_BUILD_DIR/jpg/$FILE_BASENAME.jpg &>/dev/null
-      mv $M5_SD_BUILD_DIR/jpg/${DIRTY_FILE_BASENAME}_gh.jpg $M5_SD_BUILD_DIR/jpg/${FILE_BASENAME}_gh.jpg &>/dev/null
-      sed -i -e "s/$DIRTY_FILE_BASENAME/$FILE_BASENAME/g" $M5_SD_BUILD_DIR/json/$FILE_BASENAME.json &>/dev/null
+      mv $M5_SD_BUILD_DIR/json/$DIRTY_FILE_BASENAME.json $JSONFILE
+      mv $M5_SD_BUILD_DIR/jpg/$DIRTY_FILE_BASENAME.jpg $IMGFILE &>/dev/null
+      mv $M5_SD_BUILD_DIR/jpg/${DIRTY_FILE_BASENAME}_gh.jpg $AVATARFILE &>/dev/null
+      sed -i -e "s/$DIRTY_FILE_BASENAME/$FILE_BASENAME/g" $JSONFILE &>/dev/null
     else
-      echo "No $JSONFILE JSON Meta file found, should create"
+      echo "[++++] No $JSONFILE JSON Meta file found, creating from the ether"
+      echo "{\"width\":110,\"height\":110, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_URL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE
     fi
   fi
+  cat $JSONFILE
   # no gist in URL is valid to retrieve the profile pic
   AVATAR_URL=`sed 's/gist.//g' <<< $AVATAR_URL`
-  echo "**** Will download avatar from $AVATAR_URL and save it as $IMG_NAME from $BIN_FILE"
+  echo "**** Will download avatar from $AVATAR_URL and save it as $AVATARFILE"
   wget $AVATAR_URL --output-document=temp
-  convert temp -resize 120x120 $M5_SD_BUILD_DIR/jpg/$IMG_NAME
-  identify $M5_SD_BUILD_DIR/jpg/$IMG_NAME
+  convert temp -resize 120x120 $AVATARFILE
+  identify $AVATARFILE
   rm temp
  
   echo "***** Populating successful"
