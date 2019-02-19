@@ -5,8 +5,13 @@ function movebin {
  #find /tmp -name \*.ino.elf -exec rename 's/.ino.elf/.ino.bin/' {} \; # sometimes arduino produces ELF, sometimes it's BIN
  find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; # 
  find /tmp -name \*.bin -exec rename 's/(_for)?(_|-)?(m5)_?(stack)?(-|_)?//ig' {} \; #
- export BIN_FILE=`basename $( find /tmp -name \*.bin )`
+ export DIRTY_BIN_FILE=`basename $( find /tmp -name \*.bin )`
  find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/ \; #<-- you need that backslash before and space after the semicolon
+ export BIN_FILE = "${DIRTY_BIN_FILE^}"
+ if( $BIN_FILE != $DIRTY_BIN_FILE ); then
+   mv $M5_SD_BUILD_DIR/$DIRTY_BIN_FILE $M5_SD_BUILD_DIR/$BIN_FILE
+   echo "[++++] UpperCasedFirst() $DIRTY_BIN_FILE to $BIN_FILE"
+ fi
  echo $BIN_FILE
 }
 
@@ -27,17 +32,24 @@ function injectupdater {
 
 function populatemeta {
   echo "***** Populating meta"
+  JSONFILE="$M5_SD_BUILD_DIR/json/$BIN_FILE.json"
+  if [ -f $JSONFILE ]; then
+    echo "JSON Meta file $JSONFILE exists, should check for contents or leave it be"
+  else
+    echo "No $JSONFILE JSON Meta file found, should create"
+  fi
   export IMG_NAME=${BIN_FILE%.bin}_gh.jpg
   export REPO_URL=`git config remote.origin.url`
   export REPO_OWNER_URL=`echo ${REPO_URL%/*}`
   export AVATAR_URL=$REPO_OWNER_URL.png?size=200
   # no gist in URL is valid to retrieve the profile pic
   AVATAR_URL=`sed 's/gist.//g' <<< $AVATAR_URL`
-  echo "**** Will download avatar from $AVATAR_URL and save it as $JPEG_NAME from $BIN_FILE"
+  echo "**** Will download avatar from $AVATAR_URL and save it as $IMG_NAME from $BIN_FILE"
   wget $AVATAR_URL --output-document=temp
   convert temp -resize 120x120 $M5_SD_BUILD_DIR/jpg/$IMG_NAME
   identify $M5_SD_BUILD_DIR/jpg/$IMG_NAME
   rm temp
+ 
   echo "***** Populating successful"
 }
 
