@@ -145,7 +145,7 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
   
   `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://short.url","credits":"** http://very.very.long.url ~~"}`
 
-
+If no info is provided, it will be pulled from the app's repository public information.
 
 <br />
 
