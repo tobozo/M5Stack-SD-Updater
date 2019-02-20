@@ -49,7 +49,7 @@ install:
   - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
 
   #- wget https://github.com/m5stack/M5Stack/archive/master.zip --output-document=M5Stack.zip
-  - curl "https://api.github.com/repos/M5Stack/M5Stack/releases/latest" | jq -r ".tarball_url" | wget --output-document=M5Stack.zip -i -
+  - curl "https://api.github.com/repos/M5Stack/M5Stack/releases/latest" | jq -r ".zipball_url" | wget --output-document=M5Stack.zip -i -
   - unzip -d ~/Arduino/libraries M5Stack.zip
   - mv ~/Arduino/libraries/M5Stack-master ~/Arduino/libraries/M5Stack
   - wget https://github.com/earlephilhower/ESP8266Audio/archive/master.zip --output-document=ESP8266Audio.zip
