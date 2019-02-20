@@ -120,9 +120,9 @@ for D in *; do
          mv out.blah M5Stack-CrazyAsteroids.ino
        ;;
 
-       '/M5Stack_Particle_demo')
+       'M5Stack_Particle_demo')
          # this is an Arduino compatible Platformio project
-         mv main.cpp /M5Stack_Particle_demo.ino
+         mv main.cpp M5Stack_Particle_demo.ino
        ;;
 
        'M5Stack_WebRadio_Avator')
