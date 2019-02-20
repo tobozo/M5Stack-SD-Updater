@@ -65,7 +65,7 @@
  * pressed, it will load the "menu.bin" from the sd card
  * 
  */
-
+#include "gitTagVersion.h"
 #include <esp_partition.h>
 extern "C" {
 #include "esp_ota_ops.h"
@@ -80,20 +80,20 @@ extern "C" {
 
 class SDUpdater {
   public: 
-    void updateFromFS(fs::FS &fs, String fileName = MENU_BIN );
-    static void M5SDMenuProgress(int state, int size);
-    void displayUpdateUI(String label);
-    esp_image_metadata_t getSketchMeta(const esp_partition_t* source_partition);
+    void updateFromFS( fs::FS &fs, String fileName = MENU_BIN );
+    static void M5SDMenuProgress( int state, int size );
+    void displayUpdateUI( String label );
+    esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
   private:
-    void performUpdate(Stream &updateSource, size_t updateSize, String fileName);
+    void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void updateNVS();
-    void tryRollback();
+    void tryRollback( String fileName );
 };
 
 /* don't break older versions of the M5Stack SD Updater */
-static void updateFromFS(fs::FS &fs, String fileName = MENU_BIN ) {
+static void updateFromFS( fs::FS &fs, String fileName = MENU_BIN ) {
   SDUpdater sdUpdater;
-  sdUpdater.updateFromFS(fs, fileName);
+  sdUpdater.updateFromFS( fs, fileName );
 }
 
 #endif

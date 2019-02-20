@@ -33,7 +33,7 @@
 
 static int M5_UI_Progress;
 
-void SDUpdater::displayUpdateUI(String label) {
+void SDUpdater::displayUpdateUI( String label ) {
   M5.Lcd.setBrightness(100);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setCursor(10, 10);
@@ -45,12 +45,19 @@ void SDUpdater::displayUpdateUI(String label) {
 }
 
 
-void SDUpdater::M5SDMenuProgress(int state, int size) {
+void SDUpdater::M5SDMenuProgress( int state, int size ) {
   int percent = (state*100) / size;
   if( percent == M5_UI_Progress ) {
+    // don't render twice the same value
     return;
   }
-  Serial.printf("percent = %d\n", percent);
+
+  //Serial.printf("percent = %d\n", percent);
+  if( percent==0 || state == size ) {
+    Serial.println(); 
+  } else {
+    Serial.print(".");
+  }
   M5_UI_Progress = percent;
   uint16_t x      = M5.Lcd.getCursorX();
   uint16_t y      = M5.Lcd.getCursorY();
@@ -59,7 +66,7 @@ void SDUpdater::M5SDMenuProgress(int state, int size) {
   int textcolor   = M5.Lcd.textcolor;
   int textbgcolor = M5.Lcd.textbgcolor;
   
-  if (percent > 0 && percent < 101) {
+  if ( percent > 0 && percent < 101 ) {
     M5.Lcd.fillRect(111, 131, percent, 18, GREEN);
     M5.Lcd.fillRect(111+percent, 131, 100-percent, 18, BLACK);
   } else {
@@ -78,7 +85,7 @@ void SDUpdater::M5SDMenuProgress(int state, int size) {
 }
 
 
-esp_image_metadata_t SDUpdater::getSketchMeta(const esp_partition_t* source_partition) {
+esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition ) {
   esp_image_metadata_t data;
   if (!source_partition) return data;
   const esp_partition_pos_t source_partition_pos  = {
@@ -90,6 +97,7 @@ esp_image_metadata_t SDUpdater::getSketchMeta(const esp_partition_t* source_part
   return data;//.image_len;
 }
 
+// rollback helper, save menu.bin meta info in NVS
 void SDUpdater::updateNVS() {
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition(NULL);
   esp_image_metadata_t nusketchMeta = getSketchMeta( update_partition );
@@ -103,7 +111,7 @@ void SDUpdater::updateNVS() {
 }
 
 // perform the actual update from a given stream
-void SDUpdater::performUpdate(Stream &updateSource, size_t updateSize, String fileName) {
+void SDUpdater::performUpdate( Stream &updateSource, size_t updateSize, String fileName ) {
   displayUpdateUI("LOADING " + fileName);
   Update.onProgress(M5SDMenuProgress);
   if (Update.begin(updateSize)) {
@@ -116,12 +124,10 @@ void SDUpdater::performUpdate(Stream &updateSource, size_t updateSize, String fi
     if (Update.end()) {
       Serial.println("OTA done!");
       if (Update.isFinished()) {
-
         if( strcmp( MENU_BIN, fileName.c_str() ) == 0 ) {
           // maintain NVS signature
           updateNVS();
         }
-
         Serial.println("Update successfully completed. Rebooting.");
       } else {
         Serial.println("Update not finished? Something went wrong!");
@@ -136,7 +142,7 @@ void SDUpdater::performUpdate(Stream &updateSource, size_t updateSize, String fi
 
 
 // if NVS has info about MENU_BIN flash size and digest, try rollback()
-void SDUpdater::tryRollback() {
+void SDUpdater::tryRollback( String fileName ) {
   Preferences preferences;
   preferences.begin("sd-menu");
   uint32_t menuSize = preferences.getInt("menusize", 0);
@@ -170,7 +176,15 @@ void SDUpdater::tryRollback() {
   }
   if( match ) {
     if( Update.canRollBack() )  {
+      displayUpdateUI("HOT-LOADING " + fileName);
+      // animate something
+      for(uint8_t i=1;i<50;i++) {
+        M5SDMenuProgress(i, 100);
+      }
       Update.rollBack();
+      for(uint8_t i=50;i<=100;i++) {
+        M5SDMenuProgress(i, 100);
+      }
       Serial.println("Rollback done, restarting");
       ESP.restart();
     } else {
@@ -182,9 +196,16 @@ void SDUpdater::tryRollback() {
 }
 
 // check given FS for valid menu.bin and perform update if available
-void SDUpdater::updateFromFS(fs::FS &fs, String fileName) {
+void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
+  #ifdef M5_SD_UPDATER_VERSION
+    Serial.printf("[M5Stack-SD-Updater] SD Updater version: %s\n", M5_SD_UPDATER_VERSION);
+  #endif
+  #ifdef M5_LIB_VERSION
+    Serial.printf("[M5Stack-SD-Updater] M5Stack Core version: %s\n", M5_LIB_VERSION);
+  #endif
+  Serial.printf("[M5Stack-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__);
   // try rollback first, it's faster!  
-  tryRollback();
+  tryRollback( fileName );
   // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-)
   // See Macbug's excellent article on this tool:
   // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
