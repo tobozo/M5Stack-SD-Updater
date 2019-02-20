@@ -204,8 +204,11 @@ void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
     Serial.printf("[M5Stack-SD-Updater] M5Stack Core version: %s\n", M5_LIB_VERSION);
   #endif
   Serial.printf("[M5Stack-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__);
-  // try rollback first, it's faster!  
-  tryRollback( fileName );
+  Serial.printf("[M5Stack-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
+  // try rollback first, it's faster!
+  if( strcmp( MENU_BIN, fileName.c_str() ) == 0 ) {
+    tryRollback( fileName );
+  }
   // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-)
   // See Macbug's excellent article on this tool:
   // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
