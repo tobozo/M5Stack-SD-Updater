@@ -759,7 +759,7 @@ void setup() {
 
   // TODO: animate loading screen
   /* fake loading progress, looks kool ;-) */
-  for(uint8_t i=1;i<100;i++) {
+  for(uint8_t i=1;i<=100;i++) {
     sdUpdater.M5SDMenuProgress(i, 100);
   }
 
