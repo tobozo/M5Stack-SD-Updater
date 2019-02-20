@@ -123,6 +123,8 @@ for D in *; do
        'M5Stack_Particle_demo')
          # this is an Arduino compatible Platformio project
          mv main.cpp M5Stack_Particle_demo.ino
+         sed -i -e 's/define LCD_WIDTH 320/define LCD_WIDTH M5.Lcd.width() \/\//g' M5Stack_Particle_demo.ino
+         sed -i -e 's/define LCD_HEIGHT 240/define LCD_HEIGHT M5.Lcd.height() \/\//g' M5Stack_Particle_demo.ino
        ;;
 
        'M5Stack_WebRadio_Avator')
