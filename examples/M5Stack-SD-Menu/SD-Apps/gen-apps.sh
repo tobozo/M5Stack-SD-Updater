@@ -122,7 +122,6 @@ for D in *; do
 
        'M5Stack_Particle_demo')
          # this is an Arduino compatible Platformio project
-         export hidecompilelogs=0
          mv main.cpp M5Stack_Particle_demo.ino
        ;;
 
