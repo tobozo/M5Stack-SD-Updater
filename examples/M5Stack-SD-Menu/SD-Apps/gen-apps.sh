@@ -42,7 +42,7 @@ function populatemeta {
   export JSONFILE="$M5_SD_BUILD_DIR/json/$FILE_BASENAME.json"
   export IMGFILE="$M5_SD_BUILD_DIR/jpg/$FILE_BASENAME.jpg"
   export AVATARFILE="$M5_SD_BUILD_DIR/jpg/${FILE_BASENAME}_gh.jpg"
-  
+
   if [ -f $JSONFILE ]; then
     echo "JSON Meta file $JSONFILE exists, should check for contents or leave it be"
   else
@@ -65,7 +65,7 @@ function populatemeta {
   convert temp -resize 120x120 $AVATARFILE
   identify $AVATARFILE
   rm temp
- 
+
   echo "***** Populating successful"
 }
 
@@ -113,20 +113,25 @@ for D in *; do
          sed -i 's/\/crack.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
          cp crack.jpg $M5_SD_BUILD_DIR/jpg/crack.jpg
        ;;
-       
+
        'M5Stack-CrazyAsteroids')
          cat Crazy_Asteroid.ino EntrySection.ino ExitSection.ino printAsteroid.ino printSpaceShip.ino > out.blah
          rm *.ino
          mv out.blah M5Stack-CrazyAsteroids.ino
        ;;
-       
+
+       'M5Stack_Particle_demo')
+         # this is an Arduino compatible Platformio project
+         mv main.cpp M5Stack_Particle_demo.ino
+       ;;
+
        'M5Stack_WebRadio_Avator')
          echo "Patching esp8266Audio with getLevel()"
          sed -i -e 's/bool SetOutputModeMono/int getLevel();\nbool  SetOutputModeMono/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.h
          sed -i -e 's/include "AudioOutputI2S.h"/include "AudioOutputI2S.h"\n\n int aout_level = 0; int AudioOutputI2S::getLevel() { return aout_level; }/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
          sed -i -e 's/int16_t l/aout_level = (int)sample[RIGHTCHANNEL];\nint16_t  l/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
        ;;
-       
+
        'M5Stack-WiFiScanner')
          # remove unnecessary include causing an error
          sed -i -e 's/#include <String.h>/\/\//g' M5Stack-WiFiScanner.ino

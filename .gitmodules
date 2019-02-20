@@ -89,3 +89,6 @@ url = https://gist.github.com/shioken/e90b9fa3b43d8b067adde77a75768efd
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_DigitalClock_NTP"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_DigitalClock_NTP
 	url = https://github.com/FromF/M5Stack_DigitalClock_NTP
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Particle_demo"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Particle_demo
+	url = https://github.com/vcraftjp/M5Stack_Particle_demo
