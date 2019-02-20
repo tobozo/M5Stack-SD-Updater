@@ -759,11 +759,11 @@ void setup() {
 
   // TODO: animate loading screen
   /* fake loading progress, looks kool ;-) */
-  for(uint8_t i=1;i<100;i++) {
+  for(uint8_t i=1;i<=100;i++) {
     sdUpdater.M5SDMenuProgress(i, 100);
   }
 
-  dumpSketchToSD("/menu.bin");
+  dumpSketchToSD( MENU_BIN );
 
   M5Menu.drawAppMenu(MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT);
   M5Menu.showList();

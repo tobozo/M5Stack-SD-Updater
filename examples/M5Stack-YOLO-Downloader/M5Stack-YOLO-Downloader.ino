@@ -48,11 +48,14 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <M5Stack.h>
+#include <M5StackSAM.h>      // https://github.com/tomsuch/M5StackSAM
 #include "M5StackUpdater.h"
 #include "assets.h"
+#include "controls.h"
 
 SDUpdater sdUpdater;
 HTTPClient http;
+M5SAM M5Menu;
 
 const uint8_t extensionsCount = 4; // change this if you add / remove an extension
 String allowedExtensions[extensionsCount] = {
@@ -66,8 +69,7 @@ bool done = false;
 uint16_t appsCount = 0;
 uint8_t progress = 0;
 float progress_modulo = 0;
-
-
+bool wifisetup = false;
 
 
 /*
@@ -101,6 +103,7 @@ void printProgress(uint16_t progress) {
   uint16_t x = M5.Lcd.getCursorX();
   uint16_t y = M5.Lcd.getCursorX();
   M5.Lcd.setCursor(50, 220);
+  M5.Lcd.setTextColor(WHITE, BLACK);
   M5.Lcd.print("Overall progress: ");
   M5.Lcd.print(String(progress));
   M5.Lcd.print("%");
@@ -111,8 +114,11 @@ void printProgress(uint16_t progress) {
 void wget (String bin_url, String appName, const char* &ca) {
   //M5.Lcd.setCursor(0,0);
   Serial.println("Will download " + bin_url + " and save to SD as " + appName);
-  http.begin(bin_url, ca);
-  
+  if( bin_url.startsWith("https://") ) {
+    http.begin(bin_url, ca);
+  } else {
+    http.begin(bin_url);
+  }
   int httpCode = http.GET();
   if(httpCode <= 0) {
     Serial.println("[HTTP] GET... failed");
@@ -141,6 +147,7 @@ void wget (String bin_url, String appName, const char* &ca) {
     myFile.close();
     return;
   }
+  unsigned long downwloadstart = millis();
   while(http.connected() && (len > 0 || len == -1)) {
     sdUpdater.M5SDMenuProgress(httpSize-len, httpSize);
     // get available data size
@@ -157,14 +164,28 @@ void wget (String bin_url, String appName, const char* &ca) {
     delay(1);
   }
   myFile.close();
-  Serial.println("Copy done...");
+  unsigned long dl_duration;
+  float bytespermillis;
+  dl_duration = ( millis() - downwloadstart );
+  
+  if( dl_duration > 0 ) {
+    bytespermillis = httpSize / dl_duration;
+    //float Kbpermillis = bytespermillis/1024; // kb per millis
+    //float Kbpersecond = Kbpermillis*1000; // kb per second
+    Serial.printf(" [OK][Downloaded %d KB at %d KB/s]\n", (httpSize/1024), (int)( bytespermillis / 1024 *1000 ) );
+  } else {
+    Serial.println("[OK] Copy done...");
+  }
   http.end();
 }
 
 
-
 void getApp(String appURL, const char* &ca) {
-  http.begin(appURL, ca);
+  if( appURL.startsWith("https://") ) {
+    http.begin(appURL, ca);
+  } else {
+    http.begin(appURL);
+  }
   int httpCode = http.GET();
   if(httpCode <= 0) {
     Serial.println("[HTTP] GET... failed");
@@ -178,7 +199,7 @@ void getApp(String appURL, const char* &ca) {
   String payload = http.getString();
   http.end();
   #if ARDUINOJSON_VERSION_MAJOR==6
-    DynamicJsonDocument jsonBuffer(2048);
+    DynamicJsonDocument jsonBuffer(4096);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
       Serial.println(F("JSON Parsing failed!"));
@@ -201,6 +222,7 @@ void getApp(String appURL, const char* &ca) {
     return;
   }
   String base_url = root["base_url"].as<String>();
+  M5.Lcd.setTextColor(WHITE, BLACK);
   uint16_t assets_count = root["apps"][0]["json_meta"]["assets_count"].as<uint16_t>();
   for(uint16_t i=0;i<assets_count;i++) {
     M5.Lcd.setCursor(0,i*20);
@@ -238,11 +260,12 @@ void getApp(String appURL, const char* &ca) {
 
 
 void syncAppRegistry(String API_URL, const char* ca) {
-
-  // wget("https://github.com/tobozo/M5Stack-SD-Updater/releases/download/v0.3.0/SD-Apps-Folder.zip", "/SD-Apps-Folder.zip", github_ca);
-
   http.setReuse(true);
-  http.begin(API_URL + "catalog.json", ca);
+  if ( API_URL.startsWith("https://") ) {
+    http.begin(API_URL + "catalog.json", ca);
+  } else {
+    http.begin(API_URL + "catalog.json" );
+  }
   int httpCode = http.GET();
   if(httpCode <= 0) {
     http.end();
@@ -261,7 +284,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
   String payload = http.getString();
   http.end();
   #if ARDUINOJSON_VERSION_MAJOR==6
-    DynamicJsonDocument jsonBuffer(2048);
+    DynamicJsonDocument jsonBuffer(4096);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
       Serial.println(F("JSON Parsing failed!"));
@@ -305,10 +328,108 @@ void syncAppRegistry(String API_URL, const char* ca) {
   done = true;
   M5.Lcd.clear();
   M5.Lcd.setCursor(0,0);
+  M5.Lcd.setTextColor(WHITE, BLACK);
   M5.Lcd.println("Synch finished");
   delay(1000);
   updateFromFS(SD);
   ESP.restart();
+}
+
+
+void drawAppMenu() {
+  M5Menu.drawAppMenu("M5Stack Apps Downloader", "GO", "<", ">");
+  M5Menu.showList();
+}
+
+
+void cleanDir() {
+  M5.Lcd.clear();
+  M5.Lcd.setCursor(0,0);
+  M5.Lcd.setTextColor(WHITE, BLACK);
+
+  File root = SD.open("/");
+  if(!root){
+    Serial.println("DEBUG_DIROPEN_FAILED");
+    return;
+  }
+  if(!root.isDirectory()){
+    Serial.println("DEBUG_NOTADIR");
+    return;
+  }
+
+  File file = root.openNextFile();
+  while(file){
+    if(file.isDirectory()){
+      //Serial.print("DEBUG_DIRLABEL");
+      //Serial.println(file.name());
+    } else {
+      const char* fileName = file.name();
+      if(String( fileName )!=MENU_BIN && String( fileName ).endsWith(".bin")) {
+        file.close();
+        SD.remove( fileName );
+        Serial.printf( "Removed %s\n", fileName );
+        if( M5.Lcd.getCursorY() > M5.Lcd.height() ) {
+          M5.Lcd.clear();
+          M5.Lcd.setCursor(0,0);
+        }
+        M5.Lcd.printf( "Removed %s\n", fileName );
+      }
+    }
+    file = root.openNextFile();
+  }
+  M5.Lcd.clear();
+  drawAppMenu();
+}
+
+
+void enableWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(); // set SSID/PASS from another app (i.e. WiFi Manager) and reload this app
+  unsigned long startup = millis();
+  M5.Lcd.clear();
+  M5.Lcd.setCursor(0,0);
+  M5.Lcd.setTextColor(WHITE, BLACK);
+  M5.Lcd.println("Waiting for WiFi to connect");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Establishing connection to WiFi..");
+    if(startup + 10000 < millis()) {
+      Serial.println("Timed out, will try again");
+      M5.Lcd.println("Timed out, will try again");
+      delay(1000);
+      M5.Lcd.clear();
+      drawAppMenu();
+      return;
+    }
+  }
+  M5.Lcd.println("Connected to wifi :-)");
+  Serial.println("Connected to wifi :-)");
+  wifisetup = true;
+  delay(1000);
+  M5.Lcd.clear();
+  drawAppMenu();
+
+}
+
+
+int MenuID;
+
+void menuUp() {
+  MenuID = M5Menu.getListID();
+  if(MenuID>0) {
+    MenuID--;
+  } else {
+    MenuID = 3;
+  }
+  M5Menu.setListID(MenuID);
+  M5Menu.showList();
+}
+
+
+void menuDown() {
+  M5Menu.nextList();
+  MenuID = M5Menu.getListID();
+  M5Menu.showList();
 }
 
 
@@ -325,7 +446,6 @@ void setup() {
     updateFromFS(SD);
     ESP.restart();
   }
-
   
   unsigned long lastcheck = millis();
   bool toggle = true;
@@ -359,40 +479,74 @@ void setup() {
       SD.mkdir(dir);
     }
   }
-  
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(); // set SSID/PASS from another app (i.e. WiFi Manager) and reload this app
 
-  M5.Lcd.clear();
-  M5.Lcd.setCursor(0,0);
-  M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.println("Waiting for WiFi to connect");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Establishing connection to WiFi..");
-    if(startup + 10000 < millis()) {
-      Serial.println("Been waiting too long for WiFi, will restart");
-      M5.Lcd.println("Waiting too long, will restart");
-      delay(1000);
-      ESP.restart();
-    }
-  }
-  M5.Lcd.setTextFont(2);
-  M5.Lcd.println("connected to wifi");
-  Serial.println("connected to wifi");
   if(SD.begin()) {
     Serial.println("SD detected");
     M5.Lcd.println("SD detected");
+  } else {
+    Serial.println("NO SD Detected");
+    M5.Lcd.println("SD detected");
+    delay(2000);
+    ESP.restart();
   }
 
+  M5Menu.clearList();
+  M5Menu.setListCaption("Menu");
+  M5Menu.addList("Enable WiFi");
+  M5Menu.addList("Synchronize apps");
+  M5Menu.addList("Delete existing apps");
+  M5Menu.addList("Back to menu");
+  M5.Lcd.clear();
+  drawAppMenu();
   //testTLS();
 
-  
-  //http.setReuse(true);
 }
 
+
 void loop() {
-  if(!done) {
-    syncAppRegistry(API_URL, phpsecure_ca);
+  HIDSignal hidState = getControls();
+
+  switch(hidState) {
+    case UI_DOWN:
+      menuDown();
+    break;
+    case UI_UP:
+      menuUp();
+    break;
+    case UI_GO:
+      switch( M5Menu.getListID() ) {
+        case 0:
+          while( !wifisetup ) {
+            enableWiFi();
+          }
+          menuDown();
+        break;
+        case 1:
+          if( wifisetup ) {
+            while(!done) {
+              syncAppRegistry(API_URL, phpsecure_ca);
+            }
+          } else {
+            menuUp();
+          }
+        break;
+        case 2:
+          cleanDir();        
+        break;
+        case 3:
+          sdUpdater.updateFromFS(SD);
+          ESP.restart();
+        break;
+        default:
+        break;
+      }
+    break;
+    default:
+    case UI_INERT:
+      //
+    break;
   }
+
+  M5.update();
+
 }

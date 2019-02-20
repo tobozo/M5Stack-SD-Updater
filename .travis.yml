@@ -47,9 +47,11 @@ install:
   - unzip -d ~/Arduino/libraries Arduinojson-master.zip
   - wget https://github.com/tomsuch/M5StackSAM/archive/master.zip --output-document=M5StackSAM-master.zip
   - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
-  - wget https://github.com/m5stack/M5Stack/archive/master.zip --output-document=M5Stack.zip
+
+  #- wget https://github.com/m5stack/M5Stack/archive/master.zip --output-document=M5Stack.zip
+  - curl -v --retry 5 "https://api.github.com/repos/M5Stack/M5Stack/releases/latest?access_token=$GH_TOKEN" | jq -r ".zipball_url" | wget --output-document=M5Stack.zip -i -
   - unzip -d ~/Arduino/libraries M5Stack.zip
-  - mv ~/Arduino/libraries/M5Stack-master ~/Arduino/libraries/M5Stack
+  #- mv ~/Arduino/libraries/M5Stack-master ~/Arduino/libraries/M5Stack
   - wget https://github.com/earlephilhower/ESP8266Audio/archive/master.zip --output-document=ESP8266Audio.zip
   - unzip -d ~/Arduino/libraries ESP8266Audio.zip
   - wget https://github.com/Seeed-Studio/Grove_BMP280/archive/1.0.1.zip --output-document=Grove_BMP280.zip
@@ -103,6 +105,7 @@ before_deploy:
   - cd /home/travis/build/tobozo/
   - echo "#define M5_SD_UPDATER_VERSION F(\"${TRAVIS_TAG}\")" > $REPO_NAME/src/gitTagVersion.h
   - rm -Rf $REPO_NAME/examples/M5Stack-SD-Menu/SD-Apps
+  - rm -Rf $REPO_NAME/examples/M5Stack-SD-Menu/SD-Content
   - zip -r $TRAVIS_BUILD_DIR/$REPO_NAME.zip $REPO_NAME -x *.git*
   - cd $M5_SD_BUILD_DIR 
   - zip -r $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip ./
@@ -126,4 +129,5 @@ deploy:
     - $TRAVIS_BUILD_DIR/$REPO_NAME.zip
   #file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
   on:
-    branch: master
+    tags: true
+    branch: unstable
