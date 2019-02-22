@@ -96,7 +96,7 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
   In your setup() function, find the following statements:
 
       M5.begin();
-      Wire.begin()
+      Wire.begin();
 
   And add this after 'Wire.begin();':
 
