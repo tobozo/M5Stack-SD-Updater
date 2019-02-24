@@ -4,6 +4,7 @@
 
 #define WELCOME_MESSAGE F("Welcome to the M5Stack SD Menu Loader!")
 #define INIT_MESSAGE F("M5Stack initializing...")
+#define SD_LOADING_MESSAGE F("Checking SD Card...")
 #define INSERTSD_MESSAGE F("Insert SD")
 #define GOTOSLEEP_MESSAGE F("Will go to sleep")
 #define MOVINGFILE_MESSAGE F("Moving ")
