@@ -78,10 +78,15 @@ extern "C" {
 #define MENU_BIN "/menu.bin"
 #endif
 
+#ifdef M5STACK
+// backwards compat
+#define M5SDMenuProgress SDMenuProgress
+#endif
+
 class SDUpdater {
-  public: 
+  public:
     void updateFromFS( fs::FS &fs, String fileName = MENU_BIN );
-    static void M5SDMenuProgress( int state, int size );
+    static void SDMenuProgress( int state, int size );
     void displayUpdateUI( String label );
     esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
   private:
