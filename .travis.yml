@@ -4,7 +4,7 @@ env:
     - IDE_VERSION=nightly
     - REPO_NAME=M5Stack-SD-Updater
     - SDAPP_FOLDER=$PWD/examples/M5Stack-SD-Menu/SD-Apps
-    - TRAVIS_TAG="v0.1.0-SD-Extras"
+    - TRAVIS_TAG="v0.4.0"
     - M5_SD_BUILD_DIR=$TRAVIS_BUILD_DIR/build/SD-Content
   matrix:
     - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
@@ -43,7 +43,7 @@ install:
   - unzip -d ~/Arduino/libraries Adafruit_NeoPixel.zip
   - wget https://github.com/adafruit/Adafruit_AMG88xx/archive/1.0.2.zip --output-document=Adafruit_AMG88xx.zip
   - unzip -d ~/Arduino/libraries Adafruit_AMG88xx.zip
-  - wget https://github.com/bblanchon/ArduinoJson/archive/master.zip --output-document=Arduinojson-master.zip
+  - wget https://github.com/bblanchon/ArduinoJson/archive/6.x.zip --output-document=Arduinojson-master.zip
   - unzip -d ~/Arduino/libraries Arduinojson-master.zip
   - wget https://github.com/tomsuch/M5StackSAM/archive/master.zip --output-document=M5StackSAM-master.zip
   - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
