@@ -99,9 +99,13 @@ script:
 before_deploy:
   # Set up git user name and tag this commit
   - cd $PWD
-  - git config --global user.email "travis@travis-ci.org"
-  - git config --global user.name "Travis CI"
-  - git tag ${TRAVIS_TAG}
+  
+  #if ! [[ $TRAVIS_TAG ]]; then
+  #  git config --global user.email "travis@travis-ci.org"
+  #  git config --global user.name "Travis CI"
+  #  git tag ${TRAVIS_TAG}
+  #fi
+
   - cd /home/travis/build/tobozo/
   - echo "#define M5_SD_UPDATER_VERSION F(\"${TRAVIS_TAG}\")" > $REPO_NAME/src/gitTagVersion.h
   - rm -Rf $REPO_NAME/examples/M5Stack-SD-Menu/SD-Apps
@@ -123,11 +127,16 @@ deploy:
   name: SD-Extras-autorelease $TRAVIS_TAG
   body: Automated release from Travis CI with added SD Apps binary files from Arduino compilation 
   draft: true
-  #file_glob: true
+  file_glob: true
   file: 
     - $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
-    - $TRAVIS_BUILD_DIR/$REPO_NAME.zip
+  #  - $TRAVIS_BUILD_DIR/$REPO_NAME.zip
   #file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
   on:
     tags: true
-    branch: unstable
+    branch: master
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
