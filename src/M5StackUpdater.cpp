@@ -209,10 +209,10 @@ void SDUpdater::tryRollback( String fileName ) {
 // check given FS for valid menu.bin and perform update if available
 void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
   #ifdef M5_SD_UPDATER_VERSION
-    Serial.printf( "[M5Stack-SD-Updater] SD Updater version: %s\n", M5_SD_UPDATER_VERSION );
+    Serial.printf( "[M5Stack-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
   #endif
   #ifdef M5_LIB_VERSION
-    Serial.printf( "[M5Stack-SD-Updater] M5Stack Core version: %s\n", M5_LIB_VERSION );
+    Serial.printf( "[M5Stack-SD-Updater] M5Stack Core version: %s\n", (char*)M5_LIB_VERSION );
   #endif
   Serial.printf( "[M5Stack-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
   Serial.printf( "[M5Stack-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
