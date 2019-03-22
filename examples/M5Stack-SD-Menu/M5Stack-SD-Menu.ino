@@ -648,6 +648,8 @@ bool replaceMenu( fs::FS &fs, String fileName ) {
     Serial.print(".");
     if(dot++%64==0) {
       Serial.println();
+
+      
       sdUpdater.SDMenuProgress( (dot*4096)-4095, fileSize );
     }
     dest.write(buf, n);
@@ -817,7 +819,7 @@ void setup() {
     sdUpdater.SDMenuProgress( i, 100 );
   }
 
-  dumpSketchToSD( MENU_BIN );
+  //dumpSketchToSD( MENU_BIN );
 
   sdUpdater.SDMenuProgress( 100, 100 );
   
