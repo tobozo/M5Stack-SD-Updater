@@ -357,7 +357,6 @@ void getFileInfo( File &file ) {
     fileInfo[appsCount].hasMeta = true;
     fileInfo[appsCount].metaName = currentMetaFile;
   }
-
   
   if( fileInfo[appsCount].hasMeta == true ) {
     getMeta( fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta );
@@ -465,7 +464,7 @@ void menuUp() {
   } else {
     MenuID = appsCount-1;
   }
-  
+  MenuID = M5Menu.getListID();
   M5Menu.setListID( MenuID );
 
   if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
@@ -488,7 +487,9 @@ void menuDown() {
   } else {
     MenuID = 0;
   }
-  M5Menu.setListID( MenuID );
+
+  M5Menu.nextList( false );
+  MenuID = M5Menu.getListID();
 
   if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
     M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_SET, MENU_BTN_NEXT );
@@ -859,7 +860,7 @@ void loop() {
     break;
     case UI_LOAD:
       if( fileInfo[ M5Menu.getListID() ].fileName.endsWith( launcherSignature ) ) {
-        Serial.printf("Will overwrite current %s with a copy of %f\n", MENU_BIN, fileInfo[ M5Menu.getListID() ].fileName.c_str() );
+        Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, fileInfo[ M5Menu.getListID() ].fileName.c_str() );
         if( replaceMenu( SD, fileInfo[ M5Menu.getListID() ].fileName ) ) {
           fileInfo[ M5Menu.getListID() ].fileName = MENU_BIN;
         } else {
