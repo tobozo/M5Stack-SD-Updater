@@ -43,7 +43,7 @@
 - M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
 
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
-- M5StackSAM: [https://github.com/tomsuch/M5StackSAM](https://github.com/tomsuch/M5StackSAM)
+- M5StackSAM: [https://github.com/tobozo/M5StackSAM/tree/patch-1](https://github.com/tobozo/M5StackSAM/tree/patch-1) (modified version until patch is merged)
 
 <br />
 
