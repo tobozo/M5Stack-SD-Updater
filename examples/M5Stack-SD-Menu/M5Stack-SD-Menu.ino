@@ -392,6 +392,11 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
          && !String( file.name() ).startsWith( "/." ) ) { // ignore dotfiles (thanks to https://twitter.com/micutil)
         getFileInfo( file );
         appsCount++;
+        if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
+          //Serial.println( String( DEBUG_IGNORED ) + file.name() );
+          Serial.println( DEBUG_ABORTLISTING );
+          break; // don't make M5Stack list explode
+        }
       } else {
         // ignored files
         Serial.println( String( DEBUG_IGNORED ) + file.name() );
