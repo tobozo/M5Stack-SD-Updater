@@ -13,6 +13,7 @@
 #define MENU_TITLE F("SD CARD LOADER")
 #define MENU_SUBTITLE F("Applications")
 #define MENU_BTN_INFO F("INFO")
+#define MENU_BTN_SET F("SET")
 #define MENU_BTN_LOAD F("LOAD")
 #define MENU_BTN_NEXT F(">")
 

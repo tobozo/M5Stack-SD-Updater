@@ -96,6 +96,7 @@ String allowedExtensions[extensionsCount] = {
     "jpg", "json", "mod", "mp3"
 };
 String appDataFolder = "/data"; // if an app needs spiffs data, it's stored here
+String launcherSignature = "Launcher.bin"; // app with name ending like this can overwrite menu.bin
 
 /* Storing json meta file information r */
 struct JSONMeta {
@@ -459,8 +460,15 @@ void menuUp() {
   } else {
     MenuID = appsCount-1;
   }
+  
   M5Menu.setListID( MenuID );
-  M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+
+  if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_SET, MENU_BTN_NEXT );
+  } else {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+  }
+
   M5Menu.showList();
   renderIcon( MenuID );
   inInfoMenu = false;
@@ -469,9 +477,22 @@ void menuUp() {
 
 
 void menuDown() {
-  M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
-  M5Menu.nextList();
-  MenuID = M5Menu.getListID();
+
+  if(MenuID<appsCount-1){
+    MenuID++;
+  } else {
+    MenuID = 0;
+  }
+  M5Menu.setListID( MenuID );
+
+  if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_SET, MENU_BTN_NEXT );
+  } else {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+  }
+
+  M5Menu.showList();
+
   renderIcon( MenuID );
   inInfoMenu = false;
   lastpush = millis();
@@ -562,6 +583,7 @@ void scanDataFolder() {
               packets++;
               sdUpdater.SDMenuProgress( (packets*512)-511, fileSize );
             }
+
             destFile.close();
             Serial.println();
             Serial.println( DEBUG_FILECOPY_DONE );
@@ -593,6 +615,47 @@ static esp_image_metadata_t getSketchMeta( const esp_partition_t* running ) {
   return data;
 }
 
+
+bool replaceMenu( fs::FS &fs, String fileName ) {
+  if( !fs.exists( fileName ) ) {
+    Serial.printf("Source file %s does not exists !\n", fileName.c_str() );
+    return false;
+  }
+  fs.remove( MENU_BIN );
+  fs::File source = fs.open( fileName );
+  if( !source ) {
+    Serial.printf("Failed to open source file %s\n", fileName.c_str() );
+    return false;
+  }
+  fs::File dest = fs.open( MENU_BIN, FILE_WRITE );
+  if( !dest ) {
+    Serial.printf("Failed to open dest file %s\n", MENU_BIN );
+    return false;
+  }
+
+  size_t n; 
+  uint8_t buf[4096]; // 4K buffer should be enough to fast-copy the file
+  uint8_t dot = 0;
+
+  size_t fileSize = source.size();
+
+  if( fileSize < 4096 ) {
+    Serial.printf("Source file %s is too small (%d bytes)\n", fileName.c_str(), fileSize );
+    return false;
+  }
+  
+  while ((n = source.read(buf, sizeof(buf))) > 0) {
+    Serial.print(".");
+    if(dot++%64==0) {
+      Serial.println();
+      sdUpdater.SDMenuProgress( (dot*4096)-4095, fileSize );
+    }
+    dest.write(buf, n);
+  }
+  dest.close();
+  source.close();
+  
+}
 
 
 void dumpSketchToSD( const char* fileName ) {
@@ -788,6 +851,14 @@ void loop() {
       }
     break;
     case UI_LOAD:
+      if( fileInfo[ M5Menu.getListID() ].fileName.endsWith( launcherSignature ) ) {
+        Serial.printf("Will overwrite current %s with a copy of %f\n", MENU_BIN, fileInfo[ M5Menu.getListID() ].fileName.c_str() );
+        if( replaceMenu( SD, fileInfo[ M5Menu.getListID() ].fileName ) ) {
+          fileInfo[ M5Menu.getListID() ].fileName = MENU_BIN;
+        } else {
+          Serial.println("Failed to overwrite ?????");
+        }
+      }
       sdUpdater.updateFromFS( SD, fileInfo[ M5Menu.getListID() ].fileName );
       ESP.restart();
     break;

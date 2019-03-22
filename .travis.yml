@@ -67,6 +67,12 @@ install:
   - wget https://github.com/lovyan03/M5Stack_OnScreenKeyboard/archive/master.zip --output-document=M5Stack_OnScreenKeyboard.zip
   #- mkdir -p ~/Arduino/libraries/M5OnScreenKeyboard
   - unzip -d ~/Arduino/libraries M5Stack_OnScreenKeyboard.zip
+
+
+  - curl -v --retry 5 "https://api.github.com/repos/lovyan03/M5Stack_LovyanLauncher/releases/latest?access_token=$GH_TOKEN" | jq -r ".browser_download_url" | wget --output-document=M5Burner.zip -i -
+  - unzip -d /tmp M5Burner.zip
+  - cp /tmp/M5Burner/firmwares/LovyanLauncher/LovyanLauncher.bin $M5_SD_BUILD_DIR/
+  - rm -Rf /tmp/M5Burner
   
   - ls ~/Arduino/libraries -la
   - rm *.zip
@@ -76,7 +82,7 @@ script:
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
   - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
-  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/menu.bin \; #
+  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/TobozoMenu.bin \; #
   
   - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/M5Stack-YOLO-Downloader/M5Stack-YOLO-Downloader.ino &>/dev/null
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
