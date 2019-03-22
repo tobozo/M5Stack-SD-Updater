@@ -45,7 +45,8 @@ install:
   - unzip -d ~/Arduino/libraries Adafruit_AMG88xx.zip
   - wget https://github.com/bblanchon/ArduinoJson/archive/6.x.zip --output-document=Arduinojson-master.zip
   - unzip -d ~/Arduino/libraries Arduinojson-master.zip
-  - wget https://github.com/tomsuch/M5StackSAM/archive/master.zip --output-document=M5StackSAM-master.zip
+  #- wget https://github.com/tomsuch/M5StackSAM/archive/master.zip --output-document=M5StackSAM-master.zip
+  - wget https://github.com/tobozo/M5StackSAM/archive/patch-1.zip --output-document=M5StackSAM-master.zip
   - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
 
   #- wget https://github.com/m5stack/M5Stack/archive/master.zip --output-document=M5Stack.zip
