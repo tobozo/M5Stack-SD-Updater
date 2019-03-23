@@ -403,9 +403,13 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
     }
     file = root.openNextFile();
   }
-  file = fs.open( MENU_BIN );
-  getFileInfo( file );
-  appsCount++;
+  if( fs.exists( MENU_BIN ) ) {
+    file = fs.open( MENU_BIN );
+    getFileInfo( file );
+    appsCount++;
+  } else {
+    Serial.printf( "[WARNING] No %s file found\n", MENU_BIN );
+  }
 }
 
 
@@ -804,6 +808,10 @@ void setup() {
     scanDataFolder();
   }
 
+  if(! SD.exists( MENU_BIN ) ) {
+    dumpSketchToSD( MENU_BIN );
+  }
+
   sdUpdater.SDMenuProgress( 20, 100 );
   listDir(SD, "/", 0);
   sdUpdater.SDMenuProgress( 30, 100 );
@@ -824,8 +832,6 @@ void setup() {
   for( uint8_t i=50; i<=80; i++ ) {
     sdUpdater.SDMenuProgress( i, 100 );
   }
-
-  //dumpSketchToSD( MENU_BIN );
 
   sdUpdater.SDMenuProgress( 100, 100 );
   
@@ -862,7 +868,7 @@ void loop() {
       if( fileInfo[ M5Menu.getListID() ].fileName.endsWith( launcherSignature ) ) {
         Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, fileInfo[ M5Menu.getListID() ].fileName.c_str() );
         if( replaceMenu( SD, fileInfo[ M5Menu.getListID() ].fileName ) ) {
-          fileInfo[ M5Menu.getListID() ].fileName = MENU_BIN;
+          //fileInfo[ M5Menu.getListID() ].fileName = MENU_BIN;
         } else {
           Serial.println("Failed to overwrite ?????");
         }
