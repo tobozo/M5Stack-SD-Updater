@@ -220,13 +220,6 @@ void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
   if( strcmp( MENU_BIN, fileName.c_str() ) == 0 ) {
     tryRollback( fileName );
   }
-  // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-)
-  // See Macbug's excellent article on this tool:
-  // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
-  dacWrite( 25, 0 ); // turn speaker signal off
-  // Also thanks to @Kongduino for a complementary way to turn off the speaker:
-  // https://twitter.com/Kongduino/status/980466157701423104
-  ledcDetachPin( 25 ); // detach DAC
   File updateBin = fs.open( fileName );
   if ( updateBin ) {
     if( updateBin.isDirectory() ){
