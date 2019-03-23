@@ -98,7 +98,7 @@ void SDUpdater::SDMenuProgress( int state, int size ) {
 }
 
 
-static esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition ) {
+esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition ) {
   esp_image_metadata_t data;
   if ( !source_partition ) return data;
   const esp_partition_pos_t source_partition_pos  = {
@@ -111,7 +111,7 @@ static esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* sou
 }
 
 // rollback helper, save menu.bin meta info in NVS
-static void SDUpdater::updateNVS() {
+void SDUpdater::updateNVS() {
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
   esp_image_metadata_t nusketchMeta = getSketchMeta( update_partition );
   uint32_t nuSize = nusketchMeta.image_len;
