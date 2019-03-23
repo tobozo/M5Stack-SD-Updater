@@ -364,7 +364,7 @@ void cleanDir() {
       //Serial.println(file.name());
     } else {
       const char* fileName = file.name();
-      if(String( fileName )!=MENU_BIN && String( fileName ).endsWith(".bin")) {
+      if(String( fileName )!=MENU_BIN && String( fileName )!="/Downloader.bin" && String( fileName ).endsWith(".bin")) {
         file.close();
         SD.remove( fileName );
         Serial.printf( "Removed %s\n", fileName );
