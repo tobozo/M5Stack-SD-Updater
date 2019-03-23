@@ -88,10 +88,10 @@ class SDUpdater {
     void updateFromFS( fs::FS &fs, String fileName = MENU_BIN );
     static void SDMenuProgress( int state, int size );
     void displayUpdateUI( String label );
-    esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
+    static void updateNVS();
+    static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
   private:
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
-    void updateNVS();
     void tryRollback( String fileName );
 };
 

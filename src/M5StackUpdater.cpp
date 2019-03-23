@@ -98,7 +98,7 @@ void SDUpdater::SDMenuProgress( int state, int size ) {
 }
 
 
-esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition ) {
+static esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition ) {
   esp_image_metadata_t data;
   if ( !source_partition ) return data;
   const esp_partition_pos_t source_partition_pos  = {
@@ -111,7 +111,7 @@ esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_par
 }
 
 // rollback helper, save menu.bin meta info in NVS
-void SDUpdater::updateNVS() {
+static void SDUpdater::updateNVS() {
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
   esp_image_metadata_t nusketchMeta = getSketchMeta( update_partition );
   uint32_t nuSize = nusketchMeta.image_len;
@@ -220,13 +220,6 @@ void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
   if( strcmp( MENU_BIN, fileName.c_str() ) == 0 ) {
     tryRollback( fileName );
   }
-  // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-)
-  // See Macbug's excellent article on this tool:
-  // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
-  dacWrite( 25, 0 ); // turn speaker signal off
-  // Also thanks to @Kongduino for a complementary way to turn off the speaker:
-  // https://twitter.com/Kongduino/status/980466157701423104
-  ledcDetachPin( 25 ); // detach DAC
   File updateBin = fs.open( fileName );
   if ( updateBin ) {
     if( updateBin.isDirectory() ){

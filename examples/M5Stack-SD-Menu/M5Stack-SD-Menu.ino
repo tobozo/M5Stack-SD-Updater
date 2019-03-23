@@ -82,6 +82,9 @@
 #include "controls.h"        // keypad / joypad / keyboard controls
 
 #define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
+#define M5_FS SD
+//#define M5_FS SD_MMC
+
 
 /* 
  * /!\ Files with those extensions will be transferred to the SD Card
@@ -96,6 +99,7 @@ String allowedExtensions[extensionsCount] = {
     "jpg", "json", "mod", "mp3"
 };
 String appDataFolder = "/data"; // if an app needs spiffs data, it's stored here
+String launcherSignature = "Launcher.bin"; // app with name ending like this can overwrite menu.bin
 
 /* Storing json meta file information r */
 struct JSONMeta {
@@ -137,14 +141,14 @@ String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
 
 /* vMicro compliance, see https://github.com/tobozo/M5Stack-SD-Updater/issues/5#issuecomment-386749435 */
-void getMeta( String metaFileName, JSONMeta &jsonMeta );
+void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta );
 void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
 
 
 
-void getMeta( String metaFileName, JSONMeta &jsonMeta ) {
-  File file = SD.open( metaFileName );
+void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta ) {
+  File file = fs.open( metaFileName );
 #if ARDUINOJSON_VERSION_MAJOR==6
   StaticJsonDocument<512> jsonBuffer;
   DeserializationError error = deserializeJson( jsonBuffer, file );
@@ -238,7 +242,7 @@ void renderIcon( FileInfo &fileInfo ) {
     return;
   }
   JSONMeta jsonMeta = fileInfo.jsonMeta;
-  tft.drawJpgFile( SD, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE );
+  tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE );
 }
 
 /* by menu ID */
@@ -247,7 +251,7 @@ void renderIcon( uint16_t MenuID ) {
 }
 
 void renderFace( String face ) {
-  tft.drawJpgFile( SD, face.c_str(), 5, 85, 120, 120, 0, 0, JPEG_DIV_NONE );
+  tft.drawJpgFile( M5_FS, face.c_str(), 5, 85, 120, 120, 0, 0, JPEG_DIV_NONE );
 }
 
 
@@ -325,7 +329,7 @@ void qrRender( String text, float sizeinpixels ) {
 }
 
 
-void getFileInfo( File &file ) {
+void getFileInfo( fs::FS &fs, File &file ) {
   String fileName   = file.name();
   uint32_t fileSize = file.size();
   Serial.println( String( DEBUG_FILELABEL ) + fileName );
@@ -335,31 +339,30 @@ void getFileInfo( File &file ) {
 
   String currentIconFile = "/jpg" + fileName;
   currentIconFile.replace( ".bin", ".jpg" );
-  if( SD.exists( currentIconFile.c_str() ) ) {
+  if( fs.exists( currentIconFile.c_str() ) ) {
     fileInfo[appsCount].hasIcon = true;
     fileInfo[appsCount].iconName = currentIconFile;
   }
   currentIconFile.replace( ".jpg", "_gh.jpg" );
-  if( SD.exists( currentIconFile.c_str() ) ) {
+  if( fs.exists( currentIconFile.c_str() ) ) {
     fileInfo[appsCount].hasFace = true;
     fileInfo[appsCount].faceName = currentIconFile;
   }
   String currentDataFolder = appDataFolder + fileName;
   currentDataFolder.replace( ".bin", "" );
-  if( SD.exists( currentDataFolder.c_str() ) ) {
+  if( fs.exists( currentDataFolder.c_str() ) ) {
     fileInfo[appsCount].hasData = true; // TODO: actually use this feature
   }
   
   String currentMetaFile = "/json" + fileName;
   currentMetaFile.replace( ".bin", ".json" );
-  if( SD.exists(currentMetaFile.c_str() ) ) {
+  if( fs.exists(currentMetaFile.c_str() ) ) {
     fileInfo[appsCount].hasMeta = true;
     fileInfo[appsCount].metaName = currentMetaFile;
   }
-
   
   if( fileInfo[appsCount].hasMeta == true ) {
-    getMeta( fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta );
+    getMeta( fs, fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta );
   }
 }
 
@@ -389,8 +392,13 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
       if(   String( file.name() )!=MENU_BIN // ignore menu
          && String( file.name() ).endsWith( ".bin" ) // ignore files not ending in ".bin"
          && !String( file.name() ).startsWith( "/." ) ) { // ignore dotfiles (thanks to https://twitter.com/micutil)
-        getFileInfo( file );
+        getFileInfo( fs, file );
         appsCount++;
+        if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
+          //Serial.println( String( DEBUG_IGNORED ) + file.name() );
+          Serial.println( DEBUG_ABORTLISTING );
+          break; // don't make M5Stack list explode
+        }
       } else {
         // ignored files
         Serial.println( String( DEBUG_IGNORED ) + file.name() );
@@ -398,9 +406,13 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
     }
     file = root.openNextFile();
   }
-  file = fs.open( MENU_BIN );
-  getFileInfo( file );
-  appsCount++;
+  if( fs.exists( MENU_BIN ) ) {
+    file = fs.open( MENU_BIN );
+    getFileInfo( fs, file );
+    appsCount++;
+  } else {
+    Serial.printf( "[WARNING] No %s file found\n", MENU_BIN );
+  }
 }
 
 
@@ -459,8 +471,15 @@ void menuUp() {
   } else {
     MenuID = appsCount-1;
   }
+  MenuID = M5Menu.getListID();
   M5Menu.setListID( MenuID );
-  M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+
+  if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_SET, MENU_BTN_NEXT );
+  } else {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+  }
+
   M5Menu.showList();
   renderIcon( MenuID );
   inInfoMenu = false;
@@ -469,9 +488,24 @@ void menuUp() {
 
 
 void menuDown() {
-  M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
-  M5Menu.nextList();
+
+  if(MenuID<appsCount-1){
+    MenuID++;
+  } else {
+    MenuID = 0;
+  }
+
+  M5Menu.nextList( false );
   MenuID = M5Menu.getListID();
+
+  if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_SET, MENU_BTN_NEXT );
+  } else {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+  }
+
+  M5Menu.showList();
+
   renderIcon( MenuID );
   inInfoMenu = false;
   lastpush = millis();
@@ -508,15 +542,15 @@ void scanDataFolder() {
   /* check if mandatory folders exists and create if necessary */
 
   // data folder
-  if( !SD.exists( appDataFolder ) ) {
-    SD.mkdir( appDataFolder );
+  if( !M5_FS.exists( appDataFolder ) ) {
+    M5_FS.mkdir( appDataFolder );
   }
 
 
   for( uint8_t i=0; i<extensionsCount; i++ ) {
     String dir = "/" + allowedExtensions[i];
-    if( !SD.exists( dir ) ) {
-      SD.mkdir( dir );
+    if( !M5_FS.exists( dir ) ) {
+      M5_FS.mkdir( dir );
     }
   }
   
@@ -548,7 +582,7 @@ void scanDataFolder() {
         if( destName!="" ) {
           sdUpdater.displayUpdateUI( String( MOVINGFILE_MESSAGE ) + fileName );
           size_t fileSize = file.size();
-          File destFile = SD.open( destName, FILE_WRITE );
+          File destFile = M5_FS.open( destName, FILE_WRITE );
           
           if( !destFile ){
             Serial.println( DEBUG_SPIFFS_WRITEFAILED) ;
@@ -562,6 +596,7 @@ void scanDataFolder() {
               packets++;
               sdUpdater.SDMenuProgress( (packets*512)-511, fileSize );
             }
+
             destFile.close();
             Serial.println();
             Serial.println( DEBUG_FILECOPY_DONE );
@@ -594,14 +629,57 @@ static esp_image_metadata_t getSketchMeta( const esp_partition_t* running ) {
 }
 
 
+bool replaceMenu( fs::FS &fs, String fileName ) {
+  if( !fs.exists( fileName ) ) {
+    Serial.printf("Source file %s does not exists !\n", fileName.c_str() );
+    return false;
+  }
+  fs.remove( MENU_BIN );
+  fs::File source = fs.open( fileName );
+  if( !source ) {
+    Serial.printf("Failed to open source file %s\n", fileName.c_str() );
+    return false;
+  }
+  fs::File dest = fs.open( MENU_BIN, FILE_WRITE );
+  if( !dest ) {
+    Serial.printf("Failed to open dest file %s\n", MENU_BIN );
+    return false;
+  }
 
-void dumpSketchToSD( const char* fileName ) {
+  size_t n; 
+  uint8_t buf[4096]; // 4K buffer should be enough to fast-copy the file
+  uint8_t dot = 0;
+
+  size_t fileSize = source.size();
+
+  if( fileSize < 4096 ) {
+    Serial.printf("Source file %s is too small (%d bytes)\n", fileName.c_str(), fileSize );
+    return false;
+  }
+  
+  while ((n = source.read(buf, sizeof(buf))) > 0) {
+    Serial.print(".");
+    if(dot++%64==0) {
+      Serial.println();
+
+      
+      sdUpdater.SDMenuProgress( (dot*4096)-4095, fileSize );
+    }
+    dest.write(buf, n);
+  }
+  dest.close();
+  source.close();
+  
+}
+
+
+void dumpSketchToFS( fs::FS &fs, const char* fileName ) {
   const esp_partition_t* source_partition = esp_ota_get_running_partition();
   const char* label = "Current running partition";
 
   size_t fileSize;
   {
-    File destFile = SD.open( fileName );
+    File destFile = fs.open( fileName );
     if( !destFile ) {
       Serial.printf( "Can't open %s\n", fileName );
       return;
@@ -639,7 +717,7 @@ void dumpSketchToSD( const char* fileName ) {
   static uint8_t spi_rbuf[SPI_FLASH_SEC_STEP8];
 
   Serial.printf( " [INFO] Writing %s ...\n", fileName );
-  File destFile = SD.open( fileName, FILE_WRITE );
+  File destFile = fs.open( fileName, FILE_WRITE );
   uint32_t bytescounter = 0;
   for ( uint32_t base_addr = source_partition->address; base_addr < source_partition->address + sketchSize; base_addr += SPI_FLASH_SEC_STEP8 ) {
     memset( spi_rbuf, 0, SPI_FLASH_SEC_STEP8 );
@@ -699,7 +777,7 @@ void setup() {
 
 
   tft.setTextSize( 2 );
-  while( !SD.begin( TFCARD_CS_PIN ) ) {
+  while( !M5_FS.begin( TFCARD_CS_PIN ) ) {
     // TODO: make a more fancy animation
     unsigned long now = millis();
     toggle = !toggle;
@@ -733,8 +811,12 @@ void setup() {
     scanDataFolder();
   }
 
+  if(! M5_FS.exists( MENU_BIN ) ) {
+    dumpSketchToFS( M5_FS, MENU_BIN );
+  }
+
   sdUpdater.SDMenuProgress( 20, 100 );
-  listDir(SD, "/", 0);
+  listDir(M5_FS, "/", 0);
   sdUpdater.SDMenuProgress( 30, 100 );
   aSortFiles();
   sdUpdater.SDMenuProgress( 40, 100 );
@@ -753,8 +835,6 @@ void setup() {
   for( uint8_t i=50; i<=80; i++ ) {
     sdUpdater.SDMenuProgress( i, 100 );
   }
-
-  dumpSketchToSD( MENU_BIN );
 
   sdUpdater.SDMenuProgress( 100, 100 );
   
@@ -788,7 +868,15 @@ void loop() {
       }
     break;
     case UI_LOAD:
-      sdUpdater.updateFromFS( SD, fileInfo[ M5Menu.getListID() ].fileName );
+      if( fileInfo[ M5Menu.getListID() ].fileName.endsWith( launcherSignature ) ) {
+        Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, fileInfo[ M5Menu.getListID() ].fileName.c_str() );
+        if( replaceMenu( M5_FS, fileInfo[ M5Menu.getListID() ].fileName ) ) {
+          //fileInfo[ M5Menu.getListID() ].fileName = MENU_BIN;
+        } else {
+          Serial.println("Failed to overwrite ?????");
+        }
+      }
+      sdUpdater.updateFromFS( M5_FS, fileInfo[ M5Menu.getListID() ].fileName );
       ESP.restart();
     break;
     default:

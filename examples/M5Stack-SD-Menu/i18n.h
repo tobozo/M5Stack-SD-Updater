@@ -13,6 +13,7 @@
 #define MENU_TITLE F("SD CARD LOADER")
 #define MENU_SUBTITLE F("Applications")
 #define MENU_BTN_INFO F("INFO")
+#define MENU_BTN_SET F("SET")
 #define MENU_BTN_LOAD F("LOAD")
 #define MENU_BTN_NEXT F(">")
 
@@ -26,6 +27,7 @@
 #define DEBUG_NOTADIR F("Not a directory")
 #define DEBUG_DIRLABEL F("  DIR : ")
 #define DEBUG_IGNORED F("  IGNORED FILE: ")
+#define DEBUG_ABORTLISTING F("  ***Max files reached for M5StackSam Menu, please adjust M5SAM_LIST_MAX_COUNT for more (maximum is 255, sorry :-)")
 #define DEBUG_FILELABEL F("  FILE: ")
 
 #define DEBUG_SPIFFS_SCAN F("Scanning SPIFFS for binaries")
