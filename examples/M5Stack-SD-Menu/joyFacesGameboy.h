@@ -22,10 +22,10 @@ void initKeypad() {
     Serial.println(DEBUG_KEYPAD_FOUND);
     keypadDetected = true;
     pinMode(5, INPUT_PULLUP);
-    M5.Lcd.setCursor(100,100);
-    M5.Lcd.setTextColor(WHITE);
-    M5.Lcd.print(DEBUG_KEYPAD_FOUND);
-    M5.Lcd.drawJpg(joyicon_jpeg, 1070, 132, 32);
+    tft.setCursor(100,100);
+    tft.setTextColor(WHITE);
+    tft.print(DEBUG_KEYPAD_FOUND);
+    tft.drawJpg(joyicon_jpeg, 1070, 132, 32);
     delay(500);
 
   }

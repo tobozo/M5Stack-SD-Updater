@@ -72,6 +72,9 @@
   #include "qrcode.h" // if M5Stack version <= 0.1.6 : qrCode from https://github.com/ricmoo/qrcode
 #endif
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
+#define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
+#define M5_FS SD
+//#define M5_FS SD_MMC
 #define M5SAM_LIST_MAX_COUNT 255
 // if "M5SAM_LIST_MAX_COUNT" gives a warning at compilation, apply this PR https://github.com/tomsuch/M5StackSAM/pull/4
 // or modify M5StackSAM.h manually
@@ -80,11 +83,8 @@
 #include "i18n.h"            // language file
 #include "assets.h"          // some artwork for the UI
 #include "controls.h"        // keypad / joypad / keyboard controls
-
-#define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
-#define M5_FS SD
-//#define M5_FS SD_MMC
-
+#include "downloader.h"      // binaries downloader module A.K.A YOLO Downloader
+// #undef DOWNLOADER_BIN // uncomment this to get rid of the downloader (also delete the Downloader.bin dummy file)
 
 /* 
  * /!\ Files with those extensions will be transferred to the SD Card
@@ -125,8 +125,9 @@ struct FileInfo {
   JSONMeta jsonMeta;
 };
 
-SDUpdater sdUpdater;
+
 FileInfo fileInfo[M5SAM_LIST_MAX_COUNT];
+SDUpdater sdUpdater;
 M5SAM M5Menu;
 
 uint16_t appsCount = 0; // how many binary files
@@ -679,7 +680,7 @@ void dumpSketchToFS( fs::FS &fs, const char* fileName ) {
 
   size_t fileSize;
   {
-    File destFile = fs.open( fileName );
+    File destFile = fs.open( fileName, FILE_WRITE );
     if( !destFile ) {
       Serial.printf( "Can't open %s\n", fileName );
       return;
@@ -811,9 +812,19 @@ void setup() {
     scanDataFolder();
   }
 
-  if(! M5_FS.exists( MENU_BIN ) ) {
+  if( !M5_FS.exists( MENU_BIN ) ) {
+    Serial.printf("File %s does not exist, copying current sketch\n", MENU_BIN);
     dumpSketchToFS( M5_FS, MENU_BIN );
   }
+
+  #ifdef DOWNLOADER_BIN
+  if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
+    // create a dummy file just to enable the feature
+    fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
+    dummyDownloader.print("blah");
+    dummyDownloader.close();
+  }
+  #endif
 
   sdUpdater.SDMenuProgress( 20, 100 );
   listDir(M5_FS, "/", 0);
@@ -849,9 +860,21 @@ void setup() {
 }
 
 
+#define MAX_BRIGHTNESS 100
+const unsigned long MS_BEFORE_SLEEP = 600000; // 600000 = 10mn 
+uint8_t brightness = MAX_BRIGHTNESS;
+
+
 void loop() {
 
   HIDSignal hidState = getControls();
+
+  if( hidState!=UI_INERT && brightness != MAX_BRIGHTNESS ) {
+    // some activity occured, restore brightness
+    Serial.println(".. !!! Waking up !!"); 
+    brightness = MAX_BRIGHTNESS;
+    tft.setBrightness( brightness );
+  }
 
   switch( hidState ) {
     case UI_DOWN:
@@ -868,6 +891,14 @@ void loop() {
       }
     break;
     case UI_LOAD:
+      #ifdef DOWNLOADER_BIN
+      if( fileInfo[MenuID].fileName == String( DOWNLOADER_BIN ) ) {
+        updateAll();
+        ESP.restart();
+      }
+      #endif
+
+    
       if( fileInfo[ M5Menu.getListID() ].fileName.endsWith( launcherSignature ) ) {
         Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, fileInfo[ M5Menu.getListID() ].fileName.c_str() );
         if( replaceMenu( M5_FS, fileInfo[ M5Menu.getListID() ].fileName ) ) {
@@ -890,11 +921,26 @@ void loop() {
 
   M5.update();
   
-  // go to sleep after 10 minutes if nothing happens
-  if( lastpush + 600000 < millis() ) {
+  // go to sleep if nothing happens for a while
+  if( lastpush + MS_BEFORE_SLEEP < millis() ) {
+    // slowly dim the screen first
+    if( brightness > 1 ) {
+      brightness--;
+      if( brightness %10 == 0 ) {
+        Serial.print("(\".¬.\") ");
+      }
+      if( brightness %30 == 0 ) {
+        Serial.print(" Yawn... ");
+      }
+      if( brightness %7 == 0 ) {
+        Serial.print(" .zzZzzz. ");
+      }
+      tft.setBrightness( brightness );
+      lastpush = millis() - (MS_BEFORE_SLEEP - brightness*10); // exponential dimming effect
+      return;
+    }
     Serial.println( GOTOSLEEP_MESSAGE );
     M5.setWakeupButton( BUTTON_B_PIN );
     M5.powerOFF();
   }
-
 }
