@@ -62,6 +62,14 @@
 🍱 UNPACKING
 ------------
 
+For your own lazyness, you can use @micutil's awesome [M5Burner](https://github.com/micutil/M5Burner_Mic) and skip the next steps.
+
+[![https://github.com/micutil/M5Burner_Mic/releases](https://raw.githubusercontent.com/micutil/M5Burner_Mic/master/images/m5burnermic128.png)](https://github.com/micutil/M5Burner_Mic/releases)
+
+
+... or customize your own menu and make the installation manually : 
+
+
 **1) Open both sketches from the "examples/M5Stack-SD-Update" menu.**
 
 <br />
