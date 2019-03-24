@@ -22,6 +22,23 @@
 #define AUTHOR_PREFIX F("By ")
 #define AUTHOR_SUFFIX F(" **")
 
+#define APP_DOWNLOADER_MENUTITLE "M5Stack Apps Downloader"
+
+#define DOWNLOADER_MODAL_NAME "Update binaries ?"
+#define DOWNLOADER_MODAL_TITLE "This action will:"
+#define DOWNLOADER_MODAL_BODY "  - Connect to WiFi\n\n  - Get app list from remote registry\n\n  - Download/overwrite files\n\n  - Restart this menu\n\n\n\n  THIS OPERATION IS INSECURE!!\n\n  YOU DO THIS AT YOUR OWN RISK!!"
+#define OVERALL_PROGRESS_TITLE "Overall progress: "
+#define WGET_SKIPPING "Skipping "
+#define WGET_UPDATING "Updating "
+#define WGET_CREATING "Creating "
+#define SYNC_FINISHED "Synch finished"
+#define CLEANDIR_REMOVED "Removed %s\n"
+
+#define WIFI_MSG_WAITING "Waiting for WiFi to connect"
+#define WIFI_MSG_CONNECTING "Establishing connection to WiFi.."
+#define WIFI_MSG_TIMEOUT "Timed out, will try again"
+#define WIFI_MSG_CONNECTED "Connected to wifi :-)"
+
 #define DEBUG_DIRNAME F("Listing directory: %s\n")
 #define DEBUG_DIROPEN_FAILED F("Failed to open directory")
 #define DEBUG_NOTADIR F("Not a directory")

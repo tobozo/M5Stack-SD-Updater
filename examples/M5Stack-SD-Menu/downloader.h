@@ -2,6 +2,11 @@
 #include "certificates.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
+//#include <time.h> // https://github.com/PaulStoffregen/Time
+#include <WiFi.h>
+
+long timezone = 0; // UTC
+byte daysavetime = 0; // UTC
 
 HTTPClient http;
 
@@ -17,16 +22,14 @@ uint8_t progress = 0;
 float progress_modulo = 0;
 bool wifisetup = false;
 const String API_URL = "https://phpsecu.re/m5stack/sd-updater/";
-
-void menuUp();
-void menuDown();
+const String API_ENDPOINT = "catalog.json";
 
 void printProgress(uint16_t progress) {
   uint16_t x = tft.getCursorX();
   uint16_t y = tft.getCursorX();
   tft.setCursor(50, 220);
   tft.setTextColor(WHITE, BLACK);
-  tft.print("Overall progress: ");
+  tft.print( OVERALL_PROGRESS_TITLE );
   tft.print(String(progress));
   tft.print("%");
   tft.setCursor(x, y);
@@ -62,7 +65,7 @@ void wget (String bin_url, String appName, const char* &ca) {
   int httpSize = len;
   uint8_t buff[128] = { 0 };
   WiFiClient * stream = http.getStreamPtr();
-  File myFile = SD.open(appName, FILE_WRITE);
+  File myFile = M5_FS.open(appName, FILE_WRITE);
   if(!myFile) {
     Serial.println("Failed to open " + appName + " for writing, aborting");
     http.end();
@@ -94,7 +97,7 @@ void wget (String bin_url, String appName, const char* &ca) {
     bytespermillis = httpSize / dl_duration;
     //float Kbpermillis = bytespermillis/1024; // kb per millis
     //float Kbpersecond = Kbpermillis*1000; // kb per second
-    Serial.printf(" [OK][Downloaded %d KB at %d KB/s]\n", (httpSize/1024), (int)( bytespermillis / 1024 *1000 ) );
+    Serial.printf(" [OK][Downloaded %d KB at %d KB/s]\n", (httpSize/1024), (int)( bytespermillis / 1024.0 * 1000.0 ) );
   } else {
     Serial.println("[OK] Copy done...");
   }
@@ -144,34 +147,52 @@ void getApp(String appURL, const char* &ca) {
     return;
   }
   String base_url = root["base_url"].as<String>();
-  tft.setTextColor(WHITE, BLACK);
+  tft.setTextColor( WHITE, BLACK );
   uint16_t assets_count = root["apps"][0]["json_meta"]["assets_count"].as<uint16_t>();
   for(uint16_t i=0;i<assets_count;i++) {
     tft.setCursor(0,i*20);
-    String filePath = root["apps"][0]["json_meta"]["assets"][i]["path"].as<String>();
-    String fileName = root["apps"][0]["json_meta"]["assets"][i]["name"].as<String>();
-    size_t appSize  = root["apps"][0]["json_meta"]["assets"][i]["size"].as<size_t>();
-    size_t mySize   = 0;
+    String filePath     = root["apps"][0]["json_meta"]["assets"][i]["path"].as<String>();
+    String fileName     = root["apps"][0]["json_meta"]["assets"][i]["name"].as<String>();
+    uint32_t remoteTime = root["apps"][0]["json_meta"]["assets"][i]["created_at"].as<uint32_t>();
+    size_t appSize      = root["apps"][0]["json_meta"]["assets"][i]["size"].as<size_t>();
+    size_t mySize       = 0;
     
-    if(SD.exists(filePath + fileName)) {
-      File myFile = SD.open(filePath + fileName);
+    if(M5_FS.exists(filePath + fileName)) {
+      File myFile = M5_FS.open(filePath + fileName);
       mySize = myFile.size();
+      time_t localTime = myFile.getLastWrite();
       myFile.close();
+
+      if( remoteTime > localTime ) {
+        // remote is fresher than local, update!
+        Serial.printf("[%d > %d] ", remoteTime, localTime);
+        Serial.print( WGET_UPDATING );
+        tft.print( WGET_UPDATING );
+      } else {
+        // local is fresher than remote, skip!
+        Serial.printf("[%d < %d]", remoteTime, localTime);
+        Serial.println(String( WGET_SKIPPING ) + fileName);
+        tft.print( WGET_SKIPPING );
+        tft.println(fileName);
+        continue;
+      }
+      /*
       if(mySize == appSize) {
-        Serial.println("Skipping " + fileName);
-        tft.print("Skipping ");
+        Serial.println(String( WGET_SKIPPING ) + fileName);
+        tft.print( WGET_SKIPPING );
         tft.println(fileName);
         continue;
       } else {
-        Serial.print("Updating ");
-        tft.print("Updating ");
+        Serial.print( WGET_UPDATING );
+        tft.print( WGET_UPDATING );
       }
+      */
     } else {
-      Serial.print("Creating ");
-      tft.print("Creating ");
+      Serial.print( WGET_CREATING );
+      tft.print( WGET_CREATING );
     }
     Serial.printf("%s ( L:%d / R:%d) \n", fileName.c_str(), mySize, appSize);
-    tft.println(fileName);
+    tft.println( fileName );
     wget (base_url + filePath + fileName, filePath + fileName, phpsecure_ca);
     uint16_t myprogress = progress + (i* float(progress_modulo/assets_count));
     printProgress(myprogress);
@@ -184,9 +205,9 @@ void getApp(String appURL, const char* &ca) {
 void syncAppRegistry(String API_URL, const char* ca) {
   http.setReuse(true);
   if ( API_URL.startsWith("https://") ) {
-    http.begin(API_URL + "catalog.json", ca);
+    http.begin(API_URL + API_ENDPOINT, ca);
   } else {
-    http.begin(API_URL + "catalog.json" );
+    http.begin(API_URL + API_ENDPOINT );
   }
   int httpCode = http.GET();
   if(httpCode <= 0) {
@@ -227,9 +248,8 @@ void syncAppRegistry(String API_URL, const char* ca) {
   appsCount = root["apps_count"].as<uint16_t>();
   if( appsCount==0 ) {
     Serial.println("No apps found, aborting");
-    while(1) {
-      ;
-    }
+    delay(10000);
+    return;
   }
   progress_modulo = 100/appsCount;
   String base_url = root["base_url"].as<String>();
@@ -251,7 +271,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
   tft.clear();
   tft.setCursor(0,0);
   tft.setTextColor(WHITE, BLACK);
-  tft.println("Synch finished");
+  tft.println( SYNC_FINISHED );
   delay(1000);
   ESP.restart();
 }
@@ -259,7 +279,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
 
 void drawAppMenu() {
   M5Menu.windowClr();
-  M5Menu.drawAppMenu("M5Stack Apps Downloader", "", "", "");
+  M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "");
 }
 
 
@@ -268,13 +288,13 @@ void cleanDir() {
   tft.setCursor(0,0);
   tft.setTextColor(WHITE, BLACK);
 
-  File root = SD.open("/");
+  File root = M5_FS.open("/");
   if(!root){
-    Serial.println("DEBUG_DIROPEN_FAILED");
+    Serial.println( DEBUG_DIROPEN_FAILED );
     return;
   }
   if(!root.isDirectory()){
-    Serial.println("DEBUG_NOTADIR");
+    Serial.println( DEBUG_NOTADIR );
     return;
   }
 
@@ -287,13 +307,13 @@ void cleanDir() {
       const char* fileName = file.name();
       if(String( fileName )!=MENU_BIN && String( fileName )!=String(DOWNLOADER_BIN) && String( fileName ).endsWith(".bin")) {
         file.close();
-        SD.remove( fileName );
-        Serial.printf( "Removed %s\n", fileName );
+        M5_FS.remove( fileName );
         if( tft.getCursorY() > tft.height() ) {
           tft.clear();
           tft.setCursor(0,0);
         }
-        tft.printf( "Removed %s\n", fileName );
+        Serial.printf( CLEANDIR_REMOVED, fileName );
+        tft.printf( CLEANDIR_REMOVED, fileName );
       }
     }
     file = root.openNextFile();
@@ -310,21 +330,21 @@ void enableWiFi() {
   tft.clear();
   tft.setCursor(0,0);
   tft.setTextColor(WHITE, BLACK);
-  tft.println("Waiting for WiFi to connect");
+  tft.println(WIFI_MSG_WAITING);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
-    Serial.println("Establishing connection to WiFi..");
+    Serial.println(WIFI_MSG_CONNECTING);
     if(startup + 10000 < millis()) {
-      Serial.println("Timed out, will try again");
-      tft.println("Timed out, will try again");
+      Serial.println(WIFI_MSG_TIMEOUT);
+      tft.println(WIFI_MSG_TIMEOUT);
       delay(1000);
       tft.clear();
       drawAppMenu();
       return;
     }
   }
-  tft.println("Connected to wifi :-)");
-  Serial.println("Connected to wifi :-)");
+  tft.println( WIFI_MSG_CONNECTED );
+  Serial.println( WIFI_MSG_CONNECTED );
   wifisetup = true;
   delay(1000);
   tft.clear();
@@ -332,16 +352,27 @@ void enableWiFi() {
 }
 
 
+void enableNTP() {
+  Serial.println("Contacting Time Server");
+  configTime(3600*timezone, daysavetime*3600, "pool.ntp.org", "asia.pool.ntp.org", "europe.pool.ntp.org");
+  struct tm tmstruct ;
+  delay(2000);
+  tmstruct.tm_year = 0;
+  getLocalTime(&tmstruct, 5000);
+  Serial.printf("\nNow is : %d-%02d-%02d %02d:%02d:%02d\n",(tmstruct.tm_year)+1900,( tmstruct.tm_mon)+1, tmstruct.tm_mday,tmstruct.tm_hour , tmstruct.tm_min, tmstruct.tm_sec);
+  Serial.println("");
+}
+
+
+
 void updateAll() {
   while( !wifisetup ) {
     enableWiFi();
   }
   if( wifisetup ) {
+    enableNTP();
     while(!done) {
       syncAppRegistry(API_URL, phpsecure_ca);
     }
-  } else {
-    // TODO: notify user in a more useful fashion that WiFi failed
-    menuDown();
   }
 }

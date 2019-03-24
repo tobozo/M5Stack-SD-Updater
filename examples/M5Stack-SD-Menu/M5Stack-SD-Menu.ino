@@ -31,10 +31,18 @@
  * (sketch / export compiled binary) and saved on the SD Card as 
  * "menu.bin" for persistence, and initially flashed on the M5Stack.
  * 
+ * If the SD is blank, or no "menu.bin" exists, it will attempt to
+ * self-replicate on the filesystem and create the minimal necessary
+ * directory structure. 
+ * 
+ * The very insecure YOLO Downloader is now part of this menu and can
+ * take care of downloading the lastest binaries from the registry.
+ *  
  * As SD Card mounting can be a hassle, using the ESP32 Sketch data 
  * uploader is also possible. Any file sent using this method will
  * automatically be copied onto the SD Card on next restart.
  * This includes .bin, .json, .jpg and .mod files.
+ * To enable this feature, set "migrateSPIFFS" to false
  * 
  * The menu will list all available apps on the sdcard and load them 
  * on demand. 
@@ -42,9 +50,9 @@
  * Once you're finished with the loaded app, push reset+BTN_A and it 
  * loads the menu again. Rinse and repeat.
  *  
- * Obviously none of those apps will embed this menu, instead they
- * must include and implement the M5Stack SD Loader Snippet, a lighter
- * version of the loader dedicated to loading the menu.
+ * Most of those apps will not embed this launcher, instead they should
+ * include and implement the M5Stack SD Loader Snippet, a lighter version 
+ * of the loader dedicated to load and launch the menu.
  * 
  * Usage: Push BTN_A on boot calls the menu (in app) or powers off the 
  * M5Stack (in menu)
@@ -60,6 +68,11 @@
  *   /json
  * jpg and json are optional but must both be set if provided.
  * 
+ * 
+ * Persistence and fast loading:
+ * - To speed up things when reloading the menu, an Update.canRollback() test is done first
+ * - Loader partition information (digest, size) is saved into NVS for additional consistency
+ * - Any binary named "xxxLauncher" (e.g. LovyanLauncher) will become the default launcher if selected and loaded from the menu
  * 
  * 
  */
@@ -78,7 +91,7 @@
 #define M5SAM_LIST_MAX_COUNT 255
 // if "M5SAM_LIST_MAX_COUNT" gives a warning at compilation, apply this PR https://github.com/tomsuch/M5StackSAM/pull/4
 // or modify M5StackSAM.h manually
-#include <M5StackSAM.h>      // https://github.com/tomsuch/M5StackSAM
+#include <M5StackSAM.h>      // https://github.com/tobozo/M5StackSAM/tree/patch-1 (forked from https://github.com/tomsuch/M5StackSAM)
 #include <ArduinoJson.h>     // https://github.com/bblanchon/ArduinoJson/
 #include "i18n.h"            // language file
 #include "assets.h"          // some artwork for the UI
@@ -87,12 +100,13 @@
 // #undef DOWNLOADER_BIN // uncomment this to get rid of the downloader (also delete the Downloader.bin dummy file)
 
 /* 
- * /!\ Files with those extensions will be transferred to the SD Card
- * if found on SPIFFS.
+ *  
+ * /!\ When set to true, files with those extensions 
+ * will be transferred to the SD Card if found on SPIFFS.
  * Directory is automatically created.
- * TODO: make this optional
+ * 
  */
-bool migrateSPIFFS = true;
+bool migrateSPIFFS = false;
 const uint8_t extensionsCount = 4; // change this if you add / remove an extension
 String allowedExtensions[extensionsCount] = {
     // do NOT remove jpg and json or the menu will crash !!!
@@ -333,7 +347,14 @@ void qrRender( String text, float sizeinpixels ) {
 void getFileInfo( fs::FS &fs, File &file ) {
   String fileName   = file.name();
   uint32_t fileSize = file.size();
-  Serial.println( String( DEBUG_FILELABEL ) + fileName );
+  time_t t= file.getLastWrite();
+  struct tm * tmstruct = localtime(&t);
+  char fileDate[64] = "1980-01-01 00:07:20";
+  sprintf(fileDate, "%04d-%02d-%02d %02d:%02d:%02d",(tmstruct->tm_year)+1900,( tmstruct->tm_mon)+1, tmstruct->tm_mday,tmstruct->tm_hour , tmstruct->tm_min, tmstruct->tm_sec);
+  if( (tmstruct->tm_year)+1900 < 2000 ) {
+    // time is not set
+  }
+  Serial.println( "[" + String(fileDate) + "]" + String( DEBUG_FILELABEL ) + fileName );
   
   fileInfo[appsCount].fileName = fileName;
   fileInfo[appsCount].fileSize = fileSize;
@@ -365,6 +386,7 @@ void getFileInfo( fs::FS &fs, File &file ) {
   if( fileInfo[appsCount].hasMeta == true ) {
     getMeta( fs, fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta );
   }
+  
 }
 
 
@@ -373,19 +395,19 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
 
   File root = fs.open( dirName );
   if( !root ){
-    Serial.println( DEBUG_DIROPEN_FAILED );
+    log_e( DEBUG_DIROPEN_FAILED );
     return;
   }
   if( !root.isDirectory() ){
-    Serial.println( DEBUG_NOTADIR );
+    log_e( DEBUG_NOTADIR );
     return;
   }
 
   File file = root.openNextFile();
   while( file ){
     if( file.isDirectory() ){
-      Serial.print( DEBUG_DIRLABEL );
-      Serial.println( file.name() );
+      log_d( DEBUG_DIRLABEL );
+      log_d( file.name() );
       if( levels ){
         listDir( fs, file.name(), levels -1 );
       }
@@ -397,12 +419,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
           //Serial.println( String( DEBUG_IGNORED ) + file.name() );
-          Serial.println( DEBUG_ABORTLISTING );
+          log_w( DEBUG_ABORTLISTING );
           break; // don't make M5Stack list explode
         }
       } else {
         // ignored files
-        Serial.println( String( DEBUG_IGNORED ) + file.name() );
+        log_d( String( DEBUG_IGNORED ) + file.name() );
       }
     }
     file = root.openNextFile();
@@ -412,7 +434,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
     getFileInfo( fs, file );
     appsCount++;
   } else {
-    Serial.printf( "[WARNING] No %s file found\n", MENU_BIN );
+    log_w( "[WARNING] No %s file found\n", MENU_BIN );
   }
 }
 
@@ -463,6 +485,48 @@ void buildM5Menu() {
     M5Menu.addList( shortName );
   }
 }
+
+
+
+bool modalConfirm( String question, String title, String body ) {
+  bool response = false;
+  M5Menu.windowClr();
+  M5Menu.drawAppMenu( question , "YES", "NO", "CANCEL");
+  tft.setTextSize( 1 );
+  tft.setTextColor( WHITE );
+  tft.drawCentreString( title, 160, 50, 1 );
+  tft.setCursor( 0, 72 );
+  tft.print( body );
+  
+  tft.drawJpg(caution_jpg, caution_jpg_len, 224, 136, 64, 46 );
+  HIDSignal hidState = UI_INERT;
+
+  while( hidState==UI_INERT ) {
+    delay( 100 );
+    M5.update();
+    hidState = getControls();
+  }
+
+  switch( hidState ) {
+    //case UI_UP
+    case UI_INFO:
+      response = true;
+    break;
+    case UI_LOAD:
+    case UI_DOWN:
+    default:
+      // already false
+      M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+      M5Menu.showList();
+      renderIcon( MenuID );
+    break;
+
+  }
+  M5.update();
+  return response;
+}
+
+
 
 
 void menuUp() {
@@ -539,7 +603,6 @@ void menuMeta() {
  *  TODO: create an app manager for the SD Card
  */
 void scanDataFolder() {
-  Serial.println( DEBUG_SPIFFS_SCAN );
   /* check if mandatory folders exists and create if necessary */
 
   // data folder
@@ -554,7 +617,13 @@ void scanDataFolder() {
       M5_FS.mkdir( dir );
     }
   }
+
+  if( !migrateSPIFFS ) {
+    return;
+  }
   
+  Serial.println( DEBUG_SPIFFS_SCAN );
+
   if( !SPIFFS.begin() ){
     Serial.println( DEBUG_SPIFFS_MOUNTFAILED );
   } else {
@@ -630,55 +699,63 @@ static esp_image_metadata_t getSketchMeta( const esp_partition_t* running ) {
 }
 
 
-bool replaceMenu( fs::FS &fs, String fileName ) {
-  if( !fs.exists( fileName ) ) {
-    Serial.printf("Source file %s does not exists !\n", fileName.c_str() );
+bool replaceMenu( fs::FS &fs, FileInfo &info) {
+  if(!replaceItem( fs, info.fileName, String(MENU_BIN) ) ) {
     return false;
   }
-  fs.remove( MENU_BIN );
-  fs::File source = fs.open( fileName );
-  if( !source ) {
-    Serial.printf("Failed to open source file %s\n", fileName.c_str() );
-    return false;
+  if( info.hasIcon ) {
+    replaceItem( fs, info.iconName, "/jpg/menu.jpg" );
   }
-  fs::File dest = fs.open( MENU_BIN, FILE_WRITE );
-  if( !dest ) {
-    Serial.printf("Failed to open dest file %s\n", MENU_BIN );
-    return false;
+  if( info.hasFace ) {
+    replaceItem( fs, info.faceName, "/jpg/menu_gh.jpg" );
   }
+  if( info.hasMeta ) {
+    replaceItem( fs, info.metaName, "/json/menu.json" );
+  }
+  return true;
+}
 
-  size_t n; 
+
+bool replaceItem( fs::FS &fs, String SourceName, String  DestName) {
+  if( !fs.exists( SourceName ) ) {
+    Serial.printf("Source file %s does not exists !\n", SourceName.c_str() );
+    return false;
+  }
+  fs.remove( DestName );
+  fs::File source = fs.open( SourceName );
+  if( !source ) {
+    Serial.printf("Failed to open source file %s\n", SourceName.c_str() );
+    return false;
+  }
+  fs::File dest = fs.open( DestName, FILE_WRITE );
+  if( !dest ) {
+    Serial.printf("Failed to open dest file %s\n", DestName );
+    return false;
+  }
   uint8_t buf[4096]; // 4K buffer should be enough to fast-copy the file
   uint8_t dot = 0;
-
   size_t fileSize = source.size();
-
-  if( fileSize < 4096 ) {
-    Serial.printf("Source file %s is too small (%d bytes)\n", fileName.c_str(), fileSize );
-    return false;
-  }
-  
+  size_t n;
   while ((n = source.read(buf, sizeof(buf))) > 0) {
     Serial.print(".");
     if(dot++%64==0) {
       Serial.println();
-
-      
       sdUpdater.SDMenuProgress( (dot*4096)-4095, fileSize );
     }
     dest.write(buf, n);
   }
   dest.close();
   source.close();
-  
+  return true;
 }
+
 
 
 void dumpSketchToFS( fs::FS &fs, const char* fileName ) {
   const esp_partition_t* source_partition = esp_ota_get_running_partition();
   const char* label = "Current running partition";
-
   size_t fileSize;
+
   {
     File destFile = fs.open( fileName, FILE_WRITE );
     if( !destFile ) {
@@ -749,15 +826,6 @@ void setup() {
   Serial.print( INIT_MESSAGE );
   M5.begin();
   //tft.begin();
-
-  //Wire.begin(); // looks like this isn't needed anymore
-  // Thanks to Macbug for the hint, my old ears couldn't hear the buzzing :-) 
-  // See Macbug's excellent article on this tool:
-  // https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/
-  dacWrite( 25, 0 ); // turn speaker signal off
-  // Also thanks to @Kongduino for a complementary way to turn off the speaker:
-  // https://twitter.com/Kongduino/status/980466157701423104
-  ledcDetachPin( 25 ); // detach DAC
   
   if( digitalRead( BUTTON_A_PIN ) == 0 ) {
     Serial.println( GOTOSLEEP_MESSAGE );
@@ -775,7 +843,6 @@ void setup() {
   if( posx <0 ) posx = 0;
   tft.setCursor( posx, 136 );
   tft.print( SD_LOADING_MESSAGE );
-
 
   tft.setTextSize( 2 );
   while( !M5_FS.begin( TFCARD_CS_PIN ) ) {
@@ -807,10 +874,8 @@ void setup() {
 
   sdUpdater.SDMenuProgress( 10, 100 );
 
-  if( migrateSPIFFS ) { // TODO: control this from the UI
-    // scan for SPIFFS files waiting to be moved onto the SD Card
-    scanDataFolder();
-  }
+  // do SD / SPIFFS health checks
+  scanDataFolder();
 
   if( !M5_FS.exists( MENU_BIN ) ) {
     Serial.printf("File %s does not exist, copying current sketch\n", MENU_BIN);
@@ -842,7 +907,7 @@ void setup() {
 
   // TODO: animate loading screen
   tft.clear();
-  /* fake loading progress, looks kool ;-) */
+
   for( uint8_t i=50; i<=80; i++ ) {
     sdUpdater.SDMenuProgress( i, 100 );
   }
@@ -893,18 +958,22 @@ void loop() {
     case UI_LOAD:
       #ifdef DOWNLOADER_BIN
       if( fileInfo[MenuID].fileName == String( DOWNLOADER_BIN ) ) {
-        updateAll();
-        ESP.restart();
+        if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) ) {
+          updateAll();
+          ESP.restart();
+        } else {
+          // action cancelled or refused by user
+          return;
+        }
       }
       #endif
-
     
-      if( fileInfo[ M5Menu.getListID() ].fileName.endsWith( launcherSignature ) ) {
-        Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, fileInfo[ M5Menu.getListID() ].fileName.c_str() );
-        if( replaceMenu( M5_FS, fileInfo[ M5Menu.getListID() ].fileName ) ) {
-          //fileInfo[ M5Menu.getListID() ].fileName = MENU_BIN;
+      if( fileInfo[MenuID].fileName.endsWith( launcherSignature ) ) {
+        Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, fileInfo[MenuID].fileName.c_str() );
+        if( replaceMenu( M5_FS, fileInfo[MenuID] ) ) {
         } else {
           Serial.println("Failed to overwrite ?????");
+          return;
         }
       }
       sdUpdater.updateFromFS( M5_FS, fileInfo[ M5Menu.getListID() ].fileName );
