@@ -4,7 +4,7 @@ env:
     - IDE_VERSION=nightly
     - REPO_NAME=M5Stack-SD-Updater
     - SDAPP_FOLDER=$PWD/examples/M5Stack-SD-Menu/SD-Apps
-    - TRAVIS_TAG="v0.4.0"
+    - TRAVIS_TAG="v0.4.1"
     - M5_SD_BUILD_DIR=$TRAVIS_BUILD_DIR/build/SD-Content
   matrix:
     - EXAMPLE="M5Stack-SD-Menu" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
