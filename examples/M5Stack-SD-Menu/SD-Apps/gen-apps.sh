@@ -60,12 +60,13 @@ function populatemeta {
   cat $JSONFILE
   # no gist in URL is valid to retrieve the profile pic
   AVATAR_URL=`sed 's/gist.//g' <<< $AVATAR_URL`
-  echo "**** Will download avatar from $AVATAR_URL and save it as $AVATARFILE"
-  wget $AVATAR_URL --output-document=temp
-  convert temp -resize 120x120 $AVATARFILE
-  identify $AVATARFILE
-  rm temp
-
+  if [ ! -f $AVATARFILE ]; then
+    echo "**** Will download avatar from $AVATAR_URL and save it as $AVATARFILE"
+    wget $AVATAR_URL --output-document=temp
+    convert temp -resize 120x120 $AVATARFILE
+    identify $AVATARFILE
+    rm temp
+  fi
   echo "***** Populating successful"
 }
 
