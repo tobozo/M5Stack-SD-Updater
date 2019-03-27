@@ -1,7 +1,7 @@
 language: generic
 env:
   global:
-    - IDE_VERSION=nightly
+    - IDE_VERSION=1.8.9
     - REPO_NAME=M5Stack-SD-Updater
     - SDAPP_FOLDER=$PWD/examples/M5Stack-SD-Menu/SD-Apps
     - TRAVIS_TAG="v0.4.1"
@@ -39,6 +39,8 @@ install:
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
 
+  - echo "Installing extra libraries"
+
   - wget https://github.com/adafruit/Adafruit_NeoPixel/archive/master.zip --output-document=Adafruit_NeoPixel.zip
   - unzip -d ~/Arduino/libraries Adafruit_NeoPixel.zip
   - wget https://github.com/adafruit/Adafruit_AMG88xx/archive/1.0.2.zip --output-document=Adafruit_AMG88xx.zip
@@ -70,11 +72,32 @@ install:
   - unzip -d ~/Arduino/libraries M5Stack_OnScreenKeyboard.zip
 
 
-  - curl -v --retry 5 "https://api.github.com/repos/lovyan03/M5Stack_LovyanLauncher/releases/latest?access_token=$GH_TOKEN" | jq -r "".assets[0].browser_download_url"" | wget --output-document=M5Burner.zip -i -
-  - unzip -d /tmp M5Burner.zip
-  - cp /tmp/M5Burner/firmwares/LovyanLauncher/LovyanLauncher.bin $M5_SD_BUILD_DIR/
-  - rm -Rf /tmp/M5Burner
-  
+  #- curl -v --retry 5 "https://api.github.com/repos/lovyan03/M5Stack_LovyanLauncher/releases/latest?access_token=$GH_TOKEN" | jq -r "".assets[0].browser_download_url"" | wget --output-document=M5Burner.zip -i -
+  #- unzip -d /tmp M5Burner.zip
+  #- cp /tmp/M5Burner/firmwares/LovyanLauncher/LovyanLauncher.bin $M5_SD_BUILD_DIR/
+  #- rm -Rf /tmp/M5Burner
+
+  - echo "Fetching precompiled projects"
+
+  - wget https://github.com/lovyan03/M5Stack_LovyanLauncher/archive/master.zip --output-document=M5Stack_LovyanLauncher.zip
+  - unzip -d /tmp M5Stack_LovyanLauncher.zip
+  - cp -Ruf /tmp/M5Stack_LovyanLauncher-master/LovyanLauncher/build/* $M5_SD_BUILD_DIR/
+  - rm -Rf /tmp/M5Stack_LovyanLauncher-master
+
+  - wget https://github.com/robo8080/SD_Updater_TestData/archive/master.zip --output-document=SD-Apps.zip
+  - unzip -d /tmp SD-Apps.zip
+  - cp -uf /tmp/SD_Updater_TestData-master/*.bin $M5_SD_BUILD_DIR/
+  - cp -Ruf /tmp/SD_Updater_TestData-master/jpg $M5_SD_BUILD_DIR/
+  - cp -Ruf /tmp/SD_Updater_TestData-master/json $M5_SD_BUILD_DIR/
+  - rm -Rf /tmp/SD_Updater_TestData-master
+
+  - wget https://github.com/mongonta0716/M5Stack-Avatar-fugu1/archive/master.zip --output-document=M5Stack-Avatar-fugu1.zip
+  - unzip -d /tmp M5Stack-Avatar-fugu1.zip
+  - cp -Ruf /tmp/M5Stack-Avatar-fugu1-master/Avatar_fugu/jpg $M5_SD_BUILD_DIR/
+  - cp -Ruf /tmp/M5Stack-Avatar-fugu1-master/Avatar_fugu/json $M5_SD_BUILD_DIR/
+  - cp -Ruf /tmp/M5Stack-Avatar-fugu1-master/Avatar_fugu/*.bin $M5_SD_BUILD_DIR/
+  - rm -Rf /tmp/M5Stack-Avatar-fugu1-master
+
   - ls ~/Arduino/libraries -la
   - rm *.zip
 
