@@ -77,7 +77,7 @@ install:
 
   - wget https://github.com/lovyan03/M5Stack_LovyanLauncher/archive/master.zip --output-document=M5Stack_LovyanLauncher.zip
   - unzip -d /tmp M5Stack_LovyanLauncher.zip
-  - cp -Ruf /tmp/M5Stack_LovyanLauncher-master/* $M5_SD_BUILD_DIR/
+  - cp -Ruf /tmp/M5Stack_LovyanLauncher-master/LovyanLauncher/build/* $M5_SD_BUILD_DIR/
   - rm -Rf /tmp/M5Stack_LovyanLauncher-master
 
   - wget https://github.com/robo8080/SD_Updater_TestData/archive/master.zip --output-document=SD-Apps.zip
