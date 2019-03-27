@@ -83,8 +83,10 @@ install:
 
   - wget https://github.com/robo8080/SD_Updater_TestData/archive/master.zip --output-document=SD-Apps.zip
   - unzip -o -d $M5_SD_BUILD_DIR/ SD-Apps.zip
-  - rm $M5_SD_BUILD_DIR/README.md
-  - rm -Rf $M5_SD_BUILD_DIR/doc
+  - cp $M5_SD_BUILD_DIR/SD_Updater_TestData-master/*.bin $M5_SD_BUILD_DIR/
+  - cp -R $M5_SD_BUILD_DIR/SD_Updater_TestData-master/jpg $M5_SD_BUILD_DIR/
+  - cp -R $M5_SD_BUILD_DIR/SD_Updater_TestData-master/json $M5_SD_BUILD_DIR/
+  - rm -Rf $M5_SD_BUILD_DIR/SD_Updater_TestData-master
 
   - ls ~/Arduino/libraries -la
   - rm *.zip
