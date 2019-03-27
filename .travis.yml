@@ -81,7 +81,7 @@ install:
   - rm -Rf /tmp/M5Stack_LovyanLauncher-master
 
   - wget https://github.com/robo8080/SD_Updater_TestData/archive/master.zip --output-document=SD-Apps.zip
-  - unzip -o /tmp SD-Apps.zip
+  - unzip -d /tmp SD-Apps.zip
   - cp -uf /tmp/SD_Updater_TestData-master/*.bin $M5_SD_BUILD_DIR/
   - cp -Ruf /tmp/SD_Updater_TestData-master/jpg $M5_SD_BUILD_DIR/
   - cp -Ruf /tmp/SD_Updater_TestData-master/json $M5_SD_BUILD_DIR/
