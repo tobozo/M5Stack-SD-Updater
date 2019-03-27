@@ -74,7 +74,7 @@ For your own lazyness, you can use @micutil's awesome [M5Burner](https://github.
 
 <br />
 
-**2) Download the [SD-Content :floppy_disk:](https://github.com/tobozo/M5Stack-SD-Updater/releases/download/v0.4.0/SD-Apps-Folder.zip) folder from the release page and unzip it into the root of the SD Card.** Then put the SD Card into the M5Stack. This zip file comes preloaded with [precompiled apps](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/SD-Apps) and the relative meta information for the menu.
+**2) Download the [SD-Content :floppy_disk:](https://github.com/tobozo/M5Stack-SD-Updater/releases/download/v0.4.1/SD-Apps-Folder.zip) folder from the release page and unzip it into the root of the SD Card.** Then put the SD Card into the M5Stack. This zip file comes preloaded with [precompiled apps](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/SD-Apps) and the relative meta information for the menu.
 
 <br />
 
