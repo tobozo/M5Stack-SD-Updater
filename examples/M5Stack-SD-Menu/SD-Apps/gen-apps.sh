@@ -105,6 +105,14 @@ for D in *; do
     else
 
       case "$D" in
+      
+       'M5Stack-SetWiFi_Mic')
+         echo "Duplicating Meta";
+         cp -Ruf microSD/jpg $M5_SD_BUILD_DIR/
+         cp -Ruf microSD/json $M5_SD_BUILD_DIR/
+       ;;
+      
+      
        'd_invader')
          echo "Should replace esp_deep_sleep => esp_sleep"
          # esp_deep_sleep => esp_sleep
