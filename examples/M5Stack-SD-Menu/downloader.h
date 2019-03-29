@@ -4,6 +4,7 @@
 #include <HTTPClient.h>
 //#include <time.h> // https://github.com/PaulStoffregen/Time
 #include <WiFi.h>
+#include "mbedtls/md.h"
 
 long timezone = 0; // UTC
 byte daysavetime = 0; // UTC
@@ -23,6 +24,10 @@ float progress_modulo = 0;
 bool wifisetup = false;
 const String API_URL = "https://phpsecu.re/m5stack/sd-updater/";
 const String API_ENDPOINT = "catalog.json";
+mbedtls_md_context_t ctx;
+mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
+byte shaResult[32];
+static String shaResultStr = "f7ff9bcd52fee13ae7ebd6b4e3650a4d9d16f8f23cab370d5cdea291e5b6bba6";
 
 void printProgress(uint16_t progress) {
   uint16_t x = tft.getCursorX();
@@ -36,9 +41,59 @@ void printProgress(uint16_t progress) {
 }
 
 
-void wget (String bin_url, String appName, const char* &ca) {
+void sha_sum_to_str() {
+  shaResultStr = "";
+  for(int i= 0; i< sizeof(shaResult); i++) {
+    char str[3];
+    sprintf(str, "%02x", (int)shaResult[i]);
+    shaResultStr += String( str );
+  }
+}
+
+
+void sha256_sum(fs::FS &fs, const char* fileName) {
+  log_d("SHA256: checking file %s\n", fileName);
+  if(! fs.exists( fileName ) ) {
+    log_e("File %s does not exist, aborting\n", fileName);
+    return;
+  }
+  File checkFile = fs.open( fileName );
+  size_t fileSize = checkFile.size();
+  size_t len = fileSize;
+
+  if( !checkFile || fileSize==0 ) {
+    log_e("Can't open %s file for reading, aborting\n", fileName);
+    return;
+  }
+
+  tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 115, 22, 32 );
+  
+  uint8_t buff[4096] = { 0 };
+  mbedtls_md_init(&ctx);
+  mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
+  mbedtls_md_starts(&ctx);
+  size_t n;
+  while ((n = checkFile.read(buff, sizeof(buff))) > 0) {
+    mbedtls_md_update(&ctx, (const unsigned char *) buff, n);
+    sdUpdater.M5SDMenuProgress(fileSize-len, fileSize);
+    len -= n;
+  }
+
+  tft.fillRect( 10, 115, 22, 32, TFT_BLACK );
+
+  checkFile.close();
+
+  mbedtls_md_finish(&ctx, shaResult);
+  mbedtls_md_free(&ctx);
+
+  sha_sum_to_str();
+}
+
+
+
+void wget(String bin_url, String appName, const char* &ca) {
   //tft.setCursor(0,0);
-  Serial.println("Will download " + bin_url + " and save to SD as " + appName);
+  log_d("Will download %s and save to SD as %s", bin_url.c_str(), appName.c_str());
   if( bin_url.startsWith("https://") ) {
     http.begin(bin_url, ca);
   } else {
@@ -46,33 +101,43 @@ void wget (String bin_url, String appName, const char* &ca) {
   }
   int httpCode = http.GET();
   if(httpCode <= 0) {
-    Serial.println("[HTTP] GET... failed");
+    log_e("%s", "[HTTP] GET... failed");
     http.end();
     return;
   }
   if(httpCode != HTTP_CODE_OK) {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
+    log_e("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
     http.end();
     return;
   }
 
   int len = http.getSize();
   if(len<=0) {
-    Serial.println("Failed to read " + bin_url + " content is empty, aborting");
+    log_e("Failed to read %s, content is empty, aborting\n", bin_url.c_str());
     http.end();
     return;
   }
   int httpSize = len;
-  uint8_t buff[128] = { 0 };
+  uint8_t buff[4096] = { 0 };
   WiFiClient * stream = http.getStreamPtr();
   File myFile = M5_FS.open(appName, FILE_WRITE);
   if(!myFile) {
-    Serial.println("Failed to open " + appName + " for writing, aborting");
+    log_e("Failed to open %s for writing, aborting\n", appName.c_str());
     http.end();
     myFile.close();
     return;
   }
   unsigned long downwloadstart = millis();
+
+  *shaResult = {0};
+   
+  mbedtls_md_init(&ctx);
+  mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
+  mbedtls_md_starts(&ctx);
+
+  tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 115, 22, 32 );
+  tft.drawJpg( download_jpg, download_jpg_len, 44, 115, 26, 32 );
+  
   while(http.connected() && (len > 0 || len == -1)) {
     sdUpdater.M5SDMenuProgress(httpSize-len, httpSize);
     // get available data size
@@ -80,6 +145,8 @@ void wget (String bin_url, String appName, const char* &ca) {
     if(size) {
       // read up to 128 byte
       int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+      // hashsum
+      mbedtls_md_update(&ctx, (const unsigned char *) buff, c);
       // write it to SD
       myFile.write(buff, c);
       if(len > 0) {
@@ -89,6 +156,14 @@ void wget (String bin_url, String appName, const char* &ca) {
     delay(1);
   }
   myFile.close();
+
+  mbedtls_md_finish(&ctx, shaResult);
+  mbedtls_md_free(&ctx);
+
+  tft.fillRect( 115, 10, 70, 32, TFT_BLACK );
+
+  sha_sum_to_str();
+  
   unsigned long dl_duration;
   float bytespermillis;
   dl_duration = ( millis() - downwloadstart );
@@ -97,9 +172,9 @@ void wget (String bin_url, String appName, const char* &ca) {
     bytespermillis = httpSize / dl_duration;
     //float Kbpermillis = bytespermillis/1024; // kb per millis
     //float Kbpersecond = Kbpermillis*1000; // kb per second
-    Serial.printf(" [OK][Downloaded %d KB at %d KB/s]\n", (httpSize/1024), (int)( bytespermillis / 1024.0 * 1000.0 ) );
+    log_d(" [OK][Downloaded %d KB at %d KB/s]\n", (httpSize/1024), (int)( bytespermillis / 1024.0 * 1000.0 ) );
   } else {
-    Serial.println("[OK] Copy done...");
+    log_d("[OK] Copy done...");
   }
   http.end();
 }
@@ -113,12 +188,12 @@ void getApp(String appURL, const char* &ca) {
   }
   int httpCode = http.GET();
   if(httpCode <= 0) {
-    Serial.println("[HTTP] GET... failed");
+    log_e("%s", "[HTTP] GET... failed");
     http.end();
     return;
   }
   if(httpCode != HTTP_CODE_OK) {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
+    log_e("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
     http.end();
   }
   String payload = http.getString();
@@ -127,7 +202,7 @@ void getApp(String appURL, const char* &ca) {
     DynamicJsonDocument jsonBuffer(4096);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
-      Serial.println(F("JSON Parsing failed!"));
+      log_e("%s", "JSON Parsing failed!");
       delay(10000);
       return;
     }
@@ -136,64 +211,75 @@ void getApp(String appURL, const char* &ca) {
     DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(payload);
     if (!root.success()) {
-      Serial.println(F("JSON Parsing failed!"));
+      log_e("%s", "JSON Parsing failed!");
       delay(10000);
       return;
     }
   #endif
   uint16_t appsCount = root["apps_count"].as<uint16_t>();
   if(appsCount!=1) {
-    Serial.println("appsCount misenumeration");
+    log_e("%s", "appsCount misenumeration");
     return;
   }
   String base_url = root["base_url"].as<String>();
   tft.setTextColor( WHITE, BLACK );
+  String sha_sum;
+  String filePath;
+  String fileName;
+  String finalName;
+  String tempFileName;
+  sha_sum.reserve(65);
+  filePath.reserve(32);
+  fileName.reserve(32);
+  finalName.reserve(32);
+  tempFileName.reserve(32);
+
   uint16_t assets_count = root["apps"][0]["json_meta"]["assets_count"].as<uint16_t>();
   for(uint16_t i=0;i<assets_count;i++) {
     tft.setCursor(0,i*20);
-    String filePath     = root["apps"][0]["json_meta"]["assets"][i]["path"].as<String>();
-    String fileName     = root["apps"][0]["json_meta"]["assets"][i]["name"].as<String>();
+    filePath            = root["apps"][0]["json_meta"]["assets"][i]["path"].as<String>();
+    fileName            = root["apps"][0]["json_meta"]["assets"][i]["name"].as<String>();
     uint32_t remoteTime = root["apps"][0]["json_meta"]["assets"][i]["created_at"].as<uint32_t>();
+    sha_sum             = root["apps"][0]["json_meta"]["assets"][i]["sha256_sum"].as<String>();
     size_t appSize      = root["apps"][0]["json_meta"]["assets"][i]["size"].as<size_t>();
     size_t mySize       = 0;
-    
-    if(M5_FS.exists(filePath + fileName)) {
-      File myFile = M5_FS.open(filePath + fileName);
-      mySize = myFile.size();
-      time_t localTime = myFile.getLastWrite();
-      myFile.close();
+    finalName = filePath + fileName;
+    tempFileName = finalName + String(".tmp");
 
-      if( remoteTime > localTime ) {
-        // remote is fresher than local, update!
-        Serial.printf("[%d > %d] ", remoteTime, localTime);
-        Serial.print( WGET_UPDATING );
-        tft.print( WGET_UPDATING );
-      } else {
-        // local is fresher than remote, skip!
-        Serial.printf("[%d < %d]", remoteTime, localTime);
-        Serial.println(String( WGET_SKIPPING ) + fileName);
-        tft.print( WGET_SKIPPING );
-        tft.println(fileName);
+    if( sha_sum != "" ) {
+      log_d("Got sha sum %s for file %s\n", sha_sum.c_str(), finalName.c_str() );
+    }
+
+    tft.print( fileName );
+    
+    if(M5_FS.exists( finalName )) {
+      sha256_sum( M5_FS, finalName.c_str() );
+      if( shaResultStr.equals( sha_sum ) ) {
+        log_d("[checksums match]");
+        Serial.print( WGET_SKIPPING );
+        tft.println( WGET_SKIPPING );
         continue;
       }
-      /*
-      if(mySize == appSize) {
-        Serial.println(String( WGET_SKIPPING ) + fileName);
-        tft.print( WGET_SKIPPING );
-        tft.println(fileName);
-        continue;
-      } else {
-        Serial.print( WGET_UPDATING );
-        tft.print( WGET_UPDATING );
-      }
-      */
+      log_d("[checksums differ]");
+      Serial.print( WGET_UPDATING );
+      tft.println( WGET_UPDATING );
     } else {
       Serial.print( WGET_CREATING );
-      tft.print( WGET_CREATING );
+      tft.println( WGET_CREATING );
     }
-    Serial.printf("%s ( L:%d / R:%d) \n", fileName.c_str(), mySize, appSize);
-    tft.println( fileName );
-    wget (base_url + filePath + fileName, filePath + fileName, phpsecure_ca);
+
+    wget(base_url + filePath + fileName, tempFileName, phpsecure_ca);
+    
+    if( M5_FS.exists( tempFileName ) && shaResultStr.equals( sha_sum ) ) {
+      if( M5_FS.exists( finalName ) ) {
+        M5_FS.remove( finalName );
+      }
+      M5_FS.rename( tempFileName, finalName );
+    } else {
+      log_e("SHA256 Failed (json has given: %s, local has given: %s), removing downloaded file\n", String(sha_sum).c_str(), shaResultStr.c_str() );
+      M5_FS.remove( tempFileName );
+    }
+    
     uint16_t myprogress = progress + (i* float(progress_modulo/assets_count));
     printProgress(myprogress);
   }
@@ -212,13 +298,13 @@ void syncAppRegistry(String API_URL, const char* ca) {
   int httpCode = http.GET();
   if(httpCode <= 0) {
     http.end();
-    Serial.printf("[HTTP] GET... failed");
+    log_e("%s", "[HTTP] GET... failed");
     delay(10000);
     return;
   }
-  Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+  log_e("[HTTP] GET... code: %d\n", httpCode);
   if(httpCode != HTTP_CODE_OK) {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
+    log_e("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
     http.end();
     delay(10000);
     return;
@@ -230,7 +316,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
     DynamicJsonDocument jsonBuffer(4096);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
-      Serial.println(F("JSON Parsing failed!"));
+      log_e("%s", "JSON Parsing failed!");
       delay(10000);
       return;
     }
@@ -239,7 +325,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
     DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(payload);
     if (!root.success()) {
-      Serial.println(F("JSON Parsing failed!"));
+      log_e("%s", "JSON Parsing failed!");
       delay(10000);
       return;
     }
@@ -247,13 +333,13 @@ void syncAppRegistry(String API_URL, const char* ca) {
   //Serial.println("Parsed JSON");
   appsCount = root["apps_count"].as<uint16_t>();
   if( appsCount==0 ) {
-    Serial.println("No apps found, aborting");
+    log_e("%s", "No apps found, aborting");
     delay(10000);
     return;
   }
   progress_modulo = 100/appsCount;
   String base_url = root["base_url"].as<String>();
-  Serial.println("Found " + String(appsCount) + " apps at " + base_url);
+  log_d("Found %s apps at %s\n", String(appsCount).c_str(), base_url.c_str() );
   for(uint16_t i=0;i<appsCount;i++) {
     String appName = root["apps"][i]["name"].as<String>();
     String appURL  = API_URL + appName + ".json";
@@ -262,8 +348,9 @@ void syncAppRegistry(String API_URL, const char* ca) {
     tft.clear();
     
     printProgress(progress);
+    Serial.println();
     Serial.print(appName);
-    Serial.print(" ");
+    Serial.print(": ");
     getApp( appURL, phpsecure_ca );
     
   }
@@ -290,11 +377,11 @@ void cleanDir() {
 
   File root = M5_FS.open("/");
   if(!root){
-    Serial.println( DEBUG_DIROPEN_FAILED );
+    log_e("%s",  DEBUG_DIROPEN_FAILED );
     return;
   }
   if(!root.isDirectory()){
-    Serial.println( DEBUG_NOTADIR );
+    log_e("%s",  DEBUG_NOTADIR );
     return;
   }
 
