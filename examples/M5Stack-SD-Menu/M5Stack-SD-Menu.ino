@@ -88,9 +88,6 @@
 #define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
 #define M5_FS SD
 //#define M5_FS SD_MMC
-#define M5SAM_LIST_MAX_COUNT 255
-// if "M5SAM_LIST_MAX_COUNT" gives a warning at compilation, apply this PR https://github.com/tomsuch/M5StackSAM/pull/4
-// or modify M5StackSAM.h manually
 #include <M5StackSAM.h>      // https://github.com/tobozo/M5StackSAM/tree/patch-1 (forked from https://github.com/tomsuch/M5StackSAM)
 #include <ArduinoJson.h>     // https://github.com/bblanchon/ArduinoJson/
 #include "i18n.h"            // language file
@@ -395,19 +392,18 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
 
   File root = fs.open( dirName );
   if( !root ){
-    log_e( DEBUG_DIROPEN_FAILED );
+    log_e( "%s", DEBUG_DIROPEN_FAILED );
     return;
   }
   if( !root.isDirectory() ){
-    log_e( DEBUG_NOTADIR );
+    log_e( "%s", DEBUG_NOTADIR );
     return;
   }
 
   File file = root.openNextFile();
   while( file ){
     if( file.isDirectory() ){
-      log_d( DEBUG_DIRLABEL );
-      log_d( file.name() );
+      log_d( "%s %s", DEBUG_DIRLABEL, file.name() );
       if( levels ){
         listDir( fs, file.name(), levels -1 );
       }
@@ -419,12 +415,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
           //Serial.println( String( DEBUG_IGNORED ) + file.name() );
-          log_w( DEBUG_ABORTLISTING );
+          log_w( "%s", DEBUG_ABORTLISTING );
           break; // don't make M5Stack list explode
         }
       } else {
         // ignored files
-        log_d( String( DEBUG_IGNORED ) + file.name() );
+        log_d( "%s %s", DEBUG_IGNORED, file.name() );
       }
     }
     file = root.openNextFile();
