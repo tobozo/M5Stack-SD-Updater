@@ -136,7 +136,7 @@ void wget(String bin_url, String appName, const char* &ca) {
   mbedtls_md_starts(&ctx);
 
   tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 115, 22, 32 );
-  tft.drawJpg( download_jpg, download_jpg_len, 44, 115, 22, 32 );
+  tft.drawJpg( download_jpg, download_jpg_len, 44, 115, 26, 32 );
   
   while(http.connected() && (len > 0 || len == -1)) {
     sdUpdater.M5SDMenuProgress(httpSize-len, httpSize);
