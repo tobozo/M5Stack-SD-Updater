@@ -93,7 +93,7 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
 
 void wget(String bin_url, String appName, const char* &ca) {
   //tft.setCursor(0,0);
-  log_d("Will download %s and save to SD as %s", bin_url.c_str(), appName.c_str());
+  Serial.printf("Will download %s and save to SD as %s\n", bin_url.c_str(), appName.c_str());
   if( bin_url.startsWith("https://") ) {
     http.begin(bin_url, ca);
   } else {
@@ -101,28 +101,31 @@ void wget(String bin_url, String appName, const char* &ca) {
   }
   int httpCode = http.GET();
   if(httpCode <= 0) {
-    log_e("%s", "[HTTP] GET... failed");
+    Serial.printf("%s", "[HTTP] GET... failed");
     http.end();
     return;
   }
   if(httpCode != HTTP_CODE_OK) {
-    log_e("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
+    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
     http.end();
     return;
   }
 
   int len = http.getSize();
   if(len<=0) {
-    log_e("Failed to read %s, content is empty, aborting\n", bin_url.c_str());
+    Serial.printf("Failed to read %s, content is empty, aborting\n", bin_url.c_str());
     http.end();
     return;
   }
   int httpSize = len;
-  uint8_t buff[4096] = { 0 };
+  uint8_t buff[2048] = { 0 };
   WiFiClient * stream = http.getStreamPtr();
+  if( M5_FS.exists(appName) ) {
+    M5_FS.remove(appName);
+  }
   File myFile = M5_FS.open(appName, FILE_WRITE);
   if(!myFile) {
-    log_e("Failed to open %s for writing, aborting\n", appName.c_str());
+    Serial.printf("Failed to open %s for writing, aborting\n", appName.c_str());
     http.end();
     myFile.close();
     return;
@@ -172,9 +175,9 @@ void wget(String bin_url, String appName, const char* &ca) {
     bytespermillis = httpSize / dl_duration;
     //float Kbpermillis = bytespermillis/1024; // kb per millis
     //float Kbpersecond = Kbpermillis*1000; // kb per second
-    log_d(" [OK][Downloaded %d KB at %d KB/s]\n", (httpSize/1024), (int)( bytespermillis / 1024.0 * 1000.0 ) );
+    Serial.printf(" [OK][Downloaded %d KB at %d KB/s]\n", (httpSize/1024), (int)( bytespermillis / 1024.0 * 1000.0 ) );
   } else {
-    log_d("[OK] Copy done...");
+    Serial.printf("[OK] Copy done...");
   }
   http.end();
 }
@@ -199,7 +202,7 @@ void getApp(String appURL, const char* &ca) {
   String payload = http.getString();
   http.end();
   #if ARDUINOJSON_VERSION_MAJOR==6
-    DynamicJsonDocument jsonBuffer(4096);
+    DynamicJsonDocument jsonBuffer(2048);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
       log_e("%s", "JSON Parsing failed!");
@@ -251,6 +254,7 @@ void getApp(String appURL, const char* &ca) {
     }
 
     tft.print( fileName );
+    Serial.print( fileName );
     
     if(M5_FS.exists( finalName )) {
       sha256_sum( M5_FS, finalName.c_str() );
@@ -289,7 +293,7 @@ void getApp(String appURL, const char* &ca) {
 
 
 void syncAppRegistry(String API_URL, const char* ca) {
-  http.setReuse(true);
+  //http.setReuse(true);
   if ( API_URL.startsWith("https://") ) {
     http.begin(API_URL + API_ENDPOINT, ca);
   } else {
