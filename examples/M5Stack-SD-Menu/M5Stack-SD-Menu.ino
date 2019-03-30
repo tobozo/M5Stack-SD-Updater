@@ -356,6 +356,12 @@ void getFileInfo( fs::FS &fs, File &file ) {
   fileInfo[appsCount].fileName = fileName;
   fileInfo[appsCount].fileSize = fileSize;
 
+  #ifdef DOWNLOADER_BIN
+  if( fileName.startsWith("/--") ) {
+    fileName.replace("--", "");
+  }
+  #endif
+
   String currentIconFile = "/jpg" + fileName;
   currentIconFile.replace( ".bin", ".jpg" );
   if( fs.exists( currentIconFile.c_str() ) ) {
@@ -841,7 +847,7 @@ void setup() {
 
   #ifdef DOWNLOADER_BIN
   if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
-    // create a dummy file just to enable the feature
+    // create a dummy file to enable the feature
     fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
     dummyDownloader.print("blah");
     dummyDownloader.close();
