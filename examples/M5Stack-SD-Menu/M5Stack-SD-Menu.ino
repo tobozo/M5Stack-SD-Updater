@@ -847,10 +847,20 @@ void setup() {
 
   #ifdef DOWNLOADER_BIN
   if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
-    // create a dummy file to enable the feature
-    fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
-    dummyDownloader.print("blah");
-    dummyDownloader.close();
+    if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) {
+      // rename for hoisting in the list
+      M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
+    } else {
+      // create a dummy file to enable the feature
+      fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
+      dummyDownloader.print("blah");
+      dummyDownloader.close();
+    }
+  } else {
+    // cleanup old legacy file if necessary
+    if( M5_FS.exists(DOWNLOADER_BIN_VIRTUAL) ) {
+      M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
+    }    
   }
   #endif
 

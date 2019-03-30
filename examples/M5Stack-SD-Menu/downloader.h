@@ -7,7 +7,7 @@
 #include "mbedtls/md.h"
 
 long timezone = 0; // UTC
-byte daysavetime = 0; // UTC
+byte daysavetime = 1; // UTC + 1
 
 HTTPClient http;
 
@@ -17,11 +17,13 @@ extern uint16_t appsCount;
 extern uint16_t MenuID;
 
 #define DOWNLOADER_BIN "/--Downloader--.bin" // Fixme/Hack: a dummy file will be created so it appears in the menu as an app
+#define DOWNLOADER_BIN_VIRTUAL "/Downloader.bin" // old bin name, will be renamed, kept for backwards compat
 
 bool done = false;
 uint8_t progress = 0;
 float progress_modulo = 0;
 bool wifisetup = false;
+bool ntpsetup = false;
 const String API_URL = "https://phpsecu.re/m5stack/sd-updater/";
 const String API_ENDPOINT = "catalog.json";
 mbedtls_md_context_t ctx;
@@ -29,12 +31,16 @@ mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 byte shaResult[32];
 static String shaResultStr = "f7ff9bcd52fee13ae7ebd6b4e3650a4d9d16f8f23cab370d5cdea291e5b6bba6"; // any string is good as long as it's 64 chars
 int downloadererrors = 0;
+int updatedfiles = 0;
+int newfiles = 0;
+int checkedfiles = 0;
 
 
 
-bool modalConfirm( String question, String title, String body, const char* labelA="YES", const char* labelB="NO", const char* labelC="CANCEL" ) {
+bool modalConfirm( String question, String title, String body, const char* labelA=DOWNLOADER_MODAL_YES, const char* labelB=DOWNLOADER_MODAL_NO, const char* labelC=DOWNLOADER_MODAL_CANCEL ) {
   bool response = false;
-  M5Menu.windowClr();
+  //M5Menu.windowClr();
+  tft.clear();
   M5Menu.drawAppMenu( question, labelA, labelB, labelC);
   tft.setTextSize( 1 );
   tft.setTextColor( WHITE );
@@ -62,7 +68,6 @@ bool modalConfirm( String question, String title, String body, const char* label
       // already false
       M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
       M5Menu.showList();
-//      renderIcon( MenuID );
     break;
 
   }
@@ -73,12 +78,83 @@ bool modalConfirm( String question, String title, String body, const char* label
 void printProgress(uint16_t progress) {
   uint16_t x = tft.getCursorX();
   uint16_t y = tft.getCursorX();
-  tft.setCursor(50, 220);
-  tft.setTextColor(WHITE, BLACK);
+  tft.setCursor(10, 194);
+  tft.setTextColor(WHITE, tft.color565(128,128,128));
   tft.print( OVERALL_PROGRESS_TITLE );
   tft.print(String(progress));
   tft.print("%");
   tft.setCursor(x, y);
+}
+
+
+void renderDownloadIcon(uint16_t color=GREEN, int16_t x=272, int16_t y=7, float size=2.0 ) {
+  float halfsize = size/2;
+
+  tft.fillTriangle(x,      y+2*size,   x+4*size, y+2*size,   x+2*size, y+5*size, color);
+  tft.fillTriangle(x+size, y,          x+3*size, y,          x+2*size, y+5*size, color);
+  tft.fillRect( x, -halfsize+y+6*size, 1+4*size, size, color);
+
+}
+
+
+void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float size=1.0) {
+  uint16_t barColors[4];
+  switch(rssi%6) {
+   case 5:
+      barColors[0] = GREEN;
+      barColors[1] = GREEN;
+      barColors[2] = GREEN;
+      barColors[3] = GREEN;
+    break;
+    case 4:  
+      barColors[0] = GREEN;
+      barColors[1] = GREEN;
+      barColors[2] = GREEN;
+      barColors[3] = bgcolor;
+    break;
+    case 3:  
+      barColors[0] = YELLOW;
+      barColors[1] = YELLOW;
+      barColors[2] = YELLOW;
+      barColors[3] = bgcolor;
+    break;
+    case 2:  
+      barColors[0] = YELLOW;
+      barColors[1] = YELLOW;
+      barColors[2] = bgcolor;
+      barColors[3] = bgcolor;
+    break;
+    case 1:  
+      barColors[0] = RED;
+      barColors[1] = bgcolor;
+      barColors[2] = bgcolor;
+      barColors[3] = bgcolor;
+    break;
+    default:
+    case 0:  
+      barColors[0] = RED; // want: BLE_RAINBOW
+      barColors[1] = bgcolor;
+      barColors[2] = bgcolor;
+      barColors[3] = bgcolor;
+    break;
+  }
+  tft.fillRect(x,          y + 4*size, 2*size, 4*size, barColors[0]);
+  tft.fillRect(x + 3*size, y + 3*size, 2*size, 5*size, barColors[1]);
+  tft.fillRect(x + 6*size, y + 2*size, 2*size, 6*size, barColors[2]);
+  tft.fillRect(x + 9*size, y + 1*size, 2*size, 7*size, barColors[3]);
+}
+
+
+
+void drawAppMenu() {
+  M5Menu.windowClr();
+  M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "");
+  if( wifisetup ) {
+    drawRSSIBar( 290, 4, 5, tft.color565(0,0,128), 2.0 );
+  }
+  if( ntpsetup ) {
+    // TODO: draw something
+  }
 }
 
 
@@ -125,7 +201,7 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
     len -= n;
   }
 
-  tft.fillRect( 10, 125, 22, 32, TFT_BLACK );
+  tft.fillRect( 10, 125, 22, 32, tft.color565(128,128,128) );
 
   checkFile.close();
 
@@ -137,8 +213,10 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
 
 
 
+
+
 void wget(String bin_url, String appName, const char* &ca) {
-  //tft.setCursor(0,0);
+  renderDownloadIcon( GREEN );
   Serial.printf("#> wget %s --output-document=%s ", bin_url.c_str(), appName.c_str());
   if( bin_url.startsWith("https://") ) {
     http.begin(bin_url, ca);
@@ -148,12 +226,14 @@ void wget(String bin_url, String appName, const char* &ca) {
   int httpCode = http.GET();
   if(httpCode <= 0) {
     downloadererrors++;
+    renderDownloadIcon( RED );
     Serial.println(" [ERROR] HTTP GET failed with no error code!");
     http.end();
     return;
   }
   if(httpCode != HTTP_CODE_OK) {
     downloadererrors++;
+    renderDownloadIcon( RED );
     Serial.printf("  [ERROR] HTTP GET failed with error code %d / %s\n", httpCode, http.errorToString(httpCode).c_str()); 
     http.end();
     return;
@@ -162,6 +242,7 @@ void wget(String bin_url, String appName, const char* &ca) {
   int len = http.getSize();
   if(len<=0) {
     downloadererrors++;
+    renderDownloadIcon( RED );
     Serial.printf("  [ERROR] %s has zero Content-Lenght, aborting\n", bin_url.c_str());
     http.end();
     return;
@@ -176,6 +257,7 @@ void wget(String bin_url, String appName, const char* &ca) {
   File myFile = M5_FS.open(appName, FILE_WRITE);
   if(!myFile) {
     downloadererrors++;
+    renderDownloadIcon( RED );
     Serial.printf("  [ERROR] Failed to open %s for writing, aborting\n", appName.c_str());
     http.end();
     myFile.close();
@@ -215,7 +297,8 @@ void wget(String bin_url, String appName, const char* &ca) {
   mbedtls_md_finish(&ctx, shaResult);
   mbedtls_md_free(&ctx);
   sha_sum_to_str();
-  tft.fillRect( 10, 125, 70, 32, TFT_BLACK );
+  tft.fillRect( 10, 125, 70, 32, tft.color565(128,128,128) );
+  renderDownloadIcon( tft.color565(128,128,128) );
   
   unsigned long dl_duration;
   float bytespermillis;
@@ -231,6 +314,7 @@ void wget(String bin_url, String appName, const char* &ca) {
 
 
 void getApp(String appURL, const char* &ca) {
+  renderDownloadIcon( GREEN );
   if( appURL.startsWith("https://") ) {
     http.begin(appURL, ca);
   } else {
@@ -239,17 +323,21 @@ void getApp(String appURL, const char* &ca) {
   int httpCode = http.GET();
   if(httpCode <= 0) {
     downloadererrors++;
+    renderDownloadIcon( RED );
     Serial.printf("\n[ERROR] HTTP GET %s failed\n", appURL.c_str());
     http.end();
     return;
   }
   if(httpCode != HTTP_CODE_OK) {
     downloadererrors++;
+    renderDownloadIcon( RED );
     Serial.printf("\n[ERROR %d] HTTP GET %s failed: %s\n", httpCode, appURL.c_str(), http.errorToString(httpCode).c_str()); 
     http.end();
   }
   String payload = http.getString();
   http.end();
+  renderDownloadIcon( tft.color565(128,128,128) );
+  
   #if ARDUINOJSON_VERSION_MAJOR==6
     DynamicJsonDocument jsonBuffer(2048);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
@@ -291,7 +379,6 @@ void getApp(String appURL, const char* &ca) {
 
   uint16_t assets_count = root["apps"][0]["json_meta"]["assets_count"].as<uint16_t>();
   for(uint16_t i=0;i<assets_count;i++) {
-    tft.setCursor(0,i*20);
     filePath            = root["apps"][0]["json_meta"]["assets"][i]["path"].as<String>();
     fileName            = root["apps"][0]["json_meta"]["assets"][i]["name"].as<String>();
     uint32_t remoteTime = root["apps"][0]["json_meta"]["assets"][i]["created_at"].as<uint32_t>();
@@ -300,7 +387,7 @@ void getApp(String appURL, const char* &ca) {
     size_t mySize       = 0;
     finalName = filePath + fileName;
     tempFileName = finalName + String(".tmp");
-
+    tft.setCursor(10, 54+i*10);
     tft.print( fileName );
     Serial.printf( "  [%s]", fileName.c_str() );
     
@@ -310,32 +397,48 @@ void getApp(String appURL, const char* &ca) {
       Serial.print("]");
       if( shaResultStr.equals( sha_sum ) ) {
         //log_d("[checksums match]");
+        checkedfiles++;
         Serial.println( WGET_SKIPPING );
-        tft.println( WGET_SKIPPING );
+        tft.setTextColor(GREEN, tft.color565(128,128,128));
+        tft.print( WGET_SKIPPING );
+        tft.setTextColor(WHITE, tft.color565(128,128,128));
         continue;
       }
       //log_d("[checksums differ]");
       Serial.println( WGET_UPDATING );
-      tft.println( WGET_UPDATING );
+      tft.setTextColor(TFT_ORANGE, tft.color565(128,128,128));
+      tft.print( WGET_UPDATING );
+      tft.setTextColor(WHITE, tft.color565(128,128,128));
     } else {
       Serial.println( WGET_CREATING );
-      tft.println( WGET_CREATING );
+      tft.setTextColor(WHITE, tft.color565(128,128,128));
+      tft.print( WGET_CREATING );
     }
 
     wget(base_url + filePath + fileName, tempFileName, phpsecure_ca);
     
     if( shaResultStr.equals( sha_sum ) ) {
+      checkedfiles++;
       if( M5_FS.exists( tempFileName ) ) {
         if( M5_FS.exists( finalName ) ) {
           M5_FS.remove( finalName );
+          updatedfiles++;
+        } else {
+          newfiles++;
         }
         M5_FS.rename( tempFileName, finalName );
       } else {
         // download failed, error was previously disclosed
+        tft.setTextColor(RED, tft.color565(128,128,128));
+        tft.print(" [DOWNLOAD FAIL]");
+        tft.setTextColor(WHITE, tft.color565(128,128,128));
       }
     } else {
       downloadererrors++;
       Serial.printf("  [SHA256 SUM ERROR] Remote hash: %s, Local hash: %s ### keeping local file and removing temp file ###\n", String(sha_sum).c_str(), shaResultStr.c_str() );
+      tft.setTextColor(RED, tft.color565(128,128,128));
+      tft.print(" [SHASUM FAIL]");
+      tft.setTextColor(WHITE, tft.color565(128,128,128));
       M5_FS.remove( tempFileName );
     }
     
@@ -348,7 +451,8 @@ void getApp(String appURL, const char* &ca) {
 
 
 void syncAppRegistry(String API_URL, const char* ca) {
-  //http.setReuse(true);
+  drawAppMenu();
+  renderDownloadIcon( TFT_ORANGE, 140, 80, 10.0 );
   downloadererrors = 0;
   if ( API_URL.startsWith("https://") ) {
     http.begin(API_URL + API_ENDPOINT, ca);
@@ -373,6 +477,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
   
   String payload = http.getString();
   http.end();
+  renderDownloadIcon( TFT_GREEN, 140, 80, 10.0 );
   #if ARDUINOJSON_VERSION_MAJOR==6
     DynamicJsonDocument jsonBuffer(4096);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
@@ -408,39 +513,27 @@ void syncAppRegistry(String API_URL, const char* ca) {
     String appName = root["apps"][i]["name"].as<String>();
     String appURL  = API_URL + appName + ".json";
     progress = float(i*progress_modulo);
-    tft.clear();
+    M5Menu.windowClr();
     printProgress(progress);
     Serial.printf("\n[%s] :\n", appName.c_str());
-    tft.setTextColor( WHITE, BLACK );
+    tft.setTextColor( WHITE, tft.color565(128,128,128) );
+    tft.setCursor(10, 36);
+    tft.print( appName );
     getApp( appURL, phpsecure_ca );
-    
+    delay(300);
   }
-  //done = true;
-  tft.clear();
-  tft.setCursor(0,0);
-  tft.setTextColor(WHITE, BLACK);
+  M5Menu.windowClr();
+  tft.setCursor(10,60);
+  tft.setTextColor(WHITE, tft.color565(128,128,128));
   tft.println( SYNC_FINISHED );
   Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
-  if( downloadererrors > 0 ) {
-    // TODO: modal restart
-    #define DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED "Some errors occured. "
-    #define DOWNLOADER_MODAL_BODY_ERRORS_OCCURED "  Errors occured during the download.\n\nYou may ignore them, or try again.\n\n\n\n  RESTART ?\n\n"
-    if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED, DOWNLOADER_MODAL_BODY_ERRORS_OCCURED ) ) {
-      ESP.restart();
-    } else {
-      done = true;
-    }
-  } else {
-    delay(1000);
-    ESP.restart();
-  }
+  char modalBody[256];
+  sprintf( modalBody, DOWNLOADER_MODAL_BODY_ERRORS_OCCURED, downloadererrors, checkedfiles, updatedfiles, newfiles);
+  modalConfirm( DOWNLOADER_MODAL_ENDED, DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED, modalBody, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RETRY, DOWNLOADER_MODAL_BACK );
+  ESP.restart();
+  delay(1000);
 }
 
-
-void drawAppMenu() {
-  M5Menu.windowClr();
-  M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "");
-}
 
 
 void cleanDir() {
@@ -483,44 +576,57 @@ void cleanDir() {
 }
 
 
+
+
 void enableWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(); // set SSID/PASS from another app (i.e. WiFi Manager) and reload this app
   unsigned long startup = millis();
+  
   tft.clear();
-  tft.setCursor(0,0);
-  tft.setTextColor(WHITE, BLACK);
+  drawAppMenu();
+  tft.setCursor(10, 50);
+  tft.setTextColor(WHITE, tft.color565(128,128,128));
   tft.println(WIFI_MSG_WAITING);
+  size_t rssi = 0;
+  
   while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println(WIFI_MSG_CONNECTING);
+    drawRSSIBar( 122, 100, rssi++, tft.color565(128,128,128), 4.0 );
+    delay(300);
+    if(rssi%3==0) {
+      Serial.println(WIFI_MSG_CONNECTING);
+    }
     if(startup + 10000 < millis()) {
       Serial.println(WIFI_MSG_TIMEOUT);
       tft.println(WIFI_MSG_TIMEOUT);
       delay(1000);
       tft.clear();
-      drawAppMenu();
       return;
     }
   }
+  
   tft.println( WIFI_MSG_CONNECTED );
   Serial.println( WIFI_MSG_CONNECTED );
   wifisetup = true;
-  delay(1000);
-  tft.clear();
-  drawAppMenu();
 }
 
 
 void enableNTP() {
   Serial.println("Contacting Time Server");
+  tft.clear();
+  drawAppMenu();
+  tft.setCursor(10, 50);
+  tft.setTextColor(WHITE, tft.color565(128,128,128));
+  tft.println("Contacting NTP Server");
+  tft.drawJpg( ntp_jpeg, ntp_jpeg_len, 144, 104, 32, 32 );
   configTime(3600*timezone, daysavetime*3600, "pool.ntp.org", "asia.pool.ntp.org", "europe.pool.ntp.org");
   struct tm tmstruct ;
-  delay(2000);
   tmstruct.tm_year = 0;
   getLocalTime(&tmstruct, 5000);
   Serial.printf("\nNow is : %d-%02d-%02d %02d:%02d:%02d\n",(tmstruct.tm_year)+1900,( tmstruct.tm_mon)+1, tmstruct.tm_mday,tmstruct.tm_hour , tmstruct.tm_min, tmstruct.tm_sec);
   Serial.println("");
+  // TODO: modal-confirm date
+  tft.clear();
 }
 
 
