@@ -27,10 +27,11 @@
 #define DOWNLOADER_MODAL_NAME "Update binaries ?"
 #define DOWNLOADER_MODAL_TITLE "This action will:"
 #define DOWNLOADER_MODAL_BODY "  - Connect to WiFi\n\n  - Get app list from remote registry\n\n  - Download/overwrite files\n\n  - Restart this menu\n\n\n\n  THIS OPERATION IS INSECURE!!\n\n  YOU DO THIS AT YOUR OWN RISK!!"
+
 #define OVERALL_PROGRESS_TITLE "Overall progress: "
-#define WGET_SKIPPING " ... Checksum OK "
-#define WGET_UPDATING " ... Outdated ! "
-#define WGET_CREATING " ... New file :-)"
+#define WGET_SKIPPING "[Checksum OK]"
+#define WGET_UPDATING "[Outdated]"
+#define WGET_CREATING "[New file]"
 #define SYNC_FINISHED "Synch finished"
 #define CLEANDIR_REMOVED "Removed %s\n"
 

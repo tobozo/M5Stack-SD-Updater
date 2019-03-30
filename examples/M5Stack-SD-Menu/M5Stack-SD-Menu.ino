@@ -484,45 +484,6 @@ void buildM5Menu() {
 
 
 
-bool modalConfirm( String question, String title, String body ) {
-  bool response = false;
-  M5Menu.windowClr();
-  M5Menu.drawAppMenu( question , "YES", "NO", "CANCEL");
-  tft.setTextSize( 1 );
-  tft.setTextColor( WHITE );
-  tft.drawCentreString( title, 160, 50, 1 );
-  tft.setCursor( 0, 72 );
-  tft.print( body );
-  
-  tft.drawJpg(caution_jpg, caution_jpg_len, 224, 136, 64, 46 );
-  HIDSignal hidState = UI_INERT;
-
-  while( hidState==UI_INERT ) {
-    delay( 100 );
-    M5.update();
-    hidState = getControls();
-  }
-
-  switch( hidState ) {
-    //case UI_UP
-    case UI_INFO:
-      response = true;
-    break;
-    case UI_LOAD:
-    case UI_DOWN:
-    default:
-      // already false
-      M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
-      M5Menu.showList();
-      renderIcon( MenuID );
-    break;
-
-  }
-  M5.update();
-  return response;
-}
-
-
 
 
 void menuUp() {
@@ -908,7 +869,7 @@ void setup() {
     sdUpdater.SDMenuProgress( i, 100 );
   }
 
-  sdUpdater.SDMenuProgress( 100, 100 );
+  sdUpdater.SDMenuProgress( -1, 100 );
   
   M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
   M5Menu.showList();
@@ -956,11 +917,10 @@ void loop() {
       if( fileInfo[MenuID].fileName == String( DOWNLOADER_BIN ) ) {
         if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) ) {
           updateAll();
-          ESP.restart();
-        } else {
-          // action cancelled or refused by user
-          return;
         }
+        // action cancelled or refused by user
+        renderIcon( MenuID );
+        return;
       }
       #endif
     

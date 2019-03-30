@@ -16,7 +16,7 @@ extern M5SAM M5Menu;
 extern uint16_t appsCount;
 extern uint16_t MenuID;
 
-#define DOWNLOADER_BIN "/Downloader.bin" // Fixme/Hack: a dummy file will be created so it appears in the menu as an app
+#define DOWNLOADER_BIN "/--Downloader--.bin" // Fixme/Hack: a dummy file will be created so it appears in the menu as an app
 
 bool done = false;
 uint8_t progress = 0;
@@ -27,7 +27,48 @@ const String API_ENDPOINT = "catalog.json";
 mbedtls_md_context_t ctx;
 mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 byte shaResult[32];
-static String shaResultStr = "f7ff9bcd52fee13ae7ebd6b4e3650a4d9d16f8f23cab370d5cdea291e5b6bba6";
+static String shaResultStr = "f7ff9bcd52fee13ae7ebd6b4e3650a4d9d16f8f23cab370d5cdea291e5b6bba6"; // any string is good as long as it's 64 chars
+int downloadererrors = 0;
+
+
+
+bool modalConfirm( String question, String title, String body, const char* labelA="YES", const char* labelB="NO", const char* labelC="CANCEL" ) {
+  bool response = false;
+  M5Menu.windowClr();
+  M5Menu.drawAppMenu( question, labelA, labelB, labelC);
+  tft.setTextSize( 1 );
+  tft.setTextColor( WHITE );
+  tft.drawCentreString( title, 160, 50, 1 );
+  tft.setCursor( 0, 72 );
+  tft.print( body );
+  
+  tft.drawJpg(caution_jpg, caution_jpg_len, 224, 136, 64, 46 );
+  HIDSignal hidState = UI_INERT;
+
+  while( hidState==UI_INERT ) {
+    delay( 100 );
+    M5.update();
+    hidState = getControls();
+  }
+
+  switch( hidState ) {
+    //case UI_UP
+    case UI_INFO:
+      response = true;
+    break;
+    case UI_LOAD:
+    case UI_DOWN:
+    default:
+      // already false
+      M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+      M5Menu.showList();
+//      renderIcon( MenuID );
+    break;
+
+  }
+  M5.update();
+  return response;
+}
 
 void printProgress(uint16_t progress) {
   uint16_t x = tft.getCursorX();
@@ -54,7 +95,8 @@ void sha_sum_to_str() {
 void sha256_sum(fs::FS &fs, const char* fileName) {
   log_d("SHA256: checking file %s\n", fileName);
   if(! fs.exists( fileName ) ) {
-    log_e("File %s does not exist, aborting\n", fileName);
+    downloadererrors++;
+    Serial.printf("  [ERROR] File %s does not exist, aborting\n", fileName);
     return;
   }
   File checkFile = fs.open( fileName );
@@ -62,24 +104,28 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
   size_t len = fileSize;
 
   if( !checkFile || fileSize==0 ) {
-    log_e("Can't open %s file for reading, aborting\n", fileName);
+    downloadererrors++;
+    Serial.printf("  [ERROR] Can't open %s file for reading, aborting\n", fileName);
     return;
   }
 
-  tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 115, 22, 32 );
+  tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 125, 22, 32 );
   
   uint8_t buff[4096] = { 0 };
+  size_t sizeOfBuff = sizeof(buff);
   mbedtls_md_init(&ctx);
   mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
   mbedtls_md_starts(&ctx);
   size_t n;
-  while ((n = checkFile.read(buff, sizeof(buff))) > 0) {
+  while ((n = checkFile.read(buff, sizeOfBuff)) > 0) {
     mbedtls_md_update(&ctx, (const unsigned char *) buff, n);
-    sdUpdater.M5SDMenuProgress(fileSize-len, fileSize);
+    if( fileSize/10 > sizeOfBuff && fileSize != len ) {
+      sdUpdater.M5SDMenuProgress(fileSize-len, fileSize);
+    }
     len -= n;
   }
 
-  tft.fillRect( 10, 115, 22, 32, TFT_BLACK );
+  tft.fillRect( 10, 125, 22, 32, TFT_BLACK );
 
   checkFile.close();
 
@@ -93,7 +139,7 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
 
 void wget(String bin_url, String appName, const char* &ca) {
   //tft.setCursor(0,0);
-  Serial.printf("Will download %s and save to SD as %s\n", bin_url.c_str(), appName.c_str());
+  Serial.printf("#> wget %s --output-document=%s ", bin_url.c_str(), appName.c_str());
   if( bin_url.startsWith("https://") ) {
     http.begin(bin_url, ca);
   } else {
@@ -101,31 +147,36 @@ void wget(String bin_url, String appName, const char* &ca) {
   }
   int httpCode = http.GET();
   if(httpCode <= 0) {
-    Serial.printf("%s", "[HTTP] GET... failed");
+    downloadererrors++;
+    Serial.println(" [ERROR] HTTP GET failed with no error code!");
     http.end();
     return;
   }
   if(httpCode != HTTP_CODE_OK) {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
+    downloadererrors++;
+    Serial.printf("  [ERROR] HTTP GET failed with error code %d / %s\n", httpCode, http.errorToString(httpCode).c_str()); 
     http.end();
     return;
   }
 
   int len = http.getSize();
   if(len<=0) {
-    Serial.printf("Failed to read %s, content is empty, aborting\n", bin_url.c_str());
+    downloadererrors++;
+    Serial.printf("  [ERROR] %s has zero Content-Lenght, aborting\n", bin_url.c_str());
     http.end();
     return;
   }
   int httpSize = len;
   uint8_t buff[2048] = { 0 };
+  size_t sizeOfBuff = sizeof(buff);
   WiFiClient * stream = http.getStreamPtr();
   if( M5_FS.exists(appName) ) {
     M5_FS.remove(appName);
   }
   File myFile = M5_FS.open(appName, FILE_WRITE);
   if(!myFile) {
-    Serial.printf("Failed to open %s for writing, aborting\n", appName.c_str());
+    downloadererrors++;
+    Serial.printf("  [ERROR] Failed to open %s for writing, aborting\n", appName.c_str());
     http.end();
     myFile.close();
     return;
@@ -137,17 +188,18 @@ void wget(String bin_url, String appName, const char* &ca) {
   mbedtls_md_init(&ctx);
   mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
   mbedtls_md_starts(&ctx);
-
-  tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 115, 22, 32 );
-  tft.drawJpg( download_jpg, download_jpg_len, 44, 115, 26, 32 );
-  
+  tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 125, 22, 32 );
+  tft.drawJpg( download_jpg, download_jpg_len, 44, 125, 26, 32 );
+  Serial.print("[Download+SHA256 Sum -->][..");
   while(http.connected() && (len > 0 || len == -1)) {
-    sdUpdater.M5SDMenuProgress(httpSize-len, httpSize);
+    if( httpSize/10 > sizeOfBuff && httpSize!=len ) {
+      sdUpdater.M5SDMenuProgress(httpSize-len, httpSize);
+    }
     // get available data size
     size_t size = stream->available();
     if(size) {
       // read up to 128 byte
-      int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+      int c = stream->readBytes(buff, ((size > sizeOfBuff) ? sizeOfBuff : size));
       // hashsum
       mbedtls_md_update(&ctx, (const unsigned char *) buff, c);
       // write it to SD
@@ -159,25 +211,20 @@ void wget(String bin_url, String appName, const char* &ca) {
     delay(1);
   }
   myFile.close();
-
+  Serial.print("]");
   mbedtls_md_finish(&ctx, shaResult);
   mbedtls_md_free(&ctx);
-
-  tft.fillRect( 115, 10, 70, 32, TFT_BLACK );
-
   sha_sum_to_str();
+  tft.fillRect( 10, 125, 70, 32, TFT_BLACK );
   
   unsigned long dl_duration;
   float bytespermillis;
   dl_duration = ( millis() - downwloadstart );
-  
   if( dl_duration > 0 ) {
     bytespermillis = httpSize / dl_duration;
-    //float Kbpermillis = bytespermillis/1024; // kb per millis
-    //float Kbpersecond = Kbpermillis*1000; // kb per second
-    Serial.printf(" [OK][Downloaded %d KB at %d KB/s]\n", (httpSize/1024), (int)( bytespermillis / 1024.0 * 1000.0 ) );
+    Serial.printf("  [OK][Downloaded %d KB at %d KB/s]\n", (httpSize/1024), (int)( bytespermillis / 1024.0 * 1000.0 ) );
   } else {
-    Serial.printf("[OK] Copy done...");
+    Serial.printf("  [OK] Copy done...\n");
   }
   http.end();
 }
@@ -191,12 +238,14 @@ void getApp(String appURL, const char* &ca) {
   }
   int httpCode = http.GET();
   if(httpCode <= 0) {
-    log_e("%s", "[HTTP] GET... failed");
+    downloadererrors++;
+    Serial.printf("\n[ERROR] HTTP GET %s failed\n", appURL.c_str());
     http.end();
     return;
   }
   if(httpCode != HTTP_CODE_OK) {
-    log_e("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
+    downloadererrors++;
+    Serial.printf("\n[ERROR %d] HTTP GET %s failed: %s\n", httpCode, appURL.c_str(), http.errorToString(httpCode).c_str()); 
     http.end();
   }
   String payload = http.getString();
@@ -205,7 +254,8 @@ void getApp(String appURL, const char* &ca) {
     DynamicJsonDocument jsonBuffer(2048);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
-      log_e("%s", "JSON Parsing failed!");
+      downloadererrors++;
+      Serial.printf("\n[ERROR] JSON Parsing failed on %s\n",  appURL.c_str());
       delay(10000);
       return;
     }
@@ -214,18 +264,20 @@ void getApp(String appURL, const char* &ca) {
     DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(payload);
     if (!root.success()) {
-      log_e("%s", "JSON Parsing failed!");
+      downloadererrors++;
+      Serial.printf("\n[ERROR] JSON Parsing failed on %s\n",  appURL.c_str());
       delay(10000);
       return;
     }
   #endif
   uint16_t appsCount = root["apps_count"].as<uint16_t>();
   if(appsCount!=1) {
-    log_e("%s", "appsCount misenumeration");
+    downloadererrors++;
+    Serial.printf("\n%s\n", "[ERROR] AppsCount misenumeration");
     return;
   }
+
   String base_url = root["base_url"].as<String>();
-  tft.setTextColor( WHITE, BLACK );
   String sha_sum;
   String filePath;
   String fileName;
@@ -249,38 +301,41 @@ void getApp(String appURL, const char* &ca) {
     finalName = filePath + fileName;
     tempFileName = finalName + String(".tmp");
 
-    if( sha_sum != "" ) {
-      log_d("Got sha sum %s for file %s\n", sha_sum.c_str(), finalName.c_str() );
-    }
-
     tft.print( fileName );
-    Serial.print( fileName );
+    Serial.printf( "  [%s]", fileName.c_str() );
     
     if(M5_FS.exists( finalName )) {
+      Serial.print("[SHA256 Sum ->][....");
       sha256_sum( M5_FS, finalName.c_str() );
+      Serial.print("]");
       if( shaResultStr.equals( sha_sum ) ) {
-        log_d("[checksums match]");
-        Serial.print( WGET_SKIPPING );
+        //log_d("[checksums match]");
+        Serial.println( WGET_SKIPPING );
         tft.println( WGET_SKIPPING );
         continue;
       }
-      log_d("[checksums differ]");
-      Serial.print( WGET_UPDATING );
+      //log_d("[checksums differ]");
+      Serial.println( WGET_UPDATING );
       tft.println( WGET_UPDATING );
     } else {
-      Serial.print( WGET_CREATING );
+      Serial.println( WGET_CREATING );
       tft.println( WGET_CREATING );
     }
 
     wget(base_url + filePath + fileName, tempFileName, phpsecure_ca);
     
-    if( M5_FS.exists( tempFileName ) && shaResultStr.equals( sha_sum ) ) {
-      if( M5_FS.exists( finalName ) ) {
-        M5_FS.remove( finalName );
+    if( shaResultStr.equals( sha_sum ) ) {
+      if( M5_FS.exists( tempFileName ) ) {
+        if( M5_FS.exists( finalName ) ) {
+          M5_FS.remove( finalName );
+        }
+        M5_FS.rename( tempFileName, finalName );
+      } else {
+        // download failed, error was previously disclosed
       }
-      M5_FS.rename( tempFileName, finalName );
     } else {
-      log_e("SHA256 Failed (json has given: %s, local has given: %s), removing downloaded file\n", String(sha_sum).c_str(), shaResultStr.c_str() );
+      downloadererrors++;
+      Serial.printf("  [SHA256 SUM ERROR] Remote hash: %s, Local hash: %s ### keeping local file and removing temp file ###\n", String(sha_sum).c_str(), shaResultStr.c_str() );
       M5_FS.remove( tempFileName );
     }
     
@@ -294,6 +349,7 @@ void getApp(String appURL, const char* &ca) {
 
 void syncAppRegistry(String API_URL, const char* ca) {
   //http.setReuse(true);
+  downloadererrors = 0;
   if ( API_URL.startsWith("https://") ) {
     http.begin(API_URL + API_ENDPOINT, ca);
   } else {
@@ -302,13 +358,14 @@ void syncAppRegistry(String API_URL, const char* ca) {
   int httpCode = http.GET();
   if(httpCode <= 0) {
     http.end();
-    log_e("%s", "[HTTP] GET... failed");
+    Serial.printf("\n%s\n", "[HTTP] GET... failed");
     delay(10000);
     return;
   }
-  log_e("[HTTP] GET... code: %d\n", httpCode);
+  log_d("\n[HTTP] GET... code: %d\n", httpCode);
   if(httpCode != HTTP_CODE_OK) {
-    log_e("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
+    downloadererrors++;
+    Serial.printf("\n[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
     http.end();
     delay(10000);
     return;
@@ -320,7 +377,8 @@ void syncAppRegistry(String API_URL, const char* ca) {
     DynamicJsonDocument jsonBuffer(4096);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
-      log_e("%s", "JSON Parsing failed!");
+      downloadererrors++;
+      Serial.printf("\n%s\n", "JSON Parsing failed!");
       delay(10000);
       return;
     }
@@ -329,7 +387,8 @@ void syncAppRegistry(String API_URL, const char* ca) {
     DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(payload);
     if (!root.success()) {
-      log_e("%s", "JSON Parsing failed!");
+      downloadererrors++;
+      Serial.printf("\n%s\n", "JSON Parsing failed!");
       delay(10000);
       return;
     }
@@ -337,34 +396,44 @@ void syncAppRegistry(String API_URL, const char* ca) {
   //Serial.println("Parsed JSON");
   appsCount = root["apps_count"].as<uint16_t>();
   if( appsCount==0 ) {
+    downloadererrors++;
     log_e("%s", "No apps found, aborting");
     delay(10000);
     return;
   }
   progress_modulo = 100/appsCount;
   String base_url = root["base_url"].as<String>();
-  log_d("Found %s apps at %s\n", String(appsCount).c_str(), base_url.c_str() );
+  Serial.printf("\nFound %s apps at %s\n", String(appsCount).c_str(), base_url.c_str() );
   for(uint16_t i=0;i<appsCount;i++) {
     String appName = root["apps"][i]["name"].as<String>();
     String appURL  = API_URL + appName + ".json";
     progress = float(i*progress_modulo);
-    
     tft.clear();
-    
     printProgress(progress);
-    Serial.println();
-    Serial.print(appName);
-    Serial.print(": ");
+    Serial.printf("\n[%s] :\n", appName.c_str());
+    tft.setTextColor( WHITE, BLACK );
     getApp( appURL, phpsecure_ca );
     
   }
-  done = true;
+  //done = true;
   tft.clear();
   tft.setCursor(0,0);
   tft.setTextColor(WHITE, BLACK);
   tft.println( SYNC_FINISHED );
-  delay(1000);
-  ESP.restart();
+  Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
+  if( downloadererrors > 0 ) {
+    // TODO: modal restart
+    #define DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED "Some errors occured. "
+    #define DOWNLOADER_MODAL_BODY_ERRORS_OCCURED "  Errors occured during the download.\n\nYou may ignore them, or try again.\n\n\n\n  RESTART ?\n\n"
+    if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED, DOWNLOADER_MODAL_BODY_ERRORS_OCCURED ) ) {
+      ESP.restart();
+    } else {
+      done = true;
+    }
+  } else {
+    delay(1000);
+    ESP.restart();
+  }
 }
 
 
