@@ -98,6 +98,11 @@ install:
   - cp -Ruf /tmp/M5Stack-Avatar-fugu1-master/Avatar_fugu/*.bin $M5_SD_BUILD_DIR/
   - rm -Rf /tmp/M5Stack-Avatar-fugu1-master
 
+  - wget https://github.com/EiichiroIto/m5apple2/archive/master.zip --output-document=m5apple2.zip
+  - unzip -d /tmp m5apple2.zip
+  - cp -Ruf /tmp/m5apple2-master/bin/* $M5_SD_BUILD_DIR/
+  - rm -Rf /tmp/m5apple2-master
+
   - ls ~/Arduino/libraries -la
   - rm *.zip
 
