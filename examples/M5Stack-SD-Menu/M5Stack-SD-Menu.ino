@@ -356,6 +356,12 @@ void getFileInfo( fs::FS &fs, File &file ) {
   fileInfo[appsCount].fileName = fileName;
   fileInfo[appsCount].fileSize = fileSize;
 
+  #ifdef DOWNLOADER_BIN
+  if( fileName.startsWith("/--") ) {
+    fileName.replace("--", "");
+  }
+  #endif
+
   String currentIconFile = "/jpg" + fileName;
   currentIconFile.replace( ".bin", ".jpg" );
   if( fs.exists( currentIconFile.c_str() ) ) {
@@ -482,45 +488,6 @@ void buildM5Menu() {
   }
 }
 
-
-
-bool modalConfirm( String question, String title, String body ) {
-  bool response = false;
-  M5Menu.windowClr();
-  M5Menu.drawAppMenu( question , "YES", "NO", "CANCEL");
-  tft.setTextSize( 1 );
-  tft.setTextColor( WHITE );
-  tft.drawCentreString( title, 160, 50, 1 );
-  tft.setCursor( 0, 72 );
-  tft.print( body );
-  
-  tft.drawJpg(caution_jpg, caution_jpg_len, 224, 136, 64, 46 );
-  HIDSignal hidState = UI_INERT;
-
-  while( hidState==UI_INERT ) {
-    delay( 100 );
-    M5.update();
-    hidState = getControls();
-  }
-
-  switch( hidState ) {
-    //case UI_UP
-    case UI_INFO:
-      response = true;
-    break;
-    case UI_LOAD:
-    case UI_DOWN:
-    default:
-      // already false
-      M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
-      M5Menu.showList();
-      renderIcon( MenuID );
-    break;
-
-  }
-  M5.update();
-  return response;
-}
 
 
 
@@ -880,10 +847,20 @@ void setup() {
 
   #ifdef DOWNLOADER_BIN
   if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
-    // create a dummy file just to enable the feature
-    fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
-    dummyDownloader.print("blah");
-    dummyDownloader.close();
+    if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) {
+      // rename for hoisting in the list
+      M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
+    } else {
+      // create a dummy file to enable the feature
+      fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
+      dummyDownloader.print("blah");
+      dummyDownloader.close();
+    }
+  } else {
+    // cleanup old legacy file if necessary
+    if( M5_FS.exists(DOWNLOADER_BIN_VIRTUAL) ) {
+      M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
+    }    
   }
   #endif
 
@@ -908,7 +885,7 @@ void setup() {
     sdUpdater.SDMenuProgress( i, 100 );
   }
 
-  sdUpdater.SDMenuProgress( 100, 100 );
+  sdUpdater.SDMenuProgress( -1, 100 );
   
   M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
   M5Menu.showList();
@@ -956,11 +933,10 @@ void loop() {
       if( fileInfo[MenuID].fileName == String( DOWNLOADER_BIN ) ) {
         if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) ) {
           updateAll();
-          ESP.restart();
-        } else {
-          // action cancelled or refused by user
-          return;
         }
+        // action cancelled or refused by user
+        renderIcon( MenuID );
+        return;
       }
       #endif
     
