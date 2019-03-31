@@ -74,8 +74,8 @@ void SDUpdater::SDMenuProgress( int state, int size ) {
   int textsize    = tft.textsize;
   int textcolor   = tft.textcolor;
   int textbgcolor = tft.textbgcolor;
-  
-  if ( percent > 0 && percent < 101 ) {
+
+  if ( percent >= 0 && percent < 101 ) {
     tft.fillRect( 111, 131, percent, 18, GREEN );
     tft.fillRect( 111+percent, 131, 100-percent, 18, BLACK );
     Serial.print( "." );
