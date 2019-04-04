@@ -112,6 +112,12 @@ for D in *; do
       export hidecompilelogs=1
 
       case "$D" in
+
+       'LovyanToyBox')
+         export hidecompilelogs=0
+         cd LovyanToyBox
+       ;;
+
       
        'M5StackSandbox')
          export hidecompilelogs=0
