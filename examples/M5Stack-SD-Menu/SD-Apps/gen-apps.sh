@@ -78,11 +78,6 @@ cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/jpg $M5_SD_BUILD_DIR
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/json $M5_SD_BUILD_DIR/
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/mp3 $M5_SD_BUILD_DIR/
 
-export M5STACK_TFT_ESPI_CPP=`find ~/Arduino/libraries -name In_eSPI\.cpp`
-# /home/travis/Arduino/libraries/m5stack-M5Stack-86dc023/src/utility/In_eSPI.cpp 
-echo "M5STACK_TFT_ESPI_CPP = $M5STACK_TFT_ESPI_CPP"
-export M5STACK_TFT_ESPI_FOLDER=`dirname $M5STACK_TFT_ESPI_CPP`
-
 
 for D in *; do
   if [ -d "${D}" ]; then
@@ -120,10 +115,11 @@ for D in *; do
       
        'M5StackSandbox')
          export hidecompilelogs=0
-         export cwd=`pwd`
-         cd $M5STACK_TFT_ESPI_FOLDER
-         git apply --signoff < $cwd/SWRasterizer/libraries/M5Stack/src/M5Stack.patch
-         cd $cwd/SWRasterizer
+         export M5STACK_TFT_ESPI_CPP=`find ~/Arduino/libraries -name In_eSPI\.cpp`
+         echo "Will patch $M5STACK_TFT_ESPI_CPP with pushImageEx"
+         export M5STACK_TFT_ESPI_FOLDER=`dirname $M5STACK_TFT_ESPI_CPP`
+         cd SWRasterizer
+         patch $M5STACK_TFT_ESPI_CPP libraries/M5Stack/src/M5Stack.patch
        ;;
 
       
