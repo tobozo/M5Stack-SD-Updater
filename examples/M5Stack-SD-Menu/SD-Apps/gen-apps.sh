@@ -78,13 +78,14 @@ cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/jpg $M5_SD_BUILD_DIR
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/json $M5_SD_BUILD_DIR/
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/mp3 $M5_SD_BUILD_DIR/
 
+export M5STACK_TFT_ESPI_CPP=`$( find /tmp -name In_eSPI\.cpp )`
+export M5STACK_TFT_ESPI_FOLDER=`readlink -f $M5STACK_TFT_ESPI_CPP`
 
 
 for D in *; do
   if [ -d "${D}" ]; then
     echo "moving to ${D}";
     cd ${D};
-    export hidecompilelogs=1
     # ls -la
     egrep -R M5StackUpdater && egrep -R updateFromFS && export m5enabled=1 || export m5enabled=0;
     if (( $m5enabled == 1 )); then
@@ -96,6 +97,7 @@ for D in *; do
         mv PixelFun.ino Pixel-Fun-M5Stack.ino
         sed -i -e 's/ILI9341/M5Display/g' Mover.cpp # https://github.com/neoxharsh/Pixel-Fun-M5Stack/issues/1
         #export hidecompilelogs=0
+        export hidecompilelogs=1
       ;;
       
       'LovyanToyBox')
@@ -110,11 +112,16 @@ for D in *; do
 
     else
 
+      export hidecompilelogs=1
+
       case "$D" in
       
        'M5StackSandbox')
          export hidecompilelogs=0
-         cd SWRasterizer
+         export cwd=`pwd`
+         cd $M5STACK_TFT_ESPI_FOLDER
+         git apply --gignoff < $cwd/SWRasterizer/libraries/M5Stack/src/M5Stack.patch
+         cd $cwd/SWRasterizer
        ;;
 
       
