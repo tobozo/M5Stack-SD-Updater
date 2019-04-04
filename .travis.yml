@@ -71,6 +71,8 @@ install:
   #- mkdir -p ~/Arduino/libraries/M5OnScreenKeyboard
   - unzip -d ~/Arduino/libraries M5Stack_OnScreenKeyboard.zip
 
+  - wget https://github.com/kosme/arduinoFFT/archive/master.zip --output-document=arduinoFFT.zip
+  - unzip -d ~/Arduino/libraries arduinoFFT.zip
 
   #- curl -v --retry 5 "https://api.github.com/repos/lovyan03/M5Stack_LovyanLauncher/releases/latest?access_token=$GH_TOKEN" | jq -r "".assets[0].browser_download_url"" | wget --output-document=M5Burner.zip -i -
   #- unzip -d /tmp M5Burner.zip
