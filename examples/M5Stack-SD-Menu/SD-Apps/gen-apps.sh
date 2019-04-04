@@ -121,11 +121,11 @@ for D in *; do
       
        'M5StackSandbox')
          export hidecompilelogs=0
-         export M5STACK_TFT_ESPI_CPP=`find ~/Arduino/libraries -name In_eSPI\.cpp`
-         echo "Will patch $M5STACK_TFT_ESPI_CPP with pushImageEx"
-         export M5STACK_TFT_ESPI_FOLDER=`dirname $M5STACK_TFT_ESPI_CPP`
+         #export M5STACK_TFT_ESPI_CPP=`find ~/Arduino/libraries -name In_eSPI\.cpp`
+         #echo "Will patch $M5STACK_TFT_ESPI_CPP with pushImageEx"
+         #export M5STACK_TFT_ESPI_FOLDER=`dirname $M5STACK_TFT_ESPI_CPP`
          cd SWRasterizer
-         patch $M5STACK_TFT_ESPI_CPP libraries/M5Stack/src/M5Stack.patch
+         #patch $M5STACK_TFT_ESPI_CPP libraries/M5Stack/src/M5Stack.patch
        ;;
 
       
