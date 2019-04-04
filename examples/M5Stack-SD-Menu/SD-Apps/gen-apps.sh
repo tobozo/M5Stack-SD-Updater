@@ -122,7 +122,7 @@ for D in *; do
          export hidecompilelogs=0
          export cwd=`pwd`
          cd $M5STACK_TFT_ESPI_FOLDER
-         git apply --gignoff < $cwd/SWRasterizer/libraries/M5Stack/src/M5Stack.patch
+         git apply --signoff < $cwd/SWRasterizer/libraries/M5Stack/src/M5Stack.patch
          cd $cwd/SWRasterizer
        ;;
 
