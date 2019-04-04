@@ -78,7 +78,7 @@ cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/jpg $M5_SD_BUILD_DIR
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/json $M5_SD_BUILD_DIR/
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/mp3 $M5_SD_BUILD_DIR/
 
-export M5STACK_TFT_ESPI_CPP=`$( find ~/Arduino/libraries -name In_eSPI\.cpp )`
+export M5STACK_TFT_ESPI_CPP=`find ~/Arduino/libraries -name In_eSPI\.cpp`
 # /home/travis/Arduino/libraries/m5stack-M5Stack-86dc023/src/utility/In_eSPI.cpp 
 echo "M5STACK_TFT_ESPI_CPP = $M5STACK_TFT_ESPI_CPP"
 export M5STACK_TFT_ESPI_FOLDER=`dirname $M5STACK_TFT_ESPI_CPP`
