@@ -78,6 +78,8 @@ cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/jpg $M5_SD_BUILD_DIR
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/json $M5_SD_BUILD_DIR/
 cp -R $TRAVIS_BUILD_DIR/examples/M5Stack-SD-Menu/SD-Content/mp3 $M5_SD_BUILD_DIR/
 
+export hidecompilelogs=1
+
 
 for D in *; do
   if [ -d "${D}" ]; then
@@ -96,12 +98,12 @@ for D in *; do
         #export hidecompilelogs=0
         export hidecompilelogs=1
       ;;
-      
+
       'M5Stack_LovyanToyBox')
-        export hidecompilelogs=0
+        export hidecompilelogs=1
         cd LovyanToyBox
       ;;
-      
+
       #*)
       #;;
       esac
@@ -109,33 +111,26 @@ for D in *; do
 
     else
 
-      export hidecompilelogs=1
-
       case "$D" in
 
        'M5Stack_LovyanToyBox')
-         export hidecompilelogs=0
+         export hidecompilelogs=1
          cd LovyanToyBox
        ;;
 
-      
+
        'M5StackSandbox')
          export hidecompilelogs=0
-         #export M5STACK_TFT_ESPI_CPP=`find ~/Arduino/libraries -name In_eSPI\.cpp`
-         #echo "Will patch $M5STACK_TFT_ESPI_CPP with pushImageEx"
-         #export M5STACK_TFT_ESPI_FOLDER=`dirname $M5STACK_TFT_ESPI_CPP`
          cd SWRasterizer
-         #patch $M5STACK_TFT_ESPI_CPP libraries/M5Stack/src/M5Stack.patch
        ;;
 
-      
+
        'M5Stack-SetWiFi_Mic')
          echo "Duplicating Meta";
          cp -Ruf microSD/jpg $M5_SD_BUILD_DIR/
          cp -Ruf microSD/json $M5_SD_BUILD_DIR/
        ;;
-      
-      
+
        'd_invader')
          echo "Should replace esp_deep_sleep => esp_sleep"
          # esp_deep_sleep => esp_sleep
