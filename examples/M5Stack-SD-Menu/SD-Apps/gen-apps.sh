@@ -243,7 +243,7 @@ for D in *; do
     #  echo "**** Bad exit status"
     #fi
     ls $M5_SD_BUILD_DIR -la;
-    cd ..
+    cd $SDAPP_FOLDER
   fi
 done
 
