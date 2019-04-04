@@ -97,7 +97,7 @@ for D in *; do
         export hidecompilelogs=1
       ;;
       
-      'LovyanToyBox')
+      'M5Stack_LovyanToyBox')
         export hidecompilelogs=0
         cd LovyanToyBox
       ;;
@@ -113,7 +113,7 @@ for D in *; do
 
       case "$D" in
 
-       'LovyanToyBox')
+       'M5Stack_LovyanToyBox')
          export hidecompilelogs=0
          cd LovyanToyBox
        ;;
