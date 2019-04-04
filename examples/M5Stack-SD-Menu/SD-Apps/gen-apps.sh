@@ -111,8 +111,8 @@ for D in *; do
 
     else
 
+      export hidecompilelogs=1
       case "$D" in
-
        'M5Stack_LovyanToyBox')
          export hidecompilelogs=1
          cd LovyanToyBox
@@ -120,7 +120,7 @@ for D in *; do
 
 
        'M5StackSandbox')
-         export hidecompilelogs=0
+         export hidecompilelogs=1
          cd SWRasterizer
        ;;
 
