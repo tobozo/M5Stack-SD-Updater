@@ -97,6 +97,12 @@ for D in *; do
         sed -i -e 's/ILI9341/M5Display/g' Mover.cpp # https://github.com/neoxharsh/Pixel-Fun-M5Stack/issues/1
         #export hidecompilelogs=0
       ;;
+      
+      'LovyanToyBox')
+        export hidecompilelogs=0
+        cd LovyanToyBox
+      ;;
+      
       #*)
       #;;
       esac
@@ -105,6 +111,12 @@ for D in *; do
     else
 
       case "$D" in
+      
+       'M5StackSandbox')
+         export hidecompilelogs=0
+         cd SWRasterizer
+       ;;
+
       
        'M5Stack-SetWiFi_Mic')
          echo "Duplicating Meta";
