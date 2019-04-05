@@ -111,7 +111,7 @@ for D in *; do
         ;;
 
         'M5Tube')
-          export hidecompilelogs=0
+          #export hidecompilelogs=0
         ;;
 
         #*)
