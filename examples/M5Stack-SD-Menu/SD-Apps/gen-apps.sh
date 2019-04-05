@@ -104,6 +104,14 @@ for D in *; do
         cd LovyanToyBox
       ;;
 
+      'M5Stack-SetWiFi_Mic')
+         echo "Duplicating Meta";
+         cp -Rf microSD/jpg $M5_SD_BUILD_DIR/
+         cp -Rf microSD/json $M5_SD_BUILD_DIR/
+      ;;
+
+
+
       #*)
       #;;
       esac
@@ -125,11 +133,11 @@ for D in *; do
        ;;
 
 
-       'M5Stack-SetWiFi_Mic')
-         echo "Duplicating Meta";
-         cp -Rf microSD/jpg $M5_SD_BUILD_DIR/
-         cp -Rf microSD/json $M5_SD_BUILD_DIR/
-       ;;
+       #'M5Stack-SetWiFi_Mic')
+       #  echo "Duplicating Meta";
+       #  cp -Rf microSD/jpg $M5_SD_BUILD_DIR/
+       #  cp -Rf microSD/json $M5_SD_BUILD_DIR/
+       #;;
 
        'd_invader')
          echo "Should replace esp_deep_sleep => esp_sleep"
