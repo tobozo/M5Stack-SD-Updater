@@ -127,8 +127,8 @@ for D in *; do
 
        'M5Stack-SetWiFi_Mic')
          echo "Duplicating Meta";
-         cp -Ruf microSD/jpg $M5_SD_BUILD_DIR/
-         cp -Ruf microSD/json $M5_SD_BUILD_DIR/
+         cp -Rf microSD/jpg $M5_SD_BUILD_DIR/
+         cp -Rf microSD/json $M5_SD_BUILD_DIR/
        ;;
 
        'd_invader')
