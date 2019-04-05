@@ -2,7 +2,6 @@
 #include "certificates.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
-//#include <time.h> // https://github.com/PaulStoffregen/Time
 #include <WiFi.h>
 #include "mbedtls/md.h"
 
@@ -24,6 +23,10 @@ uint8_t progress = 0;
 float progress_modulo = 0;
 bool wifisetup = false;
 bool ntpsetup = false;
+
+const char* registryURL = "https://phpsecu.re/m5stack/sd-updater/registry.json";
+
+
 const String API_URL = "https://phpsecu.re/m5stack/sd-updater/";
 const String API_ENDPOINT = "catalog.json";
 mbedtls_md_context_t ctx;
@@ -215,7 +218,7 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
 
 
 
-void wget(String bin_url, String appName, const char* &ca) {
+void wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
   renderDownloadIcon( GREEN );
   Serial.printf("#> wget %s --output-document=%s ", bin_url.c_str(), appName.c_str());
   if( bin_url.startsWith("https://") ) {
@@ -415,7 +418,7 @@ void getApp(String appURL, const char* &ca) {
       tft.print( WGET_CREATING );
     }
 
-    wget(base_url + filePath + fileName, tempFileName, phpsecure_ca);
+    wget(base_url + filePath + fileName, tempFileName, true, phpsecu_re_ca);
     
     if( shaResultStr.equals( sha_sum ) ) {
       checkedfiles++;
@@ -519,7 +522,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
     tft.setTextColor( WHITE, tft.color565(128,128,128) );
     tft.setCursor(10, 36);
     tft.print( appName );
-    getApp( appURL, phpsecure_ca );
+    getApp( appURL, phpsecu_re_ca );
     delay(300);
   }
   M5Menu.windowClr();
@@ -619,7 +622,7 @@ void enableNTP() {
   tft.setTextColor(WHITE, tft.color565(128,128,128));
   tft.println("Contacting NTP Server");
   tft.drawJpg( ntp_jpeg, ntp_jpeg_len, 144, 104, 32, 32 );
-  configTime(3600*timezone, daysavetime*3600, "pool.ntp.org", "asia.pool.ntp.org", "europe.pool.ntp.org");
+  configTime(timezone*3600, daysavetime*3600, "pool.ntp.org", "asia.pool.ntp.org", "europe.pool.ntp.org");
   struct tm tmstruct ;
   tmstruct.tm_year = 0;
   getLocalTime(&tmstruct, 5000);
@@ -638,7 +641,7 @@ void updateAll() {
   if( wifisetup ) {
     enableNTP();
     while(!done) {
-      syncAppRegistry(API_URL, phpsecure_ca);
+      syncAppRegistry(API_URL, phpsecu_re_ca );
     }
   }
 }

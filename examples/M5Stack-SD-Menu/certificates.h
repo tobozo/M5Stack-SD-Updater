@@ -1,6 +1,15 @@
 /*
- 
-  openssl s_client -showcerts -connect github.com:443 </dev/null 
+
+  ssl_host="phpsecure.info" && \
+    prefix="const char* ${ssl_host//[^a-zA-Z0-9]/_}_ca =\\" && \
+    suffix="\"\";" && \
+    echo $prefix > $ssl_host.txt && \
+    openssl s_client -showcerts -connect $ssl_host:443 </dev/null | \
+    sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | \
+    awk '{print "\"" $0 "\\n\"\\"}' >> $ssl_host.txt && \
+    echo $suffix >> $ssl_host.txt &&
+    cat $ssl_host.txt
+    
  
 Certificate chain
  0 s:/businessCategory=Private Organization/jurisdictionC=US/jurisdictionST=Delaware/serialNumber=5157550/C=US/ST=California/L=San Francisco/O=GitHub, Inc./CN=github.com
@@ -80,8 +89,10 @@ const char* github_ca =\
 "2sPIoc4sUqIAY+tzunHISScjl2SFnjgOrWNoPLpSgVh5oywM395t6zHyuqB8bPEs\n"\
 "1OG9d4Q3A84ytciagRpKkk47RpqF/oOi+Z6Mo8wNXrM9zwR4jxQUezKcxwCmXMS1\n"\
 "oVWNWlZopCJwqjyBcdmdqEU79OX2olHdx3ti6G8MdOu42vi/hw15UJGQmxg7kVkn\n"\
-"8TUoE6smftX3eg==\n" \
-"-----END CERTIFICATE-----\n" ;
+"8TUoE6smftX3eg==\n"\
+"-----END CERTIFICATE-----\n"\
+
+"";
 
 
 /*
@@ -94,47 +105,39 @@ Certificate chain
 */
 
 
-const char* phpsecure_ca =\
+const char* phpsecu_re_ca =\
 "-----BEGIN CERTIFICATE-----\n"\
-"MIIGNTCCBR2gAwIBAgISA3ofMrol1nX1ihUcRYtUn/MdMA0GCSqGSIb3DQEBCwUA\n"\
+"MIIFmTCCBIGgAwIBAgISA07S9G1tcSqoXPt3V5tkg/0/MA0GCSqGSIb3DQEBCwUA\n"\
 "MEoxCzAJBgNVBAYTAlVTMRYwFAYDVQQKEw1MZXQncyBFbmNyeXB0MSMwIQYDVQQD\n"\
-"ExpMZXQncyBFbmNyeXB0IEF1dGhvcml0eSBYMzAeFw0xODA0MDkxNzAwMzJaFw0x\n"\
-"ODA3MDgxNzAwMzJaMBkxFzAVBgNVBAMTDnBocHNlY3VyZS5pbmZvMIIBIjANBgkq\n"\
-"hkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsOLbJobGukFAcdYB65m5s0fYK8gpZL3a\n"\
-"MgfTKptvpdrmVWQyNI0ZXHlmlw6hEmhumCshdBgrGbozNzAGjTZG/NhTwcdFxwoq\n"\
-"9WcFwEW3X9kQ4NNNZIJ9oKvho/KQfBXtS/EJMmNKP6bwC0amXF7QMXwHOtsZ7r0B\n"\
-"JdVWvXW9YDQOFIG3+Lnov99MscVx+2CrOJLD/dwAclqvN249HSfIJToVxP4upYRK\n"\
-"GHV+UFJCRRqs/50PlDnQd9ehoQa2xZUzNoRHQv3FTJNtSb5LeMI1gsFcC3otWsbv\n"\
-"Mxo1bVLxsvgoRxfJLIZ57XpjFB4KFyzUz0SKYbM4OlVa2m5kNPOaNwIDAQABo4ID\n"\
-"RDCCA0AwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEF\n"\
-"BQcDAjAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBQdFk19e4dSavVQllzQH+cKoU9r\n"\
-"CzAfBgNVHSMEGDAWgBSoSmpjBH3duubRObemRWXv86jsoTBvBggrBgEFBQcBAQRj\n"\
+"ExpMZXQncyBFbmNyeXB0IEF1dGhvcml0eSBYMzAeFw0xOTAyMDQxODAwMTdaFw0x\n"\
+"OTA1MDUxODAwMTdaMBkxFzAVBgNVBAMTDnBocHNlY3VyZS5pbmZvMIIBIjANBgkq\n"\
+"hkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArIn36ItK3gloILk29t/Edg199/jS/JVh\n"\
+"8yDSKap6ArptW50IoJQm3wgrDdVzdXDWIhUpx9vGedmHlh/4vzhlL4ESkZ/PEdPr\n"\
+"STl96pbVCg2XZfI0BFSCM/J4O+6VvTf3LyhdyssVXyQ69r5r9UNCScBuqtt2WxyH\n"\
+"u4EQmFAVhpXlC+Q1AxulXD/LAwd0eAUdRyGHUxwv9mX6i/f1wRhg+0GaS+fHHcGm\n"\
+"IlP2Lql+7p1/fvLhgvq7pAdpV120OqpingluFKDIgh97ZJbrIPkyWk8gv/WqMa7t\n"\
+"uPxN2j7feCEQ9pK8V3ijhr4iuUBUcH9PWClma8G6RfQ+KkK/ltveCwIDAQABo4IC\n"\
+"qDCCAqQwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEF\n"\
+"BQcDAjAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBR7tgXuR4+QJ/bDoxOKNyOiWO7X\n"\
+"gTAfBgNVHSMEGDAWgBSoSmpjBH3duubRObemRWXv86jsoTBvBggrBgEFBQcBAQRj\n"\
 "MGEwLgYIKwYBBQUHMAGGImh0dHA6Ly9vY3NwLmludC14My5sZXRzZW5jcnlwdC5v\n"\
 "cmcwLwYIKwYBBQUHMAKGI2h0dHA6Ly9jZXJ0LmludC14My5sZXRzZW5jcnlwdC5v\n"\
-"cmcvMEkGA1UdEQRCMECCCnBocHNlY3UucmWCDnBocHNlY3VyZS5pbmZvgg53d3cu\n"\
-"cGhwc2VjdS5yZYISd3d3LnBocHNlY3VyZS5pbmZvMIH+BgNVHSAEgfYwgfMwCAYG\n"\
-"Z4EMAQIBMIHmBgsrBgEEAYLfEwEBATCB1jAmBggrBgEFBQcCARYaaHR0cDovL2Nw\n"\
-"cy5sZXRzZW5jcnlwdC5vcmcwgasGCCsGAQUFBwICMIGeDIGbVGhpcyBDZXJ0aWZp\n"\
-"Y2F0ZSBtYXkgb25seSBiZSByZWxpZWQgdXBvbiBieSBSZWx5aW5nIFBhcnRpZXMg\n"\
-"YW5kIG9ubHkgaW4gYWNjb3JkYW5jZSB3aXRoIHRoZSBDZXJ0aWZpY2F0ZSBQb2xp\n"\
-"Y3kgZm91bmQgYXQgaHR0cHM6Ly9sZXRzZW5jcnlwdC5vcmcvcmVwb3NpdG9yeS8w\n"\
-"ggECBgorBgEEAdZ5AgQCBIHzBIHwAO4AdQDbdK/uyynssf7KPnFtLOW5qrs294Rx\n"\
-"g8ddnU83th+/ZAAAAWKrkQpwAAAEAwBGMEQCIGt/89eC/unPBtue8FKjFvqcsJVQ\n"\
-"uiB3ay9cSv2cP/ILAiB8E/cHI739VezdXRw/PtUHg1aK8HUTj+0bK/s9Q/KiMwB1\n"\
-"ACk8UZZUyDlluqpQ/FgH1Ldvv1h6KXLcpMMM9OVFR/R4AAABYquRC1sAAAQDAEYw\n"\
-"RAIgZP9DskCyo5fOgrW5fG/k641Y7nRxoGa32UEssR0bb0kCIC/P4Jwd6Zna/MEM\n"\
-"bkvltWROIQTAXDK/n2gVgmsO9QvGMA0GCSqGSIb3DQEBCwUAA4IBAQAx4WZvKrTX\n"\
-"Pb6d/qBWIUGilIkhkJUlT99GB+2DZR9spJ+1N/NG0qZq6/uAuhmqdX/N1lgqLDP3\n"\
-"UI542be9S1at2VVW7j9hbIsJsr3r3WOeyujafWYKEX0aEFA7vG+PuPovZV7U81CM\n"\
-"sqovuPf+y8Yn0atV8StivRAYwgLQ6HX/Kj9V2oW1Mq1O5JZdcQXtcATZ80Y6xon3\n"\
-"YB2sTZBCM1+CVVczwQY2Uk9sEh8TuhXuWE8mrhyQAs/U3Eqxi0aiPD8uV9xubf0B\n"\
-"xV6BJEFL4I3eBu+no1wvmLTHgCvlVgfjnZv0Ee5nXzhtTnAw1xOg+GzvEJn4bsE+\n"\
-"9TrKWsvP0WCv\n"\
+"cmcvMF4GA1UdEQRXMFWCE21haWwucGhwc2VjdXJlLmluZm+CCnBocHNlY3UucmWC\n"\
+"DnBocHNlY3VyZS5pbmZvgg53d3cucGhwc2VjdS5yZYISd3d3LnBocHNlY3VyZS5p\n"\
+"bmZvMEwGA1UdIARFMEMwCAYGZ4EMAQIBMDcGCysGAQQBgt8TAQEBMCgwJgYIKwYB\n"\
+"BQUHAgEWGmh0dHA6Ly9jcHMubGV0c2VuY3J5cHQub3JnMIIBBAYKKwYBBAHWeQIE\n"\
+"AgSB9QSB8gDwAHYAdH7agzGtMxCRIZzOJU9CcMK//V5CIAjGNzV55hB7zFYAAAFo\n"\
+"ueHsDgAABAMARzBFAiEAizC//cJkynkF8+GDEjKE8KqfeMcIhgFliO4EPG1zw2IC\n"\
+"IEMre4WA8O6+Mqv4J8MU04zzDZ3lFLlwscDs5b2V0OF9AHYAY/Lbzeg7zCzPC3KE\n"\
+"J1drM6SNYXePvXWmOLHHaFRL2I0AAAFoueHsCQAABAMARzBFAiACIjUK2/fpfFsd\n"\
+"n8pDvDtBEdhnt2L4MLANpXTD+INK0QIhAMpSKmoOnLnIXJHdr7iVbg7rYs7iP8yF\n"\
+"5HsMzggWhGgRMA0GCSqGSIb3DQEBCwUAA4IBAQBIrLITsR5pP9b7YVics3x4BB0N\n"\
+"IxUZMFZfA1+on23ZkRnWVzENIbmIhlCbwpz2qUIY6nZgm13OsqZ3XL7lRIDnyfSa\n"\
+"z3JJQmedPL4Mh5QYok02jPZWj5n+RmOrZOI57TquGojFSqPWigUpS5cFbr4I6TWO\n"\
+"f8D30tw5npbjTfIP4+Tcn9xiivx75kpp4wnhtWwH+4WrTM4zmiFij/GhC66tW0ZV\n"\
+"nXynRxI/RjfPNd43aL9ox9F+R/xumay+QTBVakEh0Y0VMXzZ3ShA6LXZGER0eHJG\n"\
+"g+Rd8B0E9Z1Cxi/HYxxJHewzh0jtduCVuIoIRFe/aDu/EHE1B3wJMDw3Wqhw\n"\
 "-----END CERTIFICATE-----\n"\
-/*
- 1 s:/C=US/O=Let's Encrypt/CN=Let's Encrypt Authority X3
-   i:/O=Digital Signature Trust Co./CN=DST Root CA X3
-*/
 "-----BEGIN CERTIFICATE-----\n"\
 "MIIEkjCCA3qgAwIBAgIQCgFBQgAAAVOFc2oLheynCDANBgkqhkiG9w0BAQsFADA/\n"\
 "MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT\n"\
@@ -161,4 +164,5 @@ const char* phpsecure_ca =\
 "X4Po1QYz+3dszkDqMp4fklxBwXRsW10KXzPMTZ+sOPAveyxindmjkW8lGy+QsRlG\n"\
 "PfZ+G6Z6h7mjem0Y+iWlkYcV4PIWL1iwBi8saCbGS5jN2p8M+X+Q7UNKEkROb3N6\n"\
 "KOqkqm57TH2H3eDJAkSnh6/DNFu0Qg==\n"\
-"-----END CERTIFICATE-----\n";
+"-----END CERTIFICATE-----\n"\
+"";

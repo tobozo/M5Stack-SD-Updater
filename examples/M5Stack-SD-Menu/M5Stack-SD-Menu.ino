@@ -104,10 +104,10 @@
  * 
  */
 bool migrateSPIFFS = false;
-const uint8_t extensionsCount = 4; // change this if you add / remove an extension
+const uint8_t extensionsCount = 5; // change this if you add / remove an extension
 String allowedExtensions[extensionsCount] = {
     // do NOT remove jpg and json or the menu will crash !!!
-    "jpg", "json", "mod", "mp3"
+    "jpg", "json", "mod", "mp3", "cert"
 };
 String appDataFolder = "/data"; // if an app needs spiffs data, it's stored here
 String launcherSignature = "Launcher.bin"; // app with name ending like this can overwrite menu.bin
@@ -948,7 +948,7 @@ void loop() {
           return;
         }
       }
-      sdUpdater.updateFromFS( M5_FS, fileInfo[ M5Menu.getListID() ].fileName );
+      sdUpdater.updateFromFS( M5_FS, fileInfo[MenuID].fileName );
       ESP.restart();
     break;
     default:
