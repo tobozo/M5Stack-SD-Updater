@@ -91,29 +91,28 @@ for D in *; do
 
       case "$D" in
 
-      'Pixel-Fun-M5Stack')
-        echo "Renaming $D ino file"
-        mv PixelFun.ino Pixel-Fun-M5Stack.ino
-        sed -i -e 's/ILI9341/M5Display/g' Mover.cpp # https://github.com/neoxharsh/Pixel-Fun-M5Stack/issues/1
-        #export hidecompilelogs=0
-        export hidecompilelogs=1
-      ;;
+        'Pixel-Fun-M5Stack')
+          echo "Renaming $D ino file"
+          mv PixelFun.ino Pixel-Fun-M5Stack.ino
+          sed -i -e 's/ILI9341/M5Display/g' Mover.cpp # https://github.com/neoxharsh/Pixel-Fun-M5Stack/issues/1
+          #export hidecompilelogs=0
+          export hidecompilelogs=1
+        ;;
 
-      'M5Stack_LovyanToyBox')
-        export hidecompilelogs=1
-        cd LovyanToyBox
-      ;;
+        'M5Stack_LovyanToyBox')
+          export hidecompilelogs=1
+          cd LovyanToyBox
+        ;;
 
-      'M5Stack-SetWiFi_Mic')
-         echo "Duplicating Meta";
-         cp -Rf microSD/jpg $M5_SD_BUILD_DIR/
-         cp -Rf microSD/json $M5_SD_BUILD_DIR/
-      ;;
+        'M5Stack-SetWiFi_Mic')
+           echo "Duplicating Meta";
+           cp -Rf microSD/jpg $M5_SD_BUILD_DIR/
+           cp -Rf microSD/json $M5_SD_BUILD_DIR/
+        ;;
 
+        #*)
+        #;;
 
-
-      #*)
-      #;;
       esac
       export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
 
@@ -121,109 +120,114 @@ for D in *; do
 
       export hidecompilelogs=1
       case "$D" in
-       'M5Stack_LovyanToyBox')
-         export hidecompilelogs=1
-         cd LovyanToyBox
-       ;;
 
+        'M5Stack_LovyanToyBox')
+          export hidecompilelogs=1
+          cd LovyanToyBox
+        ;;
 
-       'M5StackSandbox')
-         export hidecompilelogs=1
-         cd SWRasterizer
-       ;;
+        'M5StackSandbox')
+           export hidecompilelogs=1
+           cd SWRasterizer
+        ;;
 
+        'M5Tube')
+          export hidecompilelogs=0
+        ;;
 
-       #'M5Stack-SetWiFi_Mic')
-       #  echo "Duplicating Meta";
-       #  cp -Rf microSD/jpg $M5_SD_BUILD_DIR/
-       #  cp -Rf microSD/json $M5_SD_BUILD_DIR/
-       #;;
+        'd_invader')
+           echo "Should replace esp_deep_sleep => esp_sleep"
+           # esp_deep_sleep => esp_sleep
+        ;;
+        'M5Stack_CrackScreen')
+          echo "Fixing path to crack.jpg"
+          sed -i 's/\/crack.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
+          cp crack.jpg $M5_SD_BUILD_DIR/jpg/crack.jpg
+        ;;
 
-       'd_invader')
-         echo "Should replace esp_deep_sleep => esp_sleep"
-         # esp_deep_sleep => esp_sleep
-       ;;
-       'M5Stack_CrackScreen')
-         echo "Fixing path to crack.jpg"
-         sed -i 's/\/crack.jpg/\/jpg\/crack.jpg/g' M5Stack_CrackScreen.ino
-         cp crack.jpg $M5_SD_BUILD_DIR/jpg/crack.jpg
-       ;;
+        'M5Stack-CrazyAsteroids')
+          cat Crazy_Asteroid.ino EntrySection.ino ExitSection.ino printAsteroid.ino printSpaceShip.ino > out.blah
+          rm *.ino
+          mv out.blah M5Stack-CrazyAsteroids.ino
+        ;;
 
-       'M5Stack-CrazyAsteroids')
-         cat Crazy_Asteroid.ino EntrySection.ino ExitSection.ino printAsteroid.ino printSpaceShip.ino > out.blah
-         rm *.ino
-         mv out.blah M5Stack-CrazyAsteroids.ino
-       ;;
+        'M5Stack_Particle_demo')
+          # this is an Arduino compatible Platformio project
+          mv main.cpp M5Stack_Particle_demo.ino
+          sed -i -e 's/define LCD_WIDTH 320/define LCD_WIDTH M5.Lcd.width() \/\//g' M5Stack_Particle_demo.ino
+          sed -i -e 's/define LCD_HEIGHT 240/define LCD_HEIGHT M5.Lcd.height() \/\//g' M5Stack_Particle_demo.ino
+        ;;
 
-       'M5Stack_Particle_demo')
-         # this is an Arduino compatible Platformio project
-         mv main.cpp M5Stack_Particle_demo.ino
-         sed -i -e 's/define LCD_WIDTH 320/define LCD_WIDTH M5.Lcd.width() \/\//g' M5Stack_Particle_demo.ino
-         sed -i -e 's/define LCD_HEIGHT 240/define LCD_HEIGHT M5.Lcd.height() \/\//g' M5Stack_Particle_demo.ino
-       ;;
+        'M5Stack_WebRadio_Avator')
+          echo "Patching esp8266Audio with getLevel()"
+          sed -i -e 's/bool SetOutputModeMono/int getLevel();\nbool  SetOutputModeMono/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.h
+          sed -i -e 's/include "AudioOutputI2S.h"/include "AudioOutputI2S.h"\n\n int aout_level = 0; int AudioOutputI2S::getLevel() { return aout_level; }/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
+          sed -i -e 's/int16_t l/aout_level = (int)sample[RIGHTCHANNEL];\nint16_t  l/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
+        ;;
 
-       'M5Stack_WebRadio_Avator')
-         echo "Patching esp8266Audio with getLevel()"
-         sed -i -e 's/bool SetOutputModeMono/int getLevel();\nbool  SetOutputModeMono/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.h
-         sed -i -e 's/include "AudioOutputI2S.h"/include "AudioOutputI2S.h"\n\n int aout_level = 0; int AudioOutputI2S::getLevel() { return aout_level; }/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
-         sed -i -e 's/int16_t l/aout_level = (int)sample[RIGHTCHANNEL];\nint16_t  l/g' ~/Arduino/libraries/ESP8266Audio-master/src/AudioOutputI2S.cpp
-       ;;
+        'M5Stack-WiFiScanner')
+          # remove unnecessary include causing an error
+          sed -i -e 's/#include <String.h>/\/\//g' M5Stack-WiFiScanner.ino
+        ;;
 
-       'M5Stack-WiFiScanner')
-         # remove unnecessary include causing an error
-         sed -i -e 's/#include <String.h>/\/\//g' M5Stack-WiFiScanner.ino
-       ;;
-       #'M5Stack-MegaChess')
-       #  # fix rotation problem caused by display driver changes (now applied globally)
-       #  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' arduinomegachess_for_m5stack.ino
-       #;;
-#      'M5Stack-Pacman-JoyPSP')
-#      ;;
-#      'M5Stack-SpaceShooter')
-#      ;;
-#      'M5Stack-ESP32-Oscilloscope')
-#      ;;
-#      'M5Stack-NyanCat')
-#      ;;
-#      'M5Stack-Rickroll')
-#      ;;
-      'M5Stack_NyanCat_Ext')
-        echo "Renaming file to prevent namespace collision"
-        mv M5Stack_NyanCat.ino M5Stack_NyanCat_Ext.ino
-        wget https://github.com/jimpo/nyancat/raw/master/nyancat.mp3 --output-document=$M5_SD_BUILD_DIR/mp3/NyanCat.mp3
-        sed -i 's/\/NyanCat.mp3/\/mp3\/NyanCat.mp3/g' M5Stack_NyanCat_Ext.ino
-      ;;
+        #'M5Stack-MegaChess')
+        #  # fix rotation problem caused by display driver changes (now applied globally)
+        #  sed -i -e 's/M5.Lcd.setRotation(0);/\/\//g' arduinomegachess_for_m5stack.ino
+        #;;
+        #'M5Stack-Pacman-JoyPSP')
+        #;;
+        #'M5Stack-SpaceShooter')
+        #;;
+        #'M5Stack-ESP32-Oscilloscope')
+        #;;
+        #'M5Stack-NyanCat')
+        #;;
+        #'M5Stack-Rickroll')
+        #;;
 
-      'M5Stack_lifegame')
-        echo "Renaming file to .ino"
-        mv M5Stack_lifegame M5Stack_lifegame.ino
-      ;;
-      'M5Stack-Tetris')
-         echo "Renaming Tetris to M5Stack-Tetris + changing path to bg image"
-         mv Tetris.ino M5Stack-Tetris.ino
-         sed -i 's/\/tetris.jpg/\/jpg\/tetris_bg.jpg/g' M5Stack-Tetris.ino
-         cp tetris.jpg $M5_SD_BUILD_DIR/jpg/tetris_bg.jpg
-      ;;
-#      'SpaceDefense-m5stack')
-#      ;;
+        'M5Stack_NyanCat_Ext')
+          echo "Renaming file to prevent namespace collision"
+          mv M5Stack_NyanCat.ino M5Stack_NyanCat_Ext.ino
+          wget https://github.com/jimpo/nyancat/raw/master/nyancat.mp3 --output-document=$M5_SD_BUILD_DIR/mp3/NyanCat.mp3
+          sed -i 's/\/NyanCat.mp3/\/mp3\/NyanCat.mp3/g' M5Stack_NyanCat_Ext.ino
+        ;;
 
-      'M5Stack_FlappyBird_game')
-        # put real comments prevent syntax error
-        sed -i -e 's/#By Ponticelli Domenico/\/\/By Ponticelli Domenico/g' M5Stack_FlappyBird.ino
-      ;;
-#      'M5Stack-PacketMonitor')
-#      ;;
-#      'M5Stack_Sokoban')
-#      ;;
-      'M5Stack-Thermal-Camera')
-         echo "Renaming to M5Stack-Thermal-Camera.ino"
-         mv thermal_cam_interpolate.ino M5Stack-Thermal-Camera.ino
-      ;;
-      'mp3-player-m5stack')
-        echo "Changing mp3 path in sketch"
-        # TODO: fix this
-        sed -i 's/createTrackList("\/")/createTrackList("\/mp3\/")/g' mp3-player-m5stack.ino
-      ;;
+        'M5Stack_lifegame')
+          echo "Renaming file to .ino"
+          mv M5Stack_lifegame M5Stack_lifegame.ino
+        ;;
+
+        'M5Stack-Tetris')
+          echo "Renaming Tetris to M5Stack-Tetris + changing path to bg image"
+          mv Tetris.ino M5Stack-Tetris.ino
+          sed -i 's/\/tetris.jpg/\/jpg\/tetris_bg.jpg/g' M5Stack-Tetris.ino
+          cp tetris.jpg $M5_SD_BUILD_DIR/jpg/tetris_bg.jpg
+        ;;
+
+        #'SpaceDefense-m5stack')
+        #;;
+
+        'M5Stack_FlappyBird_game')
+          # put real comments to prevent syntax error
+          sed -i -e 's/#By Ponticelli Domenico/\/\/By Ponticelli Domenico/g' M5Stack_FlappyBird.ino
+        ;;
+
+        #'M5Stack-PacketMonitor')
+        #;;
+        #'M5Stack_Sokoban')
+        #;;
+
+        'M5Stack-Thermal-Camera')
+           echo "Renaming to M5Stack-Thermal-Camera.ino"
+           mv thermal_cam_interpolate.ino M5Stack-Thermal-Camera.ino
+        ;;
+
+        'mp3-player-m5stack')
+          echo "Changing mp3 path in sketch"
+          # TODO: fix this
+          sed -i 's/createTrackList("\/")/createTrackList("\/mp3\/")/g' mp3-player-m5stack.ino
+        ;;
+
       esac
       export PATH_TO_INO_FILE="$(find ${SDAPP_FOLDER}/${D} -type f -iname *.ino)";
       injectupdater # $PATH_TO_INO_FILE
