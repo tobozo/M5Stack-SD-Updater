@@ -110,6 +110,10 @@ for D in *; do
            cp -Rf microSD/json $M5_SD_BUILD_DIR/
         ;;
 
+        'M5Tube')
+          export hidecompilelogs=0
+        ;;
+
         #*)
         #;;
 
@@ -129,10 +133,6 @@ for D in *; do
         'M5StackSandbox')
            export hidecompilelogs=1
            cd SWRasterizer
-        ;;
-
-        'M5Tube')
-          export hidecompilelogs=0
         ;;
 
         'd_invader')
