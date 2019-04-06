@@ -38,16 +38,6 @@ install:
 
 script:
 
-  - arduino --pref "compiler.warning_level=none" --save-prefs
-  - arduino --pref "build.warn_data_percentage=75" --save-prefs
-  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
-  - find /tmp -name \*.partitions.bin -exec rm {} \; #
-  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/TobozoLauncher.bin \; #
-  - cp $M5_SD_BUILD_DIR/TobozoLauncher.bin $M5_SD_BUILD_DIR/menu.bin
-  - echo "Fake Binary" >> $M5_SD_BUILD_DIR/Downloader.bin
-  - echo "Main APPs Compilation successful, now compiling deps"
-  - cd $SDAPP_FOLDER
-
   #- cd $TRAVIS_BUILD_DIR;
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
@@ -56,6 +46,16 @@ script:
   - ./get-deps.sh
   - ls ~/Arduino/libraries -la
   - rm *.zip
+
+  - arduino --pref "compiler.warning_level=none" --save-prefs
+  - arduino --pref "build.warn_data_percentage=75" --save-prefs
+  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
+  - find /tmp -name \*.partitions.bin -exec rm {} \; #
+  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/TobozoLauncher.bin \; #
+  - cp $M5_SD_BUILD_DIR/TobozoLauncher.bin $M5_SD_BUILD_DIR/menu.bin
+  - echo "Fake Binary" >> $M5_SD_BUILD_DIR/Downloader.bin
+  - echo "Main APPs Compilation successful, now compiling deps"
+
   - cd $SDAPP_FOLDER
   - ./gen-apps.sh
   - echo "Fetching precompiled projects"
