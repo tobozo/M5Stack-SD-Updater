@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-if [ "TRAVIS_BRANCH" != "master" ]; then
+if [ "TRAVIS_BRANCH" != "unstable" ]; then
   # only rebuild all when master is updated
   echo "Skipping rebuild, will download last binaries"
   export LAST_SDAPP_FILE="SD-Apps-Folder.zip"
@@ -69,7 +69,13 @@ function populatemeta {
       sed -i -e "s/$DIRTY_FILE_BASENAME/$FILE_BASENAME/g" $JSONFILE &>/dev/null
     else
       echo "[++++] No $JSONFILE JSON Meta file found, creating from the ether"
-      echo "{\"width\":110,\"height\":110, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_URL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE
+      export $REPO_SHORTURL=`git.io $REPO_URL`
+      if [ "" != "$REPO_SHORTURL" ]; then
+        echo "{\"width\":110,\"height\":110, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_SHORTURL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE
+      else
+        echo "{\"width\":110,\"height\":110, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_URL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE  
+      fi
+      
     fi
   fi
   cat $JSONFILE
