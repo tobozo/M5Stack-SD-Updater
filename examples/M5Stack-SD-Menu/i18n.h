@@ -12,12 +12,14 @@
 
 #define MENU_TITLE F("SD CARD LOADER")
 #define MENU_SUBTITLE F("Applications")
-#define MENU_BTN_INFO F("INFO")
+#define MENU_BTN_INFO F("SELECT")
 #define MENU_BTN_SET F("SET")
 #define MENU_BTN_LOAD F("LOAD")
+#define MENU_BTN_LAUNCH F("LAUNCH")
+#define MENU_BTN_PAGE F(">>")
 #define MENU_BTN_NEXT F(">")
 
-#define ABOUT_THIS_MENU F("About This")
+#define ABOUT_THIS_MENU F("About This Launcher")
 
 #define AUTHOR_PREFIX F("By ")
 #define AUTHOR_SUFFIX F(" **")

@@ -32,7 +32,7 @@ const String API_ENDPOINT = "catalog.json";
 mbedtls_md_context_t ctx;
 mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 byte shaResult[32];
-static String shaResultStr = "f7ff9bcd52fee13ae7ebd6b4e3650a4d9d16f8f23cab370d5cdea291e5b6bba6"; // any string is good as long as it's 64 chars
+static String shaResultStr = "f7ff9bcd52fee13ae7ebd6b4e3650a4d9d16f8f23cab370d5cdea291e5b6bba6"; // cheap malloc: any string is good as long as it's 64 chars
 int downloadererrors = 0;
 int updatedfiles = 0;
 int newfiles = 0;
@@ -42,7 +42,6 @@ int checkedfiles = 0;
 
 bool modalConfirm( String question, String title, String body, const char* labelA=DOWNLOADER_MODAL_YES, const char* labelB=DOWNLOADER_MODAL_NO, const char* labelC=DOWNLOADER_MODAL_CANCEL ) {
   bool response = false;
-  //M5Menu.windowClr();
   tft.clear();
   M5Menu.drawAppMenu( question, labelA, labelB, labelC);
   tft.setTextSize( 1 );
@@ -62,10 +61,10 @@ bool modalConfirm( String question, String title, String body, const char* label
 
   switch( hidState ) {
     //case UI_UP
-    case UI_INFO:
+    case UI_SELECT:
       response = true;
     break;
-    case UI_LOAD:
+    case UI_PAGE:
     case UI_DOWN:
     default:
       // already false
@@ -77,6 +76,7 @@ bool modalConfirm( String question, String title, String body, const char* label
   M5.update();
   return response;
 }
+
 
 void printProgress(uint16_t progress) {
   uint16_t x = tft.getCursorX();
@@ -92,11 +92,9 @@ void printProgress(uint16_t progress) {
 
 void renderDownloadIcon(uint16_t color=GREEN, int16_t x=272, int16_t y=7, float size=2.0 ) {
   float halfsize = size/2;
-
   tft.fillTriangle(x,      y+2*size,   x+4*size, y+2*size,   x+2*size, y+5*size, color);
   tft.fillTriangle(x+size, y,          x+3*size, y,          x+2*size, y+5*size, color);
   tft.fillRect( x, -halfsize+y+6*size, 1+4*size, size, color);
-
 }
 
 
@@ -148,7 +146,6 @@ void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float siz
 }
 
 
-
 void drawAppMenu() {
   M5Menu.windowClr();
   M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "");
@@ -187,9 +184,7 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
     Serial.printf("  [ERROR] Can't open %s file for reading, aborting\n", fileName);
     return;
   }
-
   tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 125, 22, 32 );
-  
   uint8_t buff[4096] = { 0 };
   size_t sizeOfBuff = sizeof(buff);
   mbedtls_md_init(&ctx);
@@ -203,19 +198,12 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
     }
     len -= n;
   }
-
   tft.fillRect( 10, 125, 22, 32, tft.color565(128,128,128) );
-
   checkFile.close();
-
   mbedtls_md_finish(&ctx, shaResult);
   mbedtls_md_free(&ctx);
-
   sha_sum_to_str();
 }
-
-
-
 
 
 void wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
@@ -241,7 +229,6 @@ void wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
     http.end();
     return;
   }
-
   int len = http.getSize();
   if(len<=0) {
     downloadererrors++;
@@ -269,7 +256,6 @@ void wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
   unsigned long downwloadstart = millis();
 
   *shaResult = {0};
-   
   mbedtls_md_init(&ctx);
   mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
   mbedtls_md_starts(&ctx);
@@ -302,7 +288,6 @@ void wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
   sha_sum_to_str();
   tft.fillRect( 10, 125, 70, 32, tft.color565(128,128,128) );
   renderDownloadIcon( tft.color565(128,128,128) );
-  
   unsigned long dl_duration;
   float bytespermillis;
   dl_duration = ( millis() - downwloadstart );
@@ -393,7 +378,7 @@ void getApp(String appURL, const char* &ca) {
     tft.setCursor(10, 54+i*10);
     tft.print( fileName );
     Serial.printf( "  [%s]", fileName.c_str() );
-    
+
     if(M5_FS.exists( finalName )) {
       Serial.print("[SHA256 Sum ->][....");
       sha256_sum( M5_FS, finalName.c_str() );
@@ -419,7 +404,7 @@ void getApp(String appURL, const char* &ca) {
     }
 
     wget(base_url + filePath + fileName, tempFileName, true, phpsecu_re_ca);
-    
+
     if( shaResultStr.equals( sha_sum ) ) {
       checkedfiles++;
       if( M5_FS.exists( tempFileName ) ) {
@@ -444,7 +429,7 @@ void getApp(String appURL, const char* &ca) {
       tft.setTextColor(WHITE, tft.color565(128,128,128));
       M5_FS.remove( tempFileName );
     }
-    
+
     uint16_t myprogress = progress + (i* float(progress_modulo/assets_count));
     printProgress(myprogress);
   }
@@ -477,7 +462,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
     delay(10000);
     return;
   }
-  
+
   String payload = http.getString();
   http.end();
   renderDownloadIcon( TFT_GREEN, 140, 80, 10.0 );
@@ -538,7 +523,7 @@ void syncAppRegistry(String API_URL, const char* ca) {
 }
 
 
-
+/* dead code ? */
 void cleanDir() {
   tft.clear();
   tft.setCursor(0,0);
@@ -579,8 +564,6 @@ void cleanDir() {
 }
 
 
-
-
 void enableWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(); // set SSID/PASS from another app (i.e. WiFi Manager) and reload this app
@@ -607,7 +590,6 @@ void enableWiFi() {
       return;
     }
   }
-  
   tft.println( WIFI_MSG_CONNECTED );
   Serial.println( WIFI_MSG_CONNECTED );
   wifisetup = true;
@@ -631,7 +613,6 @@ void enableNTP() {
   // TODO: modal-confirm date
   tft.clear();
 }
-
 
 
 void updateAll() {

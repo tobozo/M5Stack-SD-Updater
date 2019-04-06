@@ -8,8 +8,8 @@ enum HIDSignal {
   UI_INERT = 0,
   UI_UP    = 1, // optional
   UI_DOWN  = 2,
-  UI_INFO  = 3,
-  UI_LOAD  = 4
+  UI_SELECT  = 3,
+  UI_PAGE  = 4
 };
 
 /* PSP JoyPad control plugin is provided as an example for custom controls.  */
@@ -27,9 +27,9 @@ enum HIDSignal {
 
 HIDSignal getControls() {
 
-  if(M5.BtnB.wasPressed()) return UI_LOAD;
+  if(M5.BtnB.wasPressed()) return UI_PAGE;
   if(M5.BtnC.wasPressed()) return UI_DOWN;
-  if(M5.BtnA.wasPressed()) return UI_INFO;
+  if(M5.BtnA.wasPressed()) return UI_SELECT;
 
   HIDSignal padValue = UI_INERT;
   
