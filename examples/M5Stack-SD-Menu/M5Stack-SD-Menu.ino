@@ -806,18 +806,17 @@ void setup() {
   //Serial.begin( 115200 );
   M5.begin();
   Serial.println( WELCOME_MESSAGE );
-  Serial.print( INIT_MESSAGE );
-  Serial.printf("M5StackSam loaded with %d labels per page, max %d items\n", M5SAM_LIST_PAGE_LABELS, M5SAM_LIST_MAX_COUNT);
+  Serial.println( INIT_MESSAGE );
+  Serial.printf( M5_SAM_MENU_SETTINGS, M5SAM_LIST_PAGE_LABELS, M5SAM_LIST_MAX_COUNT);
   //tft.begin();
-  
+
   if( digitalRead( BUTTON_A_PIN ) == 0 ) {
     Serial.println( GOTOSLEEP_MESSAGE );
     M5.setWakeupButton( BUTTON_B_PIN );
     M5.powerOFF();
   }
-  
-  tft.setBrightness(100);
 
+  tft.setBrightness(100);
   lastcheck = millis();
   bool toggle = true;
   tft.drawJpg(disk01_jpg, 1775, (tft.width()-30)/2, 100);
