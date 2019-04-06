@@ -6,6 +6,8 @@
 #- cp /tmp/M5Burner/firmwares/LovyanLauncher/LovyanLauncher.bin $M5_SD_BUILD_DIR/
 #- rm -Rf /tmp/M5Burner
 
+cd /tmp
+
 wget https://github.com/lovyan03/M5Stack_LovyanLauncher/archive/master.zip --output-document=M5Stack_LovyanLauncher.zip
 unzip -d /tmp M5Stack_LovyanLauncher.zip
 cp -Ruf /tmp/M5Stack_LovyanLauncher-master/LovyanLauncher/build/* $M5_SD_BUILD_DIR/
