@@ -38,16 +38,6 @@ install:
 
 script:
 
-  - cd $TRAVIS_BUILD_DIR;
-  - mkdir -p ~/Arduino/libraries
-  - ln -s $PWD ~/Arduino/libraries/.
-
-  - echo "Installing extra libraries"
-  - $SDAPP_FOLDER/get-deps.sh
-
-  - ls ~/Arduino/libraries -la
-  - rm *.zip
-
   - arduino --pref "compiler.warning_level=none" --save-prefs
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
   - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
@@ -57,6 +47,15 @@ script:
   - echo "Fake Binary" >> $M5_SD_BUILD_DIR/Downloader.bin
   - echo "Main APPs Compilation successful, now compiling deps"
   - cd $SDAPP_FOLDER
+
+  #- cd $TRAVIS_BUILD_DIR;
+  - mkdir -p ~/Arduino/libraries
+  - ln -s $PWD ~/Arduino/libraries/.
+
+  - echo "Installing extra libraries"
+  - ./get-deps.sh
+  - ls ~/Arduino/libraries -la
+  - rm *.zip
   - ./gen-apps.sh
   - echo "Fetching precompiled projects"
   - ./get-precompiled.sh
