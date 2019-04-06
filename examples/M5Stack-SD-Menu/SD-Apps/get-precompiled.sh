@@ -1,3 +1,6 @@
+#!/bin/bash
+
+
 #- curl -v --retry 5 "https://api.github.com/repos/lovyan03/M5Stack_LovyanLauncher/releases/latest?access_token=$GH_TOKEN" | jq -r "".assets[0].browser_download_url"" | wget --output-document=M5Burner.zip -i -
 #- unzip -d /tmp M5Burner.zip
 #- cp /tmp/M5Burner/firmwares/LovyanLauncher/LovyanLauncher.bin $M5_SD_BUILD_DIR/

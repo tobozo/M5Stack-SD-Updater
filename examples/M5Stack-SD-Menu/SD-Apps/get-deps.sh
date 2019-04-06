@@ -1,3 +1,5 @@
+#!/bin/bash
+
 wget https://github.com/adafruit/Adafruit_NeoPixel/archive/master.zip --output-document=Adafruit_NeoPixel.zip
 unzip -d ~/Arduino/libraries Adafruit_NeoPixel.zip
 
@@ -37,3 +39,4 @@ unzip -d ~/Arduino/libraries M5Stack_OnScreenKeyboard.zip
 wget https://github.com/kosme/arduinoFFT/archive/master.zip --output-document=arduinoFFT.zip
 unzip -d ~/Arduino/libraries arduinoFFT.zip
 
+rm -f *.zip
