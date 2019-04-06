@@ -1,5 +1,20 @@
 #!/bin/bash
 
+
+if [ "TRAVIS_BRANCH" != "master" ]; then
+  # only rebuild all when master is updated
+  echo "Skipping rebuild, will download last binaries"
+  export LAST_SDAPP_FILE="SD-Apps-Folder.zip"
+  curl -v --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases/latest?access_token=$GH_TOKEN" | jq -r ".assets[0].browser_download_url" | wget --output-document=$LAST_SDAPP_FILE -i -
+  if [ ! -f $LAST_SDAPP_FILE ]; then
+    exit 1
+  fi
+  unzip -d /tmp/$LAST_SDAPP_FILE $LAST_SDAPP_FILE
+  cp -Rf /tmp/$LAST_SDAPP_FILE/* $M5_SD_BUILD_DIR/
+  exit 0
+fi
+
+
 function movebin {
  find /tmp -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
  #find /tmp -name \*.ino.elf -exec rename 's/.ino.elf/.ino.bin/' {} \; # sometimes arduino produces ELF, sometimes it's BIN
