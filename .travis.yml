@@ -44,8 +44,6 @@ script:
 
   - echo "Installing extra libraries"
   - ./get-deps.sh
-  - ls ~/Arduino/libraries -la
-  - rm *.zip
 
   - arduino --pref "compiler.warning_level=none" --save-prefs
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
