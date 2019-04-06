@@ -35,6 +35,9 @@ install:
   - git submodule update --init --recursive
   - cd $SDAPP_FOLDER
   - git submodule foreach --recursive git pull origin master
+
+script:
+
   - cd $TRAVIS_BUILD_DIR;
   - mkdir -p ~/Arduino/libraries
   - ln -s $PWD ~/Arduino/libraries/.
@@ -45,7 +48,6 @@ install:
   - ls ~/Arduino/libraries -la
   - rm *.zip
 
-script:
   - arduino --pref "compiler.warning_level=none" --save-prefs
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
   - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
