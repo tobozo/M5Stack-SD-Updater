@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-if [ "$TRAVIS_BRANCH" != "unstable" ]; then
+if [ "$TRAVIS_BRANCH" != "master" ]; then
   # only rebuild all when master is updated
   echo "Skipping rebuild, will download last binaries"
   export LAST_SDAPP_FILE="SD-Apps-Folder.zip"
