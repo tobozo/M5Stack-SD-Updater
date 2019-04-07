@@ -32,81 +32,19 @@ before_install:
     fi
   
 install:
+  - gem install git.io
   - git submodule update --init --recursive
   - cd $SDAPP_FOLDER
   - git submodule foreach --recursive git pull origin master
   - cd $TRAVIS_BUILD_DIR;
   - mkdir -p ~/Arduino/libraries
-  - ln -s $PWD ~/Arduino/libraries/.
-
+  - ln -s $PWD ~/Arduino/libraries/.  
   - echo "Installing extra libraries"
-
-  - wget https://github.com/adafruit/Adafruit_NeoPixel/archive/master.zip --output-document=Adafruit_NeoPixel.zip
-  - unzip -d ~/Arduino/libraries Adafruit_NeoPixel.zip
-  - wget https://github.com/adafruit/Adafruit_AMG88xx/archive/1.0.2.zip --output-document=Adafruit_AMG88xx.zip
-  - unzip -d ~/Arduino/libraries Adafruit_AMG88xx.zip
-  - wget https://github.com/bblanchon/ArduinoJson/archive/6.x.zip --output-document=Arduinojson-master.zip
-  - unzip -d ~/Arduino/libraries Arduinojson-master.zip
-  #- wget https://github.com/tomsuch/M5StackSAM/archive/master.zip --output-document=M5StackSAM-master.zip
-  - wget https://github.com/tobozo/M5StackSAM/archive/patch-1.zip --output-document=M5StackSAM-master.zip
-  - unzip -d ~/Arduino/libraries M5StackSAM-master.zip
-
-  #- wget https://github.com/m5stack/M5Stack/archive/master.zip --output-document=M5Stack.zip
-  - curl -v --retry 5 "https://api.github.com/repos/M5Stack/M5Stack/releases/latest?access_token=$GH_TOKEN" | jq -r ".zipball_url" | wget --output-document=M5Stack.zip -i -
-  - unzip -d ~/Arduino/libraries M5Stack.zip
-  #- mv ~/Arduino/libraries/M5Stack-master ~/Arduino/libraries/M5Stack
-  - wget https://github.com/earlephilhower/ESP8266Audio/archive/master.zip --output-document=ESP8266Audio.zip
-  - unzip -d ~/Arduino/libraries ESP8266Audio.zip
-  - wget https://github.com/Seeed-Studio/Grove_BMP280/archive/1.0.1.zip --output-document=Grove_BMP280.zip
-  - unzip -d ~/Arduino/libraries Grove_BMP280.zip
-  - wget https://github.com/Gianbacchio/ESP8266_Spiram/archive/master.zip --output-document=ESP8266_Spiram.zip
-  - unzip -d ~/Arduino/libraries ESP8266_Spiram.zip
-  - wget http://www.buildlog.net/blog/wp-content/uploads/2018/02/Game_Audio.zip --output-document=Game_Audio.zip
-  - mkdir -p ~/Arduino/libraries/Game_Audio
-  - unzip -d ~/Arduino/libraries/Game_Audio Game_Audio.zip
-  - wget https://github.com/lovyan03/M5Stack_TreeView/archive/master.zip --output-document=M5Stack_TreeView.zip
-  #- mkdir -p ~/Arduino/libraries/M5TreeView
-  - unzip -d ~/Arduino/libraries M5Stack_TreeView.zip
-  - wget https://github.com/lovyan03/M5Stack_OnScreenKeyboard/archive/master.zip --output-document=M5Stack_OnScreenKeyboard.zip
-  #- mkdir -p ~/Arduino/libraries/M5OnScreenKeyboard
-  - unzip -d ~/Arduino/libraries M5Stack_OnScreenKeyboard.zip
-
-
-  #- curl -v --retry 5 "https://api.github.com/repos/lovyan03/M5Stack_LovyanLauncher/releases/latest?access_token=$GH_TOKEN" | jq -r "".assets[0].browser_download_url"" | wget --output-document=M5Burner.zip -i -
-  #- unzip -d /tmp M5Burner.zip
-  #- cp /tmp/M5Burner/firmwares/LovyanLauncher/LovyanLauncher.bin $M5_SD_BUILD_DIR/
-  #- rm -Rf /tmp/M5Burner
-
-  - echo "Fetching precompiled projects"
-
-  - wget https://github.com/lovyan03/M5Stack_LovyanLauncher/archive/master.zip --output-document=M5Stack_LovyanLauncher.zip
-  - unzip -d /tmp M5Stack_LovyanLauncher.zip
-  - cp -Ruf /tmp/M5Stack_LovyanLauncher-master/LovyanLauncher/build/* $M5_SD_BUILD_DIR/
-  - rm -Rf /tmp/M5Stack_LovyanLauncher-master
-
-  - wget https://github.com/robo8080/SD_Updater_TestData/archive/master.zip --output-document=SD-Apps.zip
-  - unzip -d /tmp SD-Apps.zip
-  - cp -uf /tmp/SD_Updater_TestData-master/*.bin $M5_SD_BUILD_DIR/
-  - cp -Ruf /tmp/SD_Updater_TestData-master/jpg $M5_SD_BUILD_DIR/
-  - cp -Ruf /tmp/SD_Updater_TestData-master/json $M5_SD_BUILD_DIR/
-  - rm -Rf /tmp/SD_Updater_TestData-master
-
-  - wget https://github.com/mongonta0716/M5Stack-Avatar-fugu1/archive/master.zip --output-document=M5Stack-Avatar-fugu1.zip
-  - unzip -d /tmp M5Stack-Avatar-fugu1.zip
-  - cp -Ruf /tmp/M5Stack-Avatar-fugu1-master/Avatar_fugu/jpg $M5_SD_BUILD_DIR/
-  - cp -Ruf /tmp/M5Stack-Avatar-fugu1-master/Avatar_fugu/json $M5_SD_BUILD_DIR/
-  - cp -Ruf /tmp/M5Stack-Avatar-fugu1-master/Avatar_fugu/*.bin $M5_SD_BUILD_DIR/
-  - rm -Rf /tmp/M5Stack-Avatar-fugu1-master
-
-  - wget https://github.com/EiichiroIto/m5apple2/archive/master.zip --output-document=m5apple2.zip
-  - unzip -d /tmp m5apple2.zip
-  - cp -Ruf /tmp/m5apple2-master/bin/* $M5_SD_BUILD_DIR/
-  - rm -Rf /tmp/m5apple2-master
-
-  - ls ~/Arduino/libraries -la
-  - rm *.zip
-
+  - cd $SDAPP_FOLDER
+  - ./get-deps.sh
+  
 script:
+  - cd $TRAVIS_BUILD_DIR;
   - arduino --pref "compiler.warning_level=none" --save-prefs
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
   - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
@@ -114,22 +52,12 @@ script:
   - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/TobozoLauncher.bin \; #
   - cp $M5_SD_BUILD_DIR/TobozoLauncher.bin $M5_SD_BUILD_DIR/menu.bin
   - echo "Fake Binary" >> $M5_SD_BUILD_DIR/Downloader.bin
-  
-#  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/M5Stack-YOLO-Downloader/M5Stack-YOLO-Downloader.ino &>/dev/null
-#  - find /tmp -name \*.partitions.bin -exec rm {} \; #
-#  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/Downloader.bin \; #
-  
-#  - cd ~/Arduino/libraries/M5TreeView-master/examples/SD-Updater/
-#  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD ./SD-Updater.ino &>/dev/null
-#  - find /tmp -name \*.partitions.bin -exec rm {} \; #
-#  - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/SD-Updater.bin \; #
-  
   - echo "Main APPs Compilation successful, now compiling deps"
+
   - cd $SDAPP_FOLDER
   - ./gen-apps.sh
-  #- find /tmp -name \*.bin -exec ls -lrt {} \; #<-- you need that backslash before and space after the semicolon
-  #- find /tmp -name \*.bin -exec cp {} $TRAVIS_BUILD_DIR/build/$BINNAME \; #<-- you need that backslash before and space after the semicolon
-  #- find $TRAVIS_BUILD_DIR/build -name \*.bin -exec ls -lrt {} \; #<-- you need that backslash before and space after the semicolon
+  - echo "Fetching precompiled projects"
+  - ./get-precompiled.sh
   - ls $M5_SD_BUILD_DIR/ -la
   - sleep 15 # give some time to the logs to come up  
 
@@ -177,3 +105,12 @@ notifications:
   email:
     on_success: never
     on_failure: always
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/2d1ffb10865e412333a9
+    on_success: change  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: never     # options: [always|never|change] default: always
+
+    
+    

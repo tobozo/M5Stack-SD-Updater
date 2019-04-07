@@ -95,6 +95,10 @@
 #include "controls.h"        // keypad / joypad / keyboard controls
 #include "downloader.h"      // binaries downloader module A.K.A YOLO Downloader
 // #undef DOWNLOADER_BIN // uncomment this to get rid of the downloader (also delete the Downloader.bin dummy file)
+#define SPI_FLASH_SEC_STEP8 SPI_FLASH_SEC_SIZE / 4
+#define MAX_BRIGHTNESS 100
+const unsigned long MS_BEFORE_SLEEP = 600000; // 600000 = 10mn 
+uint8_t brightness = MAX_BRIGHTNESS;
 
 /* 
  *  
@@ -104,10 +108,10 @@
  * 
  */
 bool migrateSPIFFS = false;
-const uint8_t extensionsCount = 4; // change this if you add / remove an extension
+const uint8_t extensionsCount = 5; // change this if you add / remove an extension
 String allowedExtensions[extensionsCount] = {
     // do NOT remove jpg and json or the menu will crash !!!
-    "jpg", "json", "mod", "mp3"
+    "jpg", "json", "mod", "mp3", "cert"
 };
 String appDataFolder = "/data"; // if an app needs spiffs data, it's stored here
 String launcherSignature = "Launcher.bin"; // app with name ending like this can overwrite menu.bin
@@ -147,6 +151,10 @@ unsigned long lastcheck = millis(); // timer check
 unsigned long lastpush = millis(); // keypad/keyboard activity
 uint16_t checkdelay = 300; // timer frequency
 uint16_t MenuID; // pointer to the current menu item selected
+uint16_t PageID;
+uint16_t Pages = 0;
+uint16_t PageIndex;
+
 int16_t scrollPointer = 0; // pointer to the scrollText position
 unsigned long lastScrollRender = micros(); // timer for scrolling
 String lastScrollMessage; // last scrolling string state
@@ -156,7 +164,6 @@ int16_t lastScrollOffset; // last scrolling string position
 void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta );
 void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
-
 
 
 void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta ) {
@@ -206,7 +213,6 @@ void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
     scrollPointer = 0;
     vsize = scrollPointer;
   }
-  
   while( tft.textWidth(scrollMe) < width ) {
     for( uint8_t i=0; i<scrollText.length(); i++ ) {
       char thisChar[2];
@@ -226,12 +232,10 @@ void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
       }
     }
   }
-
   // display trim
   while( tft.textWidth( scrollMe ) > width-voffset ) {
     scrollMe.remove( scrollMe.length()-1 );
   }
-
   // only draw if things changed
   if( scrollOffset!=lastScrollOffset || scrollMe!=lastScrollMessage ) {
     tft.setTextColor( WHITE, BLACK ); // setting background color removes the flickering effect
@@ -239,7 +243,6 @@ void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
     tft.print( scrollMe );
     tft.setTextColor( WHITE );
   }
-
   tft.setTextSize( 1 );
   lastScrollMessage = scrollMe;
   lastScrollOffset  = scrollOffset;
@@ -262,6 +265,7 @@ void renderIcon( uint16_t MenuID ) {
   renderIcon( fileInfo[MenuID] );
 }
 
+/* by file name */
 void renderFace( String face ) {
   tft.drawJpgFile( M5_FS, face.c_str(), 5, 85, 120, 120, 0, 0, JPEG_DIV_NONE );
 }
@@ -288,7 +292,6 @@ void renderMeta( JSONMeta &jsonMeta ) {
     tft.drawCentreString( jsonMeta.authorName,tft.width()/2,(tft.height()/2)-25,2 );
   }
 }
-
 
 
 /* give up on redundancy and ECC to produce less and bigger squares */
@@ -352,16 +355,13 @@ void getFileInfo( fs::FS &fs, File &file ) {
     // time is not set
   }
   Serial.println( "[" + String(fileDate) + "]" + String( DEBUG_FILELABEL ) + fileName );
-  
   fileInfo[appsCount].fileName = fileName;
   fileInfo[appsCount].fileSize = fileSize;
-
   #ifdef DOWNLOADER_BIN
   if( fileName.startsWith("/--") ) {
     fileName.replace("--", "");
   }
   #endif
-
   String currentIconFile = "/jpg" + fileName;
   currentIconFile.replace( ".bin", ".jpg" );
   if( fs.exists( currentIconFile.c_str() ) ) {
@@ -378,24 +378,20 @@ void getFileInfo( fs::FS &fs, File &file ) {
   if( fs.exists( currentDataFolder.c_str() ) ) {
     fileInfo[appsCount].hasData = true; // TODO: actually use this feature
   }
-  
   String currentMetaFile = "/json" + fileName;
   currentMetaFile.replace( ".bin", ".json" );
   if( fs.exists(currentMetaFile.c_str() ) ) {
     fileInfo[appsCount].hasMeta = true;
     fileInfo[appsCount].metaName = currentMetaFile;
   }
-  
   if( fileInfo[appsCount].hasMeta == true ) {
     getMeta( fs, fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta );
   }
-  
 }
 
 
 void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
   Serial.printf( String( DEBUG_DIRNAME ).c_str(), dirName );
-
   File root = fs.open( dirName );
   if( !root ){
     log_e( "%s", DEBUG_DIROPEN_FAILED );
@@ -405,7 +401,6 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
     log_e( "%s", DEBUG_NOTADIR );
     return;
   }
-
   File file = root.openNextFile();
   while( file ){
     if( file.isDirectory() ){
@@ -461,7 +456,6 @@ void aSortFiles() {
           // give it up :-)
         }
       }
-
       if ( name1 > name2 || name1==MENU_BIN ) {
         temp = fileInfo[i];
         fileInfo[i] = fileInfo[i + 1];
@@ -474,89 +468,101 @@ void aSortFiles() {
 
 
 void buildM5Menu() {
+  PageID = 0;
+  Pages = (appsCount / M5SAM_LIST_PAGE_LABELS) +1;
+  PageIndex = 0;
   M5Menu.clearList();
   M5Menu.setListCaption( MENU_SUBTITLE );
   for( uint16_t i=0; i < appsCount; i++ ) {
     String shortName = fileInfo[i].fileName.substring(1);
     shortName.replace( ".bin", "" );
-    
     if( shortName=="menu" ) {
       shortName = ABOUT_THIS_MENU;
     }
-    
     M5Menu.addList( shortName );
   }
 }
 
 
-
-
-
-void menuUp() {
-  MenuID = M5Menu.getListID();
-  if( MenuID > 0 ) {
-    MenuID--;
-  } else {
-    MenuID = appsCount-1;
+void drawM5Menu( bool renderButtons = false ) {
+  const char* paginationTpl = "%s (page %d / %d)";
+  char paginationStr[64];
+  sprintf(paginationStr, paginationTpl, MENU_SUBTITLE, PageID+1, Pages);
+  M5Menu.setListCaption( paginationStr );
+  if( renderButtons ) {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
   }
-  MenuID = M5Menu.getListID();
-  M5Menu.setListID( MenuID );
-
-  if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_SET, MENU_BTN_NEXT );
-  } else {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
-  }
-
   M5Menu.showList();
   renderIcon( MenuID );
+  PageID = MenuID / M5SAM_LIST_PAGE_LABELS;
+  PageIndex = MenuID % M5SAM_LIST_PAGE_LABELS;
   inInfoMenu = false;
   lastpush = millis();
 }
 
 
-void menuDown() {
-
-  if(MenuID<appsCount-1){
-    MenuID++;
+void pageDown() {
+  if( PageID < Pages -1 ) {
+    PageID++;
+    MenuID = (PageID * M5SAM_LIST_PAGE_LABELS) -1;
+    M5Menu.setListID( MenuID );
+    M5Menu.nextList();
+    MenuID = M5Menu.getListID();
   } else {
+    PageID = 0;
     MenuID = 0;
   }
+  M5Menu.setListID( MenuID );
+  drawM5Menu( inInfoMenu );
+}
 
-  M5Menu.nextList( false );
+
+void menuUp() {
   MenuID = M5Menu.getListID();
-
-  if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_SET, MENU_BTN_NEXT );
+  if( MenuID > 0 ) {
+    if( (MenuID - 1)%M5SAM_LIST_PAGE_LABELS==0 ) {
+      MenuID += (M5SAM_LIST_PAGE_LABELS-1);
+    } else {
+      MenuID--;
+    }
   } else {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+    MenuID = appsCount-1;
   }
+  M5Menu.setListID( MenuID );
+  drawM5Menu( inInfoMenu );
+}
 
-  M5Menu.showList();
 
-  renderIcon( MenuID );
-  inInfoMenu = false;
-  lastpush = millis();
+void menuDown( int jumpSize = 1 ) {
+  if(MenuID<appsCount-1){
+    if( (MenuID + 1)%M5SAM_LIST_PAGE_LABELS==0 ) {
+      MenuID -= (M5SAM_LIST_PAGE_LABELS-1);
+    } else {
+      MenuID++;
+    }
+  } else {
+    MenuID = PageID * M5SAM_LIST_PAGE_LABELS;
+  }
+  M5Menu.setListID( MenuID );
+  drawM5Menu( inInfoMenu );
 }
 
 
 void menuInfo() {
   inInfoMenu = true;
   M5Menu.windowClr();
+  if( MenuID == 0 ) {
+    // downloader
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LAUNCH, MENU_BTN_PAGE, MENU_BTN_NEXT );
+  } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_SET, MENU_BTN_PAGE, MENU_BTN_NEXT );
+  } else {
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LOAD, MENU_BTN_PAGE, MENU_BTN_NEXT );
+  }
   renderMeta( fileInfo[MenuID].jsonMeta );
   if( fileInfo[MenuID].hasFace ) {
     renderFace( fileInfo[MenuID].faceName );
   }
-  lastpush = millis();
-}
-
-
-void menuMeta() {
-  inInfoMenu = false;
-  M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
-  M5Menu.showList();
-  MenuID = M5Menu.getListID();
-  renderIcon( MenuID );
   lastpush = millis();
 }
 
@@ -567,12 +573,10 @@ void menuMeta() {
  */
 void scanDataFolder() {
   /* check if mandatory folders exists and create if necessary */
-
   // data folder
   if( !M5_FS.exists( appDataFolder ) ) {
     M5_FS.mkdir( appDataFolder );
   }
-
 
   for( uint8_t i=0; i<extensionsCount; i++ ) {
     String dir = "/" + allowedExtensions[i];
@@ -580,13 +584,10 @@ void scanDataFolder() {
       M5_FS.mkdir( dir );
     }
   }
-
   if( !migrateSPIFFS ) {
     return;
   }
-  
   Serial.println( DEBUG_SPIFFS_SCAN );
-
   if( !SPIFFS.begin() ){
     Serial.println( DEBUG_SPIFFS_MOUNTFAILED );
   } else {
@@ -611,12 +612,10 @@ void scanDataFolder() {
             destName = "/" + allowedExtensions[i] + fileName;
           }
         }
-
         if( destName!="" ) {
           sdUpdater.displayUpdateUI( String( MOVINGFILE_MESSAGE ) + fileName );
           size_t fileSize = file.size();
           File destFile = M5_FS.open( destName, FILE_WRITE );
-          
           if( !destFile ){
             Serial.println( DEBUG_SPIFFS_WRITEFAILED) ;
           } else {
@@ -629,7 +628,6 @@ void scanDataFolder() {
               packets++;
               sdUpdater.SDMenuProgress( (packets*512)-511, fileSize );
             }
-
             destFile.close();
             Serial.println();
             Serial.println( DEBUG_FILECOPY_DONE );
@@ -640,14 +638,12 @@ void scanDataFolder() {
           }
         } else {
           Serial.println( DEBUG_NOTHING_TODO );
-        }
-      }
-    }
-  }
-}
+        } // aa
+      } // aaaaa
+    } // aaaaaaaaa
+  } // aaaaaaaaaaaaah!
+} // nooooooooooooooes!!
 
-
-#define SPI_FLASH_SEC_STEP8 SPI_FLASH_SEC_SIZE / 4
 
 static esp_image_metadata_t getSketchMeta( const esp_partition_t* running ) {
   esp_image_metadata_t data;
@@ -756,7 +752,6 @@ void dumpSketchToFS( fs::FS &fs, const char* fileName ) {
  
   Serial.printf( "%s (%d bytes) differs from %s's expected NVS size: %d, overwriting\n", label, sketchSize, fileName, fileSize );
   static uint8_t spi_rbuf[SPI_FLASH_SEC_STEP8];
-
   Serial.printf( " [INFO] Writing %s ...\n", fileName );
   File destFile = fs.open( fileName, FILE_WRITE );
   uint32_t bytescounter = 0;
@@ -782,22 +777,46 @@ void dumpSketchToFS( fs::FS &fs, const char* fileName ) {
 }
 
 
+void launchApp( FileInfo info ) {
+  #ifdef DOWNLOADER_BIN
+  if( info.fileName == String( DOWNLOADER_BIN ) ) {
+    if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) ) {
+      updateAll();
+    }
+    // action cancelled or refused by user
+    renderIcon( MenuID );
+    return;
+  }
+  #endif
+  if( info.fileName.endsWith( launcherSignature ) ) {
+    Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, info.fileName.c_str() );
+    if( replaceMenu( M5_FS, info ) ) {
+      // fine
+    } else {
+      Serial.println("Failed to overwrite ?????");
+      return;
+    }
+  }
+  sdUpdater.updateFromFS( M5_FS, fileInfo[MenuID].fileName );
+  ESP.restart();
+}
+
 
 void setup() {
-  Serial.begin( 115200 );
-  Serial.println( WELCOME_MESSAGE );
-  Serial.print( INIT_MESSAGE );
+  //Serial.begin( 115200 );
   M5.begin();
+  Serial.println( WELCOME_MESSAGE );
+  Serial.println( INIT_MESSAGE );
+  Serial.printf( M5_SAM_MENU_SETTINGS, M5SAM_LIST_PAGE_LABELS, M5SAM_LIST_MAX_COUNT);
   //tft.begin();
-  
+
   if( digitalRead( BUTTON_A_PIN ) == 0 ) {
     Serial.println( GOTOSLEEP_MESSAGE );
     M5.setWakeupButton( BUTTON_B_PIN );
     M5.powerOFF();
   }
-  
-  tft.setBrightness(100);
 
+  tft.setBrightness(100);
   lastcheck = millis();
   bool toggle = true;
   tft.drawJpg(disk01_jpg, 1775, (tft.width()-30)/2, 100);
@@ -836,7 +855,6 @@ void setup() {
   tft.clear();
 
   sdUpdater.SDMenuProgress( 10, 100 );
-
   // do SD / SPIFFS health checks
   scanDataFolder();
 
@@ -847,17 +865,14 @@ void setup() {
 
   #ifdef DOWNLOADER_BIN
   if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
-    if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) {
-      // rename for hoisting in the list
+    if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) { // rename for hoisting in the list
       M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
-    } else {
-      // create a dummy file to enable the feature
+    } else { // create a dummy file to enable the feature
       fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
       dummyDownloader.print("blah");
       dummyDownloader.close();
     }
-  } else {
-    // cleanup old legacy file if necessary
+  } else { // cleanup old legacy file if necessary
     if( M5_FS.exists(DOWNLOADER_BIN_VIRTUAL) ) {
       M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
     }    
@@ -877,7 +892,6 @@ void setup() {
   #ifdef USE_FACES_GAMEBOY
     initKeypad();
   #endif
-
   // TODO: animate loading screen
   tft.clear();
 
@@ -887,20 +901,13 @@ void setup() {
 
   sdUpdater.SDMenuProgress( -1, 100 );
   
-  M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
-  M5Menu.showList();
-  renderIcon(0);
+  drawM5Menu( true );
   inInfoMenu = false;
   lastcheck = millis();
   lastpush = millis();
   checkdelay = 300;
 
 }
-
-
-#define MAX_BRIGHTNESS 100
-const unsigned long MS_BEFORE_SLEEP = 600000; // 600000 = 10mn 
-uint8_t brightness = MAX_BRIGHTNESS;
 
 
 void loop() {
@@ -913,7 +920,6 @@ void loop() {
     brightness = MAX_BRIGHTNESS;
     tft.setBrightness( brightness );
   }
-
   switch( hidState ) {
     case UI_DOWN:
       menuDown();
@@ -921,40 +927,19 @@ void loop() {
     case UI_UP:
       menuUp();
     break;
-    case UI_INFO:
+    case UI_SELECT:
       if( !inInfoMenu ) {
         menuInfo();
       } else {
-        menuMeta();
+        launchApp( fileInfo[MenuID] );
       }
     break;
-    case UI_LOAD:
-      #ifdef DOWNLOADER_BIN
-      if( fileInfo[MenuID].fileName == String( DOWNLOADER_BIN ) ) {
-        if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) ) {
-          updateAll();
-        }
-        // action cancelled or refused by user
-        renderIcon( MenuID );
-        return;
-      }
-      #endif
-    
-      if( fileInfo[MenuID].fileName.endsWith( launcherSignature ) ) {
-        Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, fileInfo[MenuID].fileName.c_str() );
-        if( replaceMenu( M5_FS, fileInfo[MenuID] ) ) {
-        } else {
-          Serial.println("Failed to overwrite ?????");
-          return;
-        }
-      }
-      sdUpdater.updateFromFS( M5_FS, fileInfo[ M5Menu.getListID() ].fileName );
-      ESP.restart();
+    case UI_PAGE:
+      pageDown();
     break;
     default:
     case UI_INERT:
-      if( inInfoMenu ) {
-        // !! scrolling text also prevents sleep mode !!
+      if( inInfoMenu ) { // !! scrolling text also prevents sleep mode !!
         renderScroll( fileInfo[MenuID].jsonMeta.credits, 0, 5, 320 );
       }
     break;
@@ -962,10 +947,8 @@ void loop() {
 
   M5.update();
   
-  // go to sleep if nothing happens for a while
-  if( lastpush + MS_BEFORE_SLEEP < millis() ) {
-    // slowly dim the screen first
-    if( brightness > 1 ) {
+  if( lastpush + MS_BEFORE_SLEEP < millis() ) { // go to sleep if nothing happens for a while
+    if( brightness > 1 ) { // slowly dim the screen first
       brightness--;
       if( brightness %10 == 0 ) {
         Serial.print("(\".¬.\") ");
@@ -974,7 +957,7 @@ void loop() {
         Serial.print(" Yawn... ");
       }
       if( brightness %7 == 0 ) {
-        Serial.print(" .zzZzzz. ");
+        Serial.println(" .zzZzzz. ");
       }
       tft.setBrightness( brightness );
       lastpush = millis() - (MS_BEFORE_SLEEP - brightness*10); // exponential dimming effect

@@ -47,12 +47,12 @@ HIDSignal getKeypad(){
       if ( key_val == 253) { r = '6';} // right
     }
   }
-  if (r == 'z') { delay(300); return UI_INFO; }
-  if (r == 'x') { delay(300); return UI_LOAD; }
+  if (r == 'z') { delay(300); return UI_SELECT; }
+  if (r == 'x') { delay(300); return UI_PAGE; }
   if (r == '8') { return UI_UP; }
   if (r == '2') { return UI_DOWN; }
-  if (r == '4') { return UI_INFO; }
-  if (r == '6') { return UI_INFO; }
+  if (r == '4') { return UI_SELECT; }
+  if (r == '6') { return UI_SELECT; }
   
   return UI_INERT;
 }
