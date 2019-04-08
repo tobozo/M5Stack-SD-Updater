@@ -154,6 +154,9 @@ for D in *; do
         'M5StackSandbox')
            export hidecompilelogs=1
            cd SWRasterizer
+           if [ -d "Sd-Content" ]; then
+             cp -Rf SD-Content/* $M5_SD_BUILD_DIR/
+           fi
         ;;
 
         'd_invader')
