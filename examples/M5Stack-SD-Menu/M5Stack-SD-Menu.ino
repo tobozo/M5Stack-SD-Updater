@@ -469,7 +469,8 @@ void aSortFiles() {
 
 void buildM5Menu() {
   PageID = 0;
-  Pages = (appsCount / M5SAM_LIST_PAGE_LABELS) +1;
+  Pages = appsCount / M5SAM_LIST_PAGE_LABELS;
+  if( appsCount % M5SAM_LIST_PAGE_LABELS != 0 ) Pages++;
   PageIndex = 0;
   M5Menu.clearList();
   M5Menu.setListCaption( MENU_SUBTITLE );
@@ -487,6 +488,8 @@ void buildM5Menu() {
 void drawM5Menu( bool renderButtons = false ) {
   const char* paginationTpl = "%s (page %d / %d)";
   char paginationStr[64];
+  PageID = MenuID / M5SAM_LIST_PAGE_LABELS;
+  PageIndex = MenuID % M5SAM_LIST_PAGE_LABELS;
   sprintf(paginationStr, paginationTpl, MENU_SUBTITLE, PageID+1, Pages);
   M5Menu.setListCaption( paginationStr );
   if( renderButtons ) {
@@ -494,8 +497,6 @@ void drawM5Menu( bool renderButtons = false ) {
   }
   M5Menu.showList();
   renderIcon( MenuID );
-  PageID = MenuID / M5SAM_LIST_PAGE_LABELS;
-  PageIndex = MenuID % M5SAM_LIST_PAGE_LABELS;
   inInfoMenu = false;
   lastpush = millis();
 }
@@ -688,7 +689,7 @@ bool replaceItem( fs::FS &fs, String SourceName, String  DestName) {
   }
   fs::File dest = fs.open( DestName, FILE_WRITE );
   if( !dest ) {
-    Serial.printf("Failed to open dest file %s\n", DestName );
+    Serial.printf("Failed to open dest file %s\n", DestName.c_str() );
     return false;
   }
   uint8_t buf[4096]; // 4K buffer should be enough to fast-copy the file
@@ -784,7 +785,7 @@ void launchApp( FileInfo info ) {
       updateAll();
     }
     // action cancelled or refused by user
-    renderIcon( MenuID );
+    drawM5Menu( inInfoMenu );
     return;
   }
   #endif
