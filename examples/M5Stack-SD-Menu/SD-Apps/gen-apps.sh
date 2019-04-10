@@ -75,7 +75,6 @@ function populatemeta {
       else
         echo "{\"width\":110,\"height\":110, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_URL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE  
       fi
-      
     fi
   fi
   cat $JSONFILE
@@ -155,7 +154,7 @@ for D in *; do
            export hidecompilelogs=1
            cd SWRasterizer
            if [ -d "Sd-Content" ]; then
-             cp -Rf SD-Content/* $M5_SD_BUILD_DIR/
+             cp -Rf Sd-Content/* $M5_SD_BUILD_DIR/
            fi
         ;;
 
