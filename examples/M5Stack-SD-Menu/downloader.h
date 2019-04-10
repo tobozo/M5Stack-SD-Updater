@@ -17,6 +17,7 @@ extern uint16_t MenuID;
 
 #define DOWNLOADER_BIN "/--Downloader--.bin" // Fixme/Hack: a dummy file will be created so it appears in the menu as an app
 #define DOWNLOADER_BIN_VIRTUAL "/Downloader.bin" // old bin name, will be renamed, kept for backwards compat
+String UserAgent;
 
 bool done = false;
 uint8_t progress = 0;
@@ -214,6 +215,7 @@ void wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
   } else {
     http.begin(bin_url);
   }
+  http.setUserAgent( UserAgent );
   int httpCode = http.GET();
   if(httpCode <= 0) {
     downloadererrors++;
@@ -442,6 +444,10 @@ void syncAppRegistry(String API_URL, const char* ca) {
   drawAppMenu();
   renderDownloadIcon( TFT_ORANGE, 140, 80, 10.0 );
   downloadererrors = 0;
+  // TODO: add M5 model detection
+  UserAgent = "ESP32HTTPClient (SDU-" + String(M5_SD_UPDATER_VERSION)+"-M5Core-"+String(M5_LIB_VERSION)+"-"+String(__DATE__)+"@"+String(__TIME__)+")";
+  http.setUserAgent( UserAgent );
+  
   if ( API_URL.startsWith("https://") ) {
     http.begin(API_URL + API_ENDPOINT, ca);
   } else {
@@ -616,13 +622,18 @@ void enableNTP() {
 
 
 void updateAll() {
+  int16_t maxAttempts = 5;
   while( !wifisetup ) {
     enableWiFi();
+    maxAttempts--;
+    if( maxAttempts < 0 ) break;
   }
   if( wifisetup ) {
     enableNTP();
     while(!done) {
       syncAppRegistry(API_URL, phpsecu_re_ca );
     }
+  } else {
+    // tried all attempts and gave up
   }
 }
