@@ -10,7 +10,7 @@ if [ "$TRAVIS_BRANCH" != "master" ]; then
     exit 1
   fi
   unzip -d /tmp/$LAST_SDAPP_FILE $LAST_SDAPP_FILE
-  cp -Rf /tmp/$LAST_SDAPP_FILE/* $M5_SD_BUILD_DIR/
+  cp -Ruf /tmp/$LAST_SDAPP_FILE/* $M5_SD_BUILD_DIR/
   exit 0
 fi
 
