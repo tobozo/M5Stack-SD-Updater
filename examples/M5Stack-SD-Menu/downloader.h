@@ -656,6 +656,7 @@ void updateOne(const char* appName) {
     //ESP.restart();
     delay(1000);
     M5Menu.windowClr();
+    WiFi. mode( WIFI_MODE_NULL);
 
   } else {
     // tried all attempts and gave up

@@ -556,7 +556,7 @@ void menuInfo() {
     // downloader
     M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LAUNCH, MENU_BTN_PAGE, MENU_BTN_NEXT );
   } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_SET, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
   } else {
     M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
   }
