@@ -30,6 +30,8 @@ const char* registryURL = "https://phpsecu.re/m5stack/sd-updater/registry.json";
 
 const String API_URL = "https://phpsecu.re/m5stack/sd-updater/";
 const String API_ENDPOINT = "catalog.json";
+const char* API_APP_ENDPOINT_TPL = "%s.json";
+char API_APP_ENDPOINT_STR[32];
 mbedtls_md_context_t ctx;
 mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 byte shaResult[32];
@@ -618,6 +620,48 @@ void enableNTP() {
   Serial.println("");
   // TODO: modal-confirm date
   tft.clear();
+}
+
+
+void updateOne(const char* appName) {
+  sprintf(API_APP_ENDPOINT_STR, API_APP_ENDPOINT_TPL, appName);
+  uint16_t oldAppsCount = appsCount;
+  appsCount = 1;
+  Serial.printf("Will update app : %s\n", API_APP_ENDPOINT_STR);
+  int16_t maxAttempts = 5;
+  while( !wifisetup ) {
+    enableWiFi();
+    maxAttempts--;
+    if( maxAttempts < 0 ) break;
+  }
+  if( wifisetup ) {
+    enableNTP();
+    //String appName = root["apps"][i]["name"].as<String>();
+    String appURL  = API_URL + String(API_APP_ENDPOINT_STR);
+    M5Menu.windowClr();
+    Serial.printf("\n[%s] :\n", API_APP_ENDPOINT_STR);
+    tft.setTextColor( WHITE, tft.color565(128,128,128) );
+    tft.setCursor(10, 36);
+    tft.print( API_APP_ENDPOINT_STR );
+    getApp( appURL, phpsecu_re_ca );
+    delay(300);
+    M5Menu.windowClr();
+    tft.setCursor(10,60);
+    tft.setTextColor(WHITE, tft.color565(128,128,128));
+    tft.println( SYNC_FINISHED );
+    Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
+    //char modalBody[256];
+    //sprintf( modalBody, DOWNLOADER_MODAL_BODY_ERRORS_OCCURED, downloadererrors, checkedfiles, updatedfiles, newfiles);
+    //modalConfirm( DOWNLOADER_MODAL_ENDED, DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED, modalBody, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RETRY, DOWNLOADER_MODAL_BACK );
+    //ESP.restart();
+    delay(1000);
+    M5Menu.windowClr();
+
+  } else {
+    // tried all attempts and gave up
+  }
+
+  appsCount = oldAppsCount;
 }
 
 

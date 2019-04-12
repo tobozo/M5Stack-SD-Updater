@@ -558,7 +558,7 @@ void menuInfo() {
   } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
     M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_SET, MENU_BTN_PAGE, MENU_BTN_NEXT );
   } else {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LOAD, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
   }
   renderMeta( fileInfo[MenuID].jsonMeta );
   if( fileInfo[MenuID].hasFace ) {
@@ -923,10 +923,18 @@ void loop() {
   }
   switch( hidState ) {
     case UI_DOWN:
-      menuDown();
+      if( !inInfoMenu ) {
+        menuDown();
+      } else {
+        drawM5Menu( inInfoMenu );
+      }
     break;
     case UI_UP:
-      menuUp();
+      if( inInfoMenu ) {
+        drawM5Menu( inInfoMenu );
+      } else {
+        menuUp();
+      }
     break;
     case UI_SELECT:
       if( !inInfoMenu ) {
@@ -936,7 +944,17 @@ void loop() {
       }
     break;
     case UI_PAGE:
-      pageDown();
+      if( inInfoMenu ) {
+        // update
+        String appName = fileInfo[MenuID].fileName;
+        appName.replace(".bin", "");
+        appName.replace("/", "");
+        Serial.println( appName );
+        updateOne( appName.c_str() );
+        drawM5Menu( inInfoMenu );
+      } else {
+        pageDown();
+      }
     break;
     default:
     case UI_INERT:
