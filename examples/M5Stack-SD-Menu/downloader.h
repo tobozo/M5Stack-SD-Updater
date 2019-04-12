@@ -624,6 +624,12 @@ void enableNTP() {
 
 
 void updateOne(const char* appName) {
+  drawAppMenu();
+  renderDownloadIcon( TFT_ORANGE, 140, 80, 10.0 );
+  downloadererrors = 0;
+  // TODO: add M5 model detection
+  UserAgent = "ESP32HTTPClient (SDU-" + String(M5_SD_UPDATER_VERSION)+"-M5Core-"+String(M5_LIB_VERSION)+"-"+String(__DATE__)+"@"+String(__TIME__)+")";
+  http.setUserAgent( UserAgent );
   sprintf(API_APP_ENDPOINT_STR, API_APP_ENDPOINT_TPL, appName);
   uint16_t oldAppsCount = appsCount;
   appsCount = 1;
@@ -656,8 +662,9 @@ void updateOne(const char* appName) {
     //ESP.restart();
     delay(1000);
     M5Menu.windowClr();
-    WiFi. mode( WIFI_MODE_NULL);
-
+    //WiFi.mode( WIFI_MODE_NULL);
+    WiFi.mode( WIFI_OFF );
+    wifisetup = false;
   } else {
     // tried all attempts and gave up
   }
