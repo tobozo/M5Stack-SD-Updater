@@ -49,10 +49,11 @@ script:
   - cd $TRAVIS_BUILD_DIR;
   - arduino --pref "compiler.warning_level=none" --save-prefs
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
-  - arduino --pref "boardsmanager.additional.urls=https://dl.espressif.com/dl/package_esp32_index.json" --save-prefs ;
-  - arduino --install-boards esp32:esp32 ;
+  - arduino --pref "boardsmanager.additional.urls=https://dl.espressif.com/dl/package_esp32_index.json" --save-prefs
+  - arduino --install-boards esp32:esp32 &>/dev/null
+  - arduino --board $BOARD --save-prefs
 
-  - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
+  - arduino --preserve-temp-files --verbose-build --verify $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
   - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/TobozoLauncher.bin \; #
   - cp $M5_SD_BUILD_DIR/TobozoLauncher.bin $M5_SD_BUILD_DIR/menu.bin
