@@ -20,16 +20,18 @@ before_install:
   - rm arduino-$IDE_VERSION-linux64.tar.xz
   - export PATH=$PATH:~/arduino-ide
   - mkdir -p $M5_SD_BUILD_DIR
-  - if [[ "$BOARD" =~ "espressif:esp32:" ]]; then
-      mkdir -p ~/Arduino/hardware/espressif &&
-      cd ~/Arduino/hardware/espressif &&
-      git clone https://github.com/espressif/arduino-esp32.git esp32 &&
-      cd esp32/ &&
-      git submodule update --init --recursive &&
-      cd tools/ &&
-      python get.py &&
-      cd $TRAVIS_BUILD_DIR;
-    fi
+
+#  - if [[ "$BOARD" =~ "espressif:esp32:" ]]; then
+#      mkdir -p ~/Arduino/hardware/espressif &&
+#      cd ~/Arduino/hardware/espressif &&
+#      git clone https://github.com/espressif/arduino-esp32.git esp32 &&
+#      cd esp32/ &&
+#      git submodule update --init --recursive &&
+#      cd tools/ &&
+#      python get.py &&
+#      cd $TRAVIS_BUILD_DIR;
+#    fi
+  - cd $TRAVIS_BUILD_DIR ;
   
 install:
   - gem install git.io
@@ -47,6 +49,9 @@ script:
   - cd $TRAVIS_BUILD_DIR;
   - arduino --pref "compiler.warning_level=none" --save-prefs
   - arduino --pref "build.warn_data_percentage=75" --save-prefs
+  - arduino --pref "boardsmanager.additional.urls=https://dl.espressif.com/dl/package_esp32_index.json" --save-prefs ;
+  - arduino --install-boards esp32:esp32 ;
+
   - arduino --preserve-temp-files --verbose-build --verify --board $BOARD $PWD/examples/$EXAMPLE/$EXAMPLE.ino &>/dev/null
   - find /tmp -name \*.partitions.bin -exec rm {} \; #
   - find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/TobozoLauncher.bin \; #
