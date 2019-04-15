@@ -357,11 +357,9 @@ void getFileInfo( fs::FS &fs, File &file ) {
   Serial.println( "[" + String(fileDate) + "]" + String( DEBUG_FILELABEL ) + fileName );
   fileInfo[appsCount].fileName = fileName;
   fileInfo[appsCount].fileSize = fileSize;
-  #ifdef DOWNLOADER_BIN
   if( fileName.startsWith("/--") ) {
     fileName.replace("--", "");
   }
-  #endif
   String currentIconFile = "/jpg" + fileName;
   currentIconFile.replace( ".bin", ".jpg" );
   if( fs.exists( currentIconFile.c_str() ) ) {
@@ -778,8 +776,17 @@ void dumpSketchToFS( fs::FS &fs, const char* fileName ) {
 }
 
 
+void updateApp( FileInfo info ) {
+  String appName = info.fileName;
+  appName.replace(".bin", "");
+  appName.replace("/", "");
+  Serial.println( appName );
+  updateOne( appName.c_str() );
+  drawM5Menu( inInfoMenu );
+}
+
+
 void launchApp( FileInfo info ) {
-  #ifdef DOWNLOADER_BIN
   if( info.fileName == String( DOWNLOADER_BIN ) ) {
     if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) ) {
       updateAll();
@@ -788,7 +795,6 @@ void launchApp( FileInfo info ) {
     drawM5Menu( inInfoMenu );
     return;
   }
-  #endif
   if( info.fileName.endsWith( launcherSignature ) ) {
     Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, info.fileName.c_str() );
     if( replaceMenu( M5_FS, info ) ) {
@@ -864,7 +870,6 @@ void setup() {
     dumpSketchToFS( M5_FS, MENU_BIN );
   }
 
-  #ifdef DOWNLOADER_BIN
   if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
     if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) { // rename for hoisting in the list
       M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
@@ -878,7 +883,6 @@ void setup() {
       M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
     }    
   }
-  #endif
 
   sdUpdater.SDMenuProgress( 20, 100 );
   listDir(M5_FS, "/", 0);
@@ -946,12 +950,7 @@ void loop() {
     case UI_PAGE:
       if( inInfoMenu ) {
         // update
-        String appName = fileInfo[MenuID].fileName;
-        appName.replace(".bin", "");
-        appName.replace("/", "");
-        Serial.println( appName );
-        updateOne( appName.c_str() );
-        drawM5Menu( inInfoMenu );
+        updateApp( fileInfo[MenuID] );
       } else {
         pageDown();
       }

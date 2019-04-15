@@ -50,6 +50,8 @@
 #define WGET_CREATING " [New file]"
 #define SYNC_FINISHED "Synch finished"
 #define CLEANDIR_REMOVED "Removed %s\n"
+#define DOWNLOAD_FAIL " [DOWNLOAD FAIL]"
+#define SHASHUM_FAIL " [SHASUM FAIL]"
 
 #define WIFI_MSG_WAITING "Waiting for WiFi to connect"
 #define WIFI_MSG_CONNECTING "Establishing connection to WiFi.."
