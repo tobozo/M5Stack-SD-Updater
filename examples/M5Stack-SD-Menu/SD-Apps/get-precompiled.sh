@@ -37,3 +37,7 @@ unzip -d /tmp m5apple2.zip
 cp -Rf /tmp/m5apple2-master/bin/* $M5_SD_BUILD_DIR/
 rm -Rf /tmp/m5apple2*
 
+wget https://github.com/phillowcompiler/2048_M5Stack/archive/master.zip --output-document=2048_M5Stack.zip
+unzip -d /tmp 2048_M5Stack.zip
+cp -Rf /tmp/2048_M5Stack-master/build/* $M5_SD_BUILD_DIR/
+rm -Rf /tmp/2048_M5Stack*
