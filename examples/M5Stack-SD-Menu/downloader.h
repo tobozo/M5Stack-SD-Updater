@@ -66,7 +66,7 @@ struct URLParts {
 };
 
 
-bool wget(String bin_url, String appName, bool sha256sum, const char* &ca);
+bool wget( String bin_url, String appName, bool sha256sum );
 
 URLParts parseURL( String url ) { // logic stolen from HTTPClient::beginInternal()
   URLParts urlParts;
@@ -361,8 +361,8 @@ const char* fetchCert( String host, bool checkWallet = true, bool checkFS = true
   String certPath = "/cert/" + host;
   String certURL = certProviderURL + host;
   if(  !checkFS || !M5_FS.exists( certPath ) ) {
-    log_d("[FETCHING REMOTE CERT] -> ");
-    wget(certURL , certPath, false, nullcert );
+    //log_d("[FETCHING REMOTE CERT] -> ");
+    //wget(certURL , certPath, false, nullcert );
     return fetchLocalCert( host );
   } else {
     log_d("[FETCHING LOCAL CERT] -> ");
@@ -407,7 +407,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
 
 
 
-bool wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
+bool wget( String bin_url, String appName, bool sha256sum ) {
   Serial.printf("#> wget %s --output-document=%s ", bin_url.c_str(), appName.c_str());
   renderDownloadIcon( GREEN );
   WiFiClientSecure *client = new WiFiClientSecure;
@@ -605,10 +605,10 @@ bool getApp( String appURL ) {
       urlParts = parseURL( appURL );
       if( urlParts.protocol == "https" ) {
         const char* certdata = fetchCert( urlParts.host );
-        wget(appURL, tempFileName, true, certdata);
+        wget( appURL, tempFileName, true );
       } else {
         const char* nullcert = (const char*)NULL;
-        wget(appURL, tempFileName, true, nullcert);
+        wget( appURL, tempFileName, true );
       }
     }
     if( shaResultStr.equals( sha_sum ) ) {
