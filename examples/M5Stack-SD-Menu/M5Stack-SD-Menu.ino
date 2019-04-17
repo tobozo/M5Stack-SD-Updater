@@ -357,11 +357,9 @@ void getFileInfo( fs::FS &fs, File &file ) {
   Serial.println( "[" + String(fileDate) + "]" + String( DEBUG_FILELABEL ) + fileName );
   fileInfo[appsCount].fileName = fileName;
   fileInfo[appsCount].fileSize = fileSize;
-  #ifdef DOWNLOADER_BIN
   if( fileName.startsWith("/--") ) {
     fileName.replace("--", "");
   }
-  #endif
   String currentIconFile = "/jpg" + fileName;
   currentIconFile.replace( ".bin", ".jpg" );
   if( fs.exists( currentIconFile.c_str() ) ) {
@@ -469,7 +467,8 @@ void aSortFiles() {
 
 void buildM5Menu() {
   PageID = 0;
-  Pages = (appsCount / M5SAM_LIST_PAGE_LABELS) +1;
+  Pages = appsCount / M5SAM_LIST_PAGE_LABELS;
+  if( appsCount % M5SAM_LIST_PAGE_LABELS != 0 ) Pages++;
   PageIndex = 0;
   M5Menu.clearList();
   M5Menu.setListCaption( MENU_SUBTITLE );
@@ -487,6 +486,8 @@ void buildM5Menu() {
 void drawM5Menu( bool renderButtons = false ) {
   const char* paginationTpl = "%s (page %d / %d)";
   char paginationStr[64];
+  PageID = MenuID / M5SAM_LIST_PAGE_LABELS;
+  PageIndex = MenuID % M5SAM_LIST_PAGE_LABELS;
   sprintf(paginationStr, paginationTpl, MENU_SUBTITLE, PageID+1, Pages);
   M5Menu.setListCaption( paginationStr );
   if( renderButtons ) {
@@ -494,8 +495,6 @@ void drawM5Menu( bool renderButtons = false ) {
   }
   M5Menu.showList();
   renderIcon( MenuID );
-  PageID = MenuID / M5SAM_LIST_PAGE_LABELS;
-  PageIndex = MenuID % M5SAM_LIST_PAGE_LABELS;
   inInfoMenu = false;
   lastpush = millis();
 }
@@ -555,9 +554,9 @@ void menuInfo() {
     // downloader
     M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LAUNCH, MENU_BTN_PAGE, MENU_BTN_NEXT );
   } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_SET, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
   } else {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LOAD, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
   }
   renderMeta( fileInfo[MenuID].jsonMeta );
   if( fileInfo[MenuID].hasFace ) {
@@ -688,7 +687,7 @@ bool replaceItem( fs::FS &fs, String SourceName, String  DestName) {
   }
   fs::File dest = fs.open( DestName, FILE_WRITE );
   if( !dest ) {
-    Serial.printf("Failed to open dest file %s\n", DestName );
+    Serial.printf("Failed to open dest file %s\n", DestName.c_str() );
     return false;
   }
   uint8_t buf[4096]; // 4K buffer should be enough to fast-copy the file
@@ -777,17 +776,25 @@ void dumpSketchToFS( fs::FS &fs, const char* fileName ) {
 }
 
 
+void updateApp( FileInfo info ) {
+  String appName = info.fileName;
+  appName.replace(".bin", "");
+  appName.replace("/", "");
+  Serial.println( appName );
+  updateOne( appName.c_str() );
+  drawM5Menu( inInfoMenu );
+}
+
+
 void launchApp( FileInfo info ) {
-  #ifdef DOWNLOADER_BIN
   if( info.fileName == String( DOWNLOADER_BIN ) ) {
     if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) ) {
       updateAll();
     }
     // action cancelled or refused by user
-    renderIcon( MenuID );
+    drawM5Menu( inInfoMenu );
     return;
   }
-  #endif
   if( info.fileName.endsWith( launcherSignature ) ) {
     Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, info.fileName.c_str() );
     if( replaceMenu( M5_FS, info ) ) {
@@ -863,7 +870,6 @@ void setup() {
     dumpSketchToFS( M5_FS, MENU_BIN );
   }
 
-  #ifdef DOWNLOADER_BIN
   if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
     if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) { // rename for hoisting in the list
       M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
@@ -877,7 +883,6 @@ void setup() {
       M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
     }    
   }
-  #endif
 
   sdUpdater.SDMenuProgress( 20, 100 );
   listDir(M5_FS, "/", 0);
@@ -922,10 +927,18 @@ void loop() {
   }
   switch( hidState ) {
     case UI_DOWN:
-      menuDown();
+      if( !inInfoMenu ) {
+        menuDown();
+      } else {
+        drawM5Menu( inInfoMenu );
+      }
     break;
     case UI_UP:
-      menuUp();
+      if( inInfoMenu ) {
+        drawM5Menu( inInfoMenu );
+      } else {
+        menuUp();
+      }
     break;
     case UI_SELECT:
       if( !inInfoMenu ) {
@@ -935,7 +948,12 @@ void loop() {
       }
     break;
     case UI_PAGE:
-      pageDown();
+      if( inInfoMenu ) {
+        // update
+        updateApp( fileInfo[MenuID] );
+      } else {
+        pageDown();
+      }
     break;
     default:
     case UI_INERT:

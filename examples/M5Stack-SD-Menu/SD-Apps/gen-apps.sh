@@ -10,7 +10,7 @@ if [ "$TRAVIS_BRANCH" != "master" ]; then
     exit 1
   fi
   unzip -d /tmp/$LAST_SDAPP_FILE $LAST_SDAPP_FILE
-  cp -Rf /tmp/$LAST_SDAPP_FILE/* $M5_SD_BUILD_DIR/
+  cp -Ruf /tmp/$LAST_SDAPP_FILE/* $M5_SD_BUILD_DIR/
   exit 0
 fi
 
@@ -75,7 +75,6 @@ function populatemeta {
       else
         echo "{\"width\":110,\"height\":110, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_URL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE  
       fi
-      
     fi
   fi
   cat $JSONFILE
@@ -155,7 +154,7 @@ for D in *; do
            export hidecompilelogs=1
            cd SWRasterizer
            if [ -d "Sd-Content" ]; then
-             cp -Rf SD-Content/* $M5_SD_BUILD_DIR/
+             cp -Rf Sd-Content/* $M5_SD_BUILD_DIR/
            fi
         ;;
 
@@ -249,7 +248,7 @@ for D in *; do
         'mp3-player-m5stack')
           echo "Changing mp3 path in sketch"
           # TODO: fix this
-          sed -i 's/createTrackList("\/")/createTrackList("\/mp3\/")/g' mp3-player-m5stack.ino
+          sed -i 's/createTrackList("\/")/createTrackList("\/mp3")/g' mp3-player-m5stack.ino
         ;;
 
       esac

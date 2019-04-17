@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include "mbedtls/md.h"
 
 long timezone = 0; // UTC
@@ -17,6 +18,7 @@ extern uint16_t MenuID;
 
 #define DOWNLOADER_BIN "/--Downloader--.bin" // Fixme/Hack: a dummy file will be created so it appears in the menu as an app
 #define DOWNLOADER_BIN_VIRTUAL "/Downloader.bin" // old bin name, will be renamed, kept for backwards compat
+String UserAgent;
 
 bool done = false;
 uint8_t progress = 0;
@@ -26,9 +28,11 @@ bool ntpsetup = false;
 
 const char* registryURL = "https://phpsecu.re/m5stack/sd-updater/registry.json";
 
-
+const String certProviderURL = "http://phpsecu.re/m5stack/cert/";
 const String API_URL = "https://phpsecu.re/m5stack/sd-updater/";
 const String API_ENDPOINT = "catalog.json";
+const char* API_APP_ENDPOINT_TPL = "%s.json";
+char API_APP_ENDPOINT_STR[32];
 mbedtls_md_context_t ctx;
 mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 byte shaResult[32];
@@ -38,6 +42,61 @@ int updatedfiles = 0;
 int newfiles = 0;
 int checkedfiles = 0;
 
+typedef struct {
+  const char* host;
+  const char* ca;
+} TLSCert;
+
+const char* nullHost;
+const char* nullCa;
+
+TLSCert GithubCert = { "github.com", github_ca };
+TLSCert PHPSecureCert = { "phpsecu.re", phpsecu_re_ca };
+TLSCert NULLCert = { nullHost, nullCa };
+
+TLSCert TLSWallet[8] = {GithubCert, PHPSecureCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert };
+
+struct URLParts {
+  String url;
+  String protocol;
+  String host;
+  String port;
+  String auth;
+  String uri;
+};
+
+
+bool wget( String bin_url, String appName, bool sha256sum );
+
+URLParts parseURL( String url ) { // logic stolen from HTTPClient::beginInternal()
+  URLParts urlParts;
+  int index = url.indexOf(':');
+  if(index < 0) {
+    log_e("failed to parse protocol");
+    return urlParts;
+  }
+  urlParts.url = String(url);
+  urlParts.protocol = url.substring(0, index);
+  url.remove(0, (index + 3)); // remove http:// or https://
+  index = url.indexOf('/');
+  String host = url.substring(0, index);
+  url.remove(0, index); // remove host part
+  index = host.indexOf('@'); // get Authorization
+  if(index >= 0) { // auth info
+    urlParts.auth = host.substring(0, index);
+    host.remove(0, index + 1); // remove auth part including @
+  }
+  index = host.indexOf(':'); // get port
+  if(index >= 0) {
+    urlParts.host = host.substring(0, index); // hostname
+    host.remove(0, (index + 1)); // remove hostname + :
+    urlParts.port = host.toInt(); // get port
+  } else {
+    urlParts.host = host;
+  }
+  urlParts.uri = url;
+  return urlParts;
+}
 
 
 bool modalConfirm( String question, String title, String body, const char* labelA=DOWNLOADER_MODAL_YES, const char* labelB=DOWNLOADER_MODAL_NO, const char* labelC=DOWNLOADER_MODAL_CANCEL ) {
@@ -58,7 +117,6 @@ bool modalConfirm( String question, String title, String body, const char* label
     M5.update();
     hidState = getControls();
   }
-
   switch( hidState ) {
     //case UI_UP
     case UI_SELECT:
@@ -89,14 +147,12 @@ void printProgress(uint16_t progress) {
   tft.setCursor(x, y);
 }
 
-
 void renderDownloadIcon(uint16_t color=GREEN, int16_t x=272, int16_t y=7, float size=2.0 ) {
   float halfsize = size/2;
   tft.fillTriangle(x,      y+2*size,   x+4*size, y+2*size,   x+2*size, y+5*size, color);
   tft.fillTriangle(x+size, y,          x+3*size, y,          x+2*size, y+5*size, color);
   tft.fillRect( x, -halfsize+y+6*size, 1+4*size, size, color);
 }
-
 
 void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float size=1.0) {
   uint16_t barColors[4];
@@ -157,6 +213,27 @@ void drawAppMenu() {
   }
 }
 
+/* this is to avoid using GOTO statements */
+typedef struct {
+  bool deleteclient = true;
+  bool endhttp = false;
+  bool dismiss( WiFiClientSecure *client, bool error = false ) {
+    if( error ) {
+      renderDownloadIcon( RED );
+      downloadererrors++;
+    }
+    if( endhttp ) {
+      http.end();
+      endhttp = false;
+    }
+    if( deleteclient ) {
+      delete client;
+      deleteclient = false;
+    }
+    return !error;
+  }
+} HTTPRouter;
+
 
 void sha_sum_to_str() {
   shaResultStr = "";
@@ -172,7 +249,7 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
   log_d("SHA256: checking file %s\n", fileName);
   if(! fs.exists( fileName ) ) {
     downloadererrors++;
-    Serial.printf("  [ERROR] File %s does not exist, aborting\n", fileName);
+    log_e("  [ERROR] File %s does not exist, aborting\n", fileName);
     return;
   }
   File checkFile = fs.open( fileName );
@@ -181,7 +258,7 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
 
   if( !checkFile || fileSize==0 ) {
     downloadererrors++;
-    Serial.printf("  [ERROR] Can't open %s file for reading, aborting\n", fileName);
+    log_e("  [ERROR] Can't open %s file for reading, aborting\n", fileName);
     return;
   }
   tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 125, 22, 32 );
@@ -206,55 +283,162 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
 }
 
 
-void wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
-  renderDownloadIcon( GREEN );
-  Serial.printf("#> wget %s --output-document=%s ", bin_url.c_str(), appName.c_str());
-  if( bin_url.startsWith("https://") ) {
-    http.begin(bin_url, ca);
-  } else {
-    http.begin(bin_url);
+
+const char* updateWallet( String host, const char* ca) {
+  int8_t idx = -1;
+  uint8_t sizeOfWallet = sizeof( TLSWallet ) / sizeof( TLSWallet[0] );
+  for(uint8_t i=0; i<sizeOfWallet; i++) {
+    if( TLSWallet[i].host==NULL ) {
+      if( idx == -1 ) {
+        idx = i;
+      }
+      continue;
+    }
+    if( String( TLSWallet[i].host ) == host ) {
+      log_d("[WALLET SKIP UPDATE] Wallet #%d exists ( %s )\n", i, TLSWallet[i].host );
+      return TLSWallet[i].ca;
+    }
   }
+  if( idx > -1 ) {
+    int hostlen = host.length() + 1;
+    int certlen = String(ca).length() + 1;
+    char *newhost = (char*)malloc( hostlen );
+    char *newcert = (char*)malloc( certlen );
+    memcpy( newhost, host.c_str(), hostlen );
+    memcpy( newcert, ca, certlen);
+    TLSWallet[idx] = { (const char*)newhost , (const char*)newcert };
+    log_d("[WALLET UPDATE] Wallet #%d created ( %s )\n", idx, TLSWallet[idx].host );
+    return TLSWallet[idx].ca;
+  }
+  return ca;
+}
+
+
+const char* fetchLocalCert( String host ) {
+  String certPath = "/cert/" + host;
+  File certFile = M5_FS.open( certPath );
+  if(! certFile ) { // failed to open the cert file
+    return NULL;
+  }
+  String certStr = "";
+  while( certFile.available() ) {
+    certStr += certFile.readStringUntil('\n') + "\n";
+  }
+  certFile.close();
+  log_v("\n%s\n", certStr.c_str() );
+  const char* certChar = updateWallet( host, certStr.c_str() );
+  return certChar;
+}
+
+
+const char* fetchWalletCert( String host ) {
+  uint8_t sizeOfWallet = sizeof( TLSWallet ) / sizeof( TLSWallet[0] );
+  log_d("Checking wallet (%d items)\n",  sizeOfWallet );
+  for(uint8_t i=0; i<sizeOfWallet; i++) {
+    if( TLSWallet[i].host==NULL ) continue;
+    log_d("Wallet #%d ( %s ) : ", i, TLSWallet[i].host );
+    if( String( TLSWallet[i].host ) == host ) {
+      log_d(" [OK]");
+      return TLSWallet[i].ca;
+    } else {
+      log_d(" [KO]");
+    }
+  }
+  const char* nullcert = NULL;
+  return nullcert;
+}
+
+
+const char* fetchCert( String host, bool checkWallet = true, bool checkFS = true ) {
+  const char* nullcert = NULL;
+  if( checkWallet ) {
+    const char* walletCert = fetchWalletCert( host );
+    if( walletCert != NULL ) {
+      log_d("[FETCHING WALLET CERT] -> ");
+      return walletCert;
+    }
+  }
+  String certPath = "/cert/" + host;
+  String certURL = certProviderURL + host;
+  if(  !checkFS || !M5_FS.exists( certPath ) ) {
+    //log_d("[FETCHING REMOTE CERT] -> ");
+    //wget(certURL , certPath, false, nullcert );
+    return fetchLocalCert( host );
+  } else {
+    log_d("[FETCHING LOCAL CERT] -> ");
+  }
+  return fetchLocalCert( host );
+}
+
+
+
+bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts) {
+  if(!client) {
+    return router.dismiss( client, true );
+  }
+  if( String( urlParts.protocol ) == "https" ) {
+    const char* certdata = fetchCert( urlParts.host );
+    if( certdata == NULL ) {
+      log_e(" [ERROR] An HTTPS URL was called but no certificate was provided");
+      return router.dismiss( client, true );
+    }
+    client->setCACert( certdata );
+    router.endhttp = true;
+    if ( ! http.begin(*client, urlParts.url ) ) {
+      log_e(" [ERROR] HTTPS failed");
+      return router.dismiss( client, true );
+    }
+  } else {
+    router.endhttp = true;
+    http.begin( urlParts.url );  
+  }
+
   int httpCode = http.GET();
   if(httpCode <= 0) {
-    downloadererrors++;
-    renderDownloadIcon( RED );
-    Serial.println(" [ERROR] HTTP GET failed with no error code!");
-    http.end();
-    return;
+    log_e("\n[ERROR] HTTP GET %s failed\n", urlParts.url.c_str());
+    return router.dismiss( client, true );
   }
   if(httpCode != HTTP_CODE_OK) {
-    downloadererrors++;
-    renderDownloadIcon( RED );
-    Serial.printf("  [ERROR] HTTP GET failed with error code %d / %s\n", httpCode, http.errorToString(httpCode).c_str()); 
-    http.end();
-    return;
+    Serial.printf("\n[ERROR %d] HTTP GET %s failed: %s\n", httpCode, urlParts.url.c_str(), http.errorToString(httpCode).c_str());
+    return router.dismiss( client, true );
   }
+  return true;
+}
+
+
+
+bool wget( String bin_url, String appName, bool sha256sum ) {
+  Serial.printf("#> wget %s --output-document=%s ", bin_url.c_str(), appName.c_str());
+  renderDownloadIcon( GREEN );
+  WiFiClientSecure *client = new WiFiClientSecure;
+  int httpCode;
+
+  HTTPRouter wgetRouter;
+  URLParts urlParts = parseURL( bin_url );
+
+  if( ! syncConnect(client, wgetRouter, urlParts) ) {
+    return false;
+  }
+
   int len = http.getSize();
   if(len<=0) {
-    downloadererrors++;
-    renderDownloadIcon( RED );
-    Serial.printf("  [ERROR] %s has zero Content-Lenght, aborting\n", bin_url.c_str());
-    http.end();
-    return;
+    log_e("  [ERROR] %s has zero Content-Lenght, aborting\n", bin_url.c_str());
+    return wgetRouter.dismiss( client, true );
   }
   int httpSize = len;
   uint8_t buff[2048] = { 0 };
   size_t sizeOfBuff = sizeof(buff);
-  WiFiClient * stream = http.getStreamPtr();
   if( M5_FS.exists(appName) ) {
     M5_FS.remove(appName);
   }
   File myFile = M5_FS.open(appName, FILE_WRITE);
   if(!myFile) {
-    downloadererrors++;
-    renderDownloadIcon( RED );
-    Serial.printf("  [ERROR] Failed to open %s for writing, aborting\n", appName.c_str());
-    http.end();
     myFile.close();
-    return;
+    log_e("  [ERROR] Failed to open %s for writing, aborting\n", appName.c_str());
+    return wgetRouter.dismiss( client, true );
   }
   unsigned long downwloadstart = millis();
-
+  WiFiClient *stream = http.getStreamPtr();
   *shaResult = {0};
   mbedtls_md_init(&ctx);
   mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
@@ -279,9 +463,10 @@ void wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
         len -= c;
       }
     }
-    delay(1);
+    //delay(1);
   }
   myFile.close();
+  delete stream;
   Serial.print("]");
   mbedtls_md_finish(&ctx, shaResult);
   mbedtls_md_free(&ctx);
@@ -297,33 +482,59 @@ void wget(String bin_url, String appName, bool sha256sum, const char* &ca) {
   } else {
     Serial.printf("  [OK] Copy done...\n");
   }
-  http.end();
+  return wgetRouter.dismiss( client, false );
 }
 
 
-void getApp(String appURL, const char* &ca) {
+void syncFinished( bool restart=true ) {
+  M5Menu.windowClr();
+  tft.setCursor(10,60);
+  tft.setTextColor(WHITE, tft.color565(128,128,128));
+  tft.println( SYNC_FINISHED );
+  Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
+  char modalBody[256];
+  sprintf( modalBody, DOWNLOADER_MODAL_BODY_ERRORS_OCCURED, downloadererrors, checkedfiles, updatedfiles, newfiles);
+  modalConfirm( DOWNLOADER_MODAL_ENDED, DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED, modalBody, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RETRY, DOWNLOADER_MODAL_BACK );
+  if( restart ) {
+    ESP.restart();
+    delay(1000);
+  }
+}
+
+void syncStart() {
+  downloadererrors = 0;
+  updatedfiles = 0;
+  newfiles = 0;
+  checkedfiles = 0;
+  drawAppMenu();
+  renderDownloadIcon( TFT_ORANGE, 140, 80, 10.0 );
+  // TODO: add M5 model detection
+  UserAgent = "ESP32HTTPClient (SDU-" + String(M5_SD_UPDATER_VERSION)+"-M5Core-"+String(M5_LIB_VERSION)+"-"+String(__DATE__)+"@"+String(__TIME__)+")";
+  http.setUserAgent( UserAgent );
+}
+
+
+void printVerifyProgress( const char* msg, uint16_t textcolor, uint16_t bgcolor, uint16_t restorecolor) {
+  Serial.println( msg );
+  tft.setTextColor(textcolor, bgcolor);
+  tft.print( msg );
+  tft.setTextColor(restorecolor, bgcolor);
+}
+
+
+bool getApp( String appURL ) {
   renderDownloadIcon( GREEN );
-  if( appURL.startsWith("https://") ) {
-    http.begin(appURL, ca);
-  } else {
-    http.begin(appURL);
+
+  HTTPRouter getAppRouter;
+  URLParts urlParts = parseURL( appURL );
+  WiFiClientSecure *client = new WiFiClientSecure;
+
+  if( ! syncConnect(client, getAppRouter, urlParts) ) {
+    return false;
   }
-  int httpCode = http.GET();
-  if(httpCode <= 0) {
-    downloadererrors++;
-    renderDownloadIcon( RED );
-    Serial.printf("\n[ERROR] HTTP GET %s failed\n", appURL.c_str());
-    http.end();
-    return;
-  }
-  if(httpCode != HTTP_CODE_OK) {
-    downloadererrors++;
-    renderDownloadIcon( RED );
-    Serial.printf("\n[ERROR %d] HTTP GET %s failed: %s\n", httpCode, appURL.c_str(), http.errorToString(httpCode).c_str()); 
-    http.end();
-  }
+
   String payload = http.getString();
-  http.end();
+  getAppRouter.dismiss( client, false );
   renderDownloadIcon( tft.color565(128,128,128) );
   
   #if ARDUINOJSON_VERSION_MAJOR==6
@@ -331,9 +542,9 @@ void getApp(String appURL, const char* &ca) {
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
       downloadererrors++;
-      Serial.printf("\n[ERROR] JSON Parsing failed on %s\n",  appURL.c_str());
+      log_e("\n[ERROR] JSON Parsing failed on %s\n",  appURL.c_str());
       delay(10000);
-      return;
+      return false;
     }
     JsonObject root = jsonBuffer.as<JsonObject>();
   #else
@@ -341,24 +552,20 @@ void getApp(String appURL, const char* &ca) {
     JsonObject& root = jsonBuffer.parseObject(payload);
     if (!root.success()) {
       downloadererrors++;
-      Serial.printf("\n[ERROR] JSON Parsing failed on %s\n",  appURL.c_str());
+      log_e("\n[ERROR] JSON Parsing failed on %s\n",  appURL.c_str());
       delay(10000);
-      return;
+      return false;
     }
   #endif
   uint16_t appsCount = root["apps_count"].as<uint16_t>();
   if(appsCount!=1) {
     downloadererrors++;
-    Serial.printf("\n%s\n", "[ERROR] AppsCount misenumeration");
-    return;
+    log_e("\n%s\n", "[ERROR] AppsCount misenumeration");
+    return false;
   }
 
   String base_url = root["base_url"].as<String>();
-  String sha_sum;
-  String filePath;
-  String fileName;
-  String finalName;
-  String tempFileName;
+  String sha_sum, filePath, fileName, finalName, tempFileName;
   sha_sum.reserve(65);
   filePath.reserve(32);
   fileName.reserve(32);
@@ -367,44 +574,43 @@ void getApp(String appURL, const char* &ca) {
 
   uint16_t assets_count = root["apps"][0]["json_meta"]["assets_count"].as<uint16_t>();
   for(uint16_t i=0;i<assets_count;i++) {
+    // TODO: properly verify/sanitize this + error handling
     filePath            = root["apps"][0]["json_meta"]["assets"][i]["path"].as<String>();
     fileName            = root["apps"][0]["json_meta"]["assets"][i]["name"].as<String>();
     uint32_t remoteTime = root["apps"][0]["json_meta"]["assets"][i]["created_at"].as<uint32_t>();
     sha_sum             = root["apps"][0]["json_meta"]["assets"][i]["sha256_sum"].as<String>();
     size_t appSize      = root["apps"][0]["json_meta"]["assets"][i]["size"].as<size_t>();
-    size_t mySize       = 0;
     finalName = filePath + fileName;
     tempFileName = finalName + String(".tmp");
     tft.setCursor(10, 54+i*10);
     tft.print( fileName );
     Serial.printf( "  [%s]", fileName.c_str() );
-
     if(M5_FS.exists( finalName )) {
       Serial.print("[SHA256 Sum ->][....");
       sha256_sum( M5_FS, finalName.c_str() );
       Serial.print("]");
       if( shaResultStr.equals( sha_sum ) ) {
-        //log_d("[checksums match]");
+        log_d("[checksums match]");
         checkedfiles++;
-        Serial.println( WGET_SKIPPING );
-        tft.setTextColor(GREEN, tft.color565(128,128,128));
-        tft.print( WGET_SKIPPING );
-        tft.setTextColor(WHITE, tft.color565(128,128,128));
+        printVerifyProgress( WGET_SKIPPING, GREEN, tft.color565(128,128,128), WHITE);
         continue;
       }
-      //log_d("[checksums differ]");
-      Serial.println( WGET_UPDATING );
-      tft.setTextColor(TFT_ORANGE, tft.color565(128,128,128));
-      tft.print( WGET_UPDATING );
-      tft.setTextColor(WHITE, tft.color565(128,128,128));
+      log_d("[checksums differ]");
+      printVerifyProgress( WGET_UPDATING, TFT_ORANGE, tft.color565(128,128,128), WHITE);
     } else {
-      Serial.println( WGET_CREATING );
-      tft.setTextColor(WHITE, tft.color565(128,128,128));
-      tft.print( WGET_CREATING );
+      printVerifyProgress( WGET_CREATING, WHITE, tft.color565(128,128,128), WHITE);
     }
-
-    wget(base_url + filePath + fileName, tempFileName, true, phpsecu_re_ca);
-
+    {
+      appURL = base_url + filePath + fileName;
+      urlParts = parseURL( appURL );
+      if( urlParts.protocol == "https" ) {
+        const char* certdata = fetchCert( urlParts.host );
+        wget( appURL, tempFileName, true );
+      } else {
+        const char* nullcert = (const char*)NULL;
+        wget( appURL, tempFileName, true );
+      }
+    }
     if( shaResultStr.equals( sha_sum ) ) {
       checkedfiles++;
       if( M5_FS.exists( tempFileName ) ) {
@@ -417,63 +623,43 @@ void getApp(String appURL, const char* &ca) {
         M5_FS.rename( tempFileName, finalName );
       } else {
         // download failed, error was previously disclosed
-        tft.setTextColor(RED, tft.color565(128,128,128));
-        tft.print(" [DOWNLOAD FAIL]");
-        tft.setTextColor(WHITE, tft.color565(128,128,128));
+        printVerifyProgress( DOWNLOAD_FAIL, RED, tft.color565(128,128,128), WHITE);
       }
     } else {
       downloadererrors++;
       Serial.printf("  [SHA256 SUM ERROR] Remote hash: %s, Local hash: %s ### keeping local file and removing temp file ###\n", String(sha_sum).c_str(), shaResultStr.c_str() );
-      tft.setTextColor(RED, tft.color565(128,128,128));
-      tft.print(" [SHASUM FAIL]");
-      tft.setTextColor(WHITE, tft.color565(128,128,128));
+      printVerifyProgress( SHASHUM_FAIL, RED, tft.color565(128,128,128), WHITE);
       M5_FS.remove( tempFileName );
     }
-
     uint16_t myprogress = progress + (i* float(progress_modulo/assets_count));
     printProgress(myprogress);
   }
-
 }
 
 
+bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
+  syncStart();
+  String appURL = BASE_URL + API_ENDPOINT;
+  URLParts urlParts = parseURL( appURL );
+  HTTPRouter syncAppRouter;
 
-void syncAppRegistry(String API_URL, const char* ca) {
-  drawAppMenu();
-  renderDownloadIcon( TFT_ORANGE, 140, 80, 10.0 );
-  downloadererrors = 0;
-  if ( API_URL.startsWith("https://") ) {
-    http.begin(API_URL + API_ENDPOINT, ca);
-  } else {
-    http.begin(API_URL + API_ENDPOINT );
-  }
-  int httpCode = http.GET();
-  if(httpCode <= 0) {
-    http.end();
-    Serial.printf("\n%s\n", "[HTTP] GET... failed");
-    delay(10000);
-    return;
-  }
-  log_d("\n[HTTP] GET... code: %d\n", httpCode);
-  if(httpCode != HTTP_CODE_OK) {
-    downloadererrors++;
-    Serial.printf("\n[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str()); 
-    http.end();
-    delay(10000);
-    return;
+  WiFiClientSecure *client = new WiFiClientSecure;
+
+  if( ! syncConnect(client, syncAppRouter, urlParts) ) {
+    return false;
   }
 
   String payload = http.getString();
-  http.end();
+  syncAppRouter.dismiss( client, false );
+
   renderDownloadIcon( TFT_GREEN, 140, 80, 10.0 );
   #if ARDUINOJSON_VERSION_MAJOR==6
     DynamicJsonDocument jsonBuffer(4096);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
       downloadererrors++;
-      Serial.printf("\n%s\n", "JSON Parsing failed!");
-      delay(10000);
-      return;
+      log_e("\n%s\n", "JSON Parsing failed!");
+      return false;
     }
     JsonObject root = jsonBuffer.as<JsonObject>();
   #else
@@ -481,25 +667,22 @@ void syncAppRegistry(String API_URL, const char* ca) {
     JsonObject& root = jsonBuffer.parseObject(payload);
     if (!root.success()) {
       downloadererrors++;
-      Serial.printf("\n%s\n", "JSON Parsing failed!");
-      delay(10000);
-      return;
+      log_e("\n%s\n", "JSON Parsing failed!");
+      return false;
     }
   #endif
-  //Serial.println("Parsed JSON");
   appsCount = root["apps_count"].as<uint16_t>();
   if( appsCount==0 ) {
     downloadererrors++;
     log_e("%s", "No apps found, aborting");
-    delay(10000);
-    return;
+    return false;
   }
   progress_modulo = 100/appsCount;
   String base_url = root["base_url"].as<String>();
   Serial.printf("\nFound %s apps at %s\n", String(appsCount).c_str(), base_url.c_str() );
   for(uint16_t i=0;i<appsCount;i++) {
     String appName = root["apps"][i]["name"].as<String>();
-    String appURL  = API_URL + appName + ".json";
+    String appURL  = BASE_URL + appName + ".json";
     progress = float(i*progress_modulo);
     M5Menu.windowClr();
     printProgress(progress);
@@ -507,19 +690,13 @@ void syncAppRegistry(String API_URL, const char* ca) {
     tft.setTextColor( WHITE, tft.color565(128,128,128) );
     tft.setCursor(10, 36);
     tft.print( appName );
-    getApp( appURL, phpsecu_re_ca );
-    delay(300);
+    getApp( appURL );
+    delay(150);
   }
-  M5Menu.windowClr();
-  tft.setCursor(10,60);
-  tft.setTextColor(WHITE, tft.color565(128,128,128));
-  tft.println( SYNC_FINISHED );
-  Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
-  char modalBody[256];
-  sprintf( modalBody, DOWNLOADER_MODAL_BODY_ERRORS_OCCURED, downloadererrors, checkedfiles, updatedfiles, newfiles);
-  modalConfirm( DOWNLOADER_MODAL_ENDED, DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED, modalBody, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RETRY, DOWNLOADER_MODAL_BACK );
-  ESP.restart();
-  delay(1000);
+
+  syncFinished();
+
+  return true;
 }
 
 
@@ -611,18 +788,65 @@ void enableNTP() {
   Serial.printf("\nNow is : %d-%02d-%02d %02d:%02d:%02d\n",(tmstruct.tm_year)+1900,( tmstruct.tm_mon)+1, tmstruct.tm_mday,tmstruct.tm_hour , tmstruct.tm_min, tmstruct.tm_sec);
   Serial.println("");
   // TODO: modal-confirm date
+  delay(500);
   tft.clear();
 }
 
 
-void updateAll() {
+void updateOne(const char* appName) {
+  syncStart();
+  sprintf(API_APP_ENDPOINT_STR, API_APP_ENDPOINT_TPL, appName);
+  uint16_t oldAppsCount = appsCount;
+  appsCount = 1;
+  Serial.printf("Will update app : %s\n", API_APP_ENDPOINT_STR);
+  int16_t maxAttempts = 5;
   while( !wifisetup ) {
     enableWiFi();
+    maxAttempts--;
+    if( maxAttempts < 0 ) break;
   }
   if( wifisetup ) {
     enableNTP();
-    while(!done) {
-      syncAppRegistry(API_URL, phpsecu_re_ca );
+    String appURL  = API_URL + String(API_APP_ENDPOINT_STR);
+    M5Menu.windowClr();
+    Serial.printf("\n[%s] :\n", API_APP_ENDPOINT_STR);
+    tft.setTextColor( WHITE, tft.color565(128,128,128) );
+    tft.setCursor(10, 36);
+    tft.print( API_APP_ENDPOINT_STR );
+    getApp( appURL );
+    delay(300);
+    M5Menu.windowClr();
+    tft.setCursor(10,60);
+    tft.setTextColor(WHITE, tft.color565(128,128,128));
+    tft.println( SYNC_FINISHED );
+    Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
+    WiFi.mode( WIFI_OFF );
+    wifisetup = false;
+    syncFinished(false); // throw a modal
+  } else {
+    // tried all attempts and gave up
+  }
+  appsCount = oldAppsCount;
+}
+
+
+void updateAll() {
+  int16_t maxAttempts = 5;
+  while( !wifisetup ) {
+    enableWiFi();
+    maxAttempts--;
+    if( maxAttempts < 0 ) break;
+  }
+  if( wifisetup ) {
+    enableNTP();
+    while(!done && downloadererrors==0 ) {
+      syncAppRegistry( API_URL );
+      if( downloadererrors > 0 ) {
+        syncFinished();
+        break;
+      }
     }
+  } else {
+    // tried all attempts and gave up
   }
 }

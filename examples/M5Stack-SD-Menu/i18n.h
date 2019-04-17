@@ -17,6 +17,8 @@
 #define MENU_BTN_SET F("SET")
 #define MENU_BTN_LOAD F("LOAD")
 #define MENU_BTN_LAUNCH F("LAUNCH")
+#define MENU_BTN_UPDATE "UPDATE"
+#define MENU_BTN_BACK "BACK"
 #define MENU_BTN_PAGE F(">>")
 #define MENU_BTN_NEXT F(">")
 
@@ -37,6 +39,7 @@
 #define DOWNLOADER_MODAL_RETRY "RETRY"
 #define DOWNLOADER_MODAL_BACK "BACK"
 
+
 #define DOWNLOADER_MODAL_YES "YES"
 #define DOWNLOADER_MODAL_NO "NO"
 #define DOWNLOADER_MODAL_CANCEL "CANCEL"
@@ -47,6 +50,8 @@
 #define WGET_CREATING " [New file]"
 #define SYNC_FINISHED "Synch finished"
 #define CLEANDIR_REMOVED "Removed %s\n"
+#define DOWNLOAD_FAIL " [DOWNLOAD FAIL]"
+#define SHASHUM_FAIL " [SHASUM FAIL]"
 
 #define WIFI_MSG_WAITING "Waiting for WiFi to connect"
 #define WIFI_MSG_CONNECTING "Establishing connection to WiFi.."
