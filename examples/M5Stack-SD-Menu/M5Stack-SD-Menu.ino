@@ -362,7 +362,7 @@ void qrRender( String text, float sizeinpixels ) {
 }
 
 
-void getFileInfo( fs::FS &fs, File &file ) {
+void getFileInfo( fs::FS &fs, File &file, const char* binext=".bin" ) {
   String fileName   = file.name();
   uint32_t fileSize = file.size();
   time_t t= file.getLastWrite();
@@ -379,7 +379,7 @@ void getFileInfo( fs::FS &fs, File &file ) {
     fileName.replace("--", "");
   }
   String currentIconFile = "/jpg" + fileName;
-  currentIconFile.replace( ".bin", ".jpg" );
+  currentIconFile.replace( binext, ".jpg" );
   if( fs.exists( currentIconFile.c_str() ) ) {
     fileInfo[appsCount].hasIcon = true;
     fileInfo[appsCount].iconName = currentIconFile;
@@ -390,12 +390,12 @@ void getFileInfo( fs::FS &fs, File &file ) {
     fileInfo[appsCount].faceName = currentIconFile;
   }
   String currentDataFolder = appDataFolder + fileName;
-  currentDataFolder.replace( ".bin", "" );
+  currentDataFolder.replace( binext, "" );
   if( fs.exists( currentDataFolder.c_str() ) ) {
     fileInfo[appsCount].hasData = true; // TODO: actually use this feature
   }
   String currentMetaFile = "/json" + fileName;
-  currentMetaFile.replace( ".bin", ".json" );
+  currentMetaFile.replace( binext, ".json" );
   if( fs.exists(currentMetaFile.c_str() ) ) {
     fileInfo[appsCount].hasMeta = true;
     fileInfo[appsCount].metaName = currentMetaFile;
@@ -403,6 +403,17 @@ void getFileInfo( fs::FS &fs, File &file ) {
   if( fileInfo[appsCount].hasMeta == true ) {
     getMeta( fs, fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta );
   }
+}
+
+
+bool isValidAppName( const char* fileName ) {
+  if(String( fileName )!=MENU_BIN // ignore menu
+     && ( String( fileName ).endsWith( ".bin" ) // ignore files not ending in ".bin"
+      || String( fileName ).endsWith( ".BIN" ) ) // handle esp-idf vfs bug (thanks to https://twitter.com/phillowcompiler)
+     && !String( fileName ).startsWith( "/." ) ) { // ignore dotfiles (thanks to https://twitter.com/micutil)
+    return true;
+  }
+  return false;
 }
 
 
@@ -425,10 +436,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
         listDir( fs, file.name(), levels -1 );
       }
     } else {
-      if(   String( file.name() )!=MENU_BIN // ignore menu
-         && String( file.name() ).endsWith( ".bin" ) // ignore files not ending in ".bin"
-         && !String( file.name() ).startsWith( "/." ) ) { // ignore dotfiles (thanks to https://twitter.com/micutil)
-        getFileInfo( fs, file );
+      if( isValidAppName( file.name() ) ) { 
+        if( String( file.name() ).endsWith( ".BIN" ) ) {
+          getFileInfo( fs, file, ".BIN" );
+        } else {
+          getFileInfo( fs, file );
+        }
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
           //Serial.println( String( DEBUG_IGNORED ) + file.name() );
@@ -436,7 +449,6 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
           break; // don't make M5Stack list explode
         }
       } else {
-        // ignored files
         log_d( "%s %s", DEBUG_IGNORED, file.name() );
       }
     }
@@ -493,6 +505,7 @@ void buildM5Menu() {
   for( uint16_t i=0; i < appsCount; i++ ) {
     String shortName = fileInfo[i].fileName.substring(1);
     shortName.replace( ".bin", "" );
+    shortName.replace( ".BIN", "" );
     if( shortName=="menu" ) {
       shortName = ABOUT_THIS_MENU;
     }
@@ -619,7 +632,7 @@ void scanDataFolder() {
         Serial.println( file.name() );
         String fileName = file.name();
         String destName = "";
-        if( fileName.endsWith( ".bin" ) ) {
+        if( fileName.endsWith( ".bin" ) || fileName.endsWith( ".BIN" ) ) {
           destName = fileName;
         }
         // move allowed file types to their own folders
@@ -797,6 +810,7 @@ void dumpSketchToFS( fs::FS &fs, const char* fileName ) {
 void updateApp( FileInfo info ) {
   String appName = info.fileName;
   appName.replace(".bin", "");
+  appName.replace(".BIN", "");
   appName.replace("/", "");
   Serial.println( appName );
   updateOne( appName.c_str() );

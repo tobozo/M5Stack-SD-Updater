@@ -277,12 +277,16 @@ typedef struct {
       downloadererrors++;
     }
     if( endhttp ) {
+      log_d("[HEAP before http.end(): %d]", ESP.getFreeHeap() );
       http.end();
       endhttp = false;
+      log_d("[HEAP after http.end(): %d]", ESP.getFreeHeap() );
     }
     if( deleteclient ) {
+      log_d("[Deleting client: %d]", ESP.getFreeHeap() );
       delete client;
       deleteclient = false;
+      log_d("[Deleted client: %d]", ESP.getFreeHeap() );
     }
     return !error;
   }
@@ -465,6 +469,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
 
 
 bool wget( String bin_url, String appName, bool sha256sum ) {
+  log_d("[HEAP Before: %d", ESP.getFreeHeap() );
   Serial.printf("#> wget %s --output-document=%s ", bin_url.c_str(), appName.c_str());
   renderDownloadIcon( GREEN );
   WiFiClientSecure *client = new WiFiClientSecure;
@@ -539,7 +544,9 @@ bool wget( String bin_url, String appName, bool sha256sum ) {
   } else {
     Serial.printf("  [OK] Copy done...\n");
   }
-  return wgetRouter.dismiss( client, false );
+  wgetRouter.endhttp = false;
+  wgetRouter.deleteclient = false;
+  return true; //wgetRouter.dismiss( client, false );
 }
 
 
@@ -747,6 +754,7 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
   Serial.printf("\nFound %s apps at %s\n", String(appsCount).c_str(), base_url.c_str() );
   for(uint16_t i=0;i<appsCount;i++) {
     String appName = root["apps"][i]["name"].as<String>();
+    //if( appName == "Downloader" ) continue;
     String appURL  = BASE_URL + appName + ".json";
     progress = float(i*progress_modulo);
     M5Menu.windowClr();
