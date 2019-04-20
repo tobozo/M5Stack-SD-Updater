@@ -7,7 +7,8 @@ env:
     - TRAVIS_TAG="v0.4.1"
     - M5_SD_BUILD_DIR=$TRAVIS_BUILD_DIR/build/SD-Content
   matrix:
-    - EXAMPLE="M5Stack-SD-Menu" BOARD="esp32:esp32:m5stack-core-esp32:FlashFreq=80"
+    - EXAMPLE="M5Stack-SD-Menu" BOARD="esp32:esp32:m5stack-core-esp32:FlashFreq=80" ARCHIVE_ZIP="SD-Apps-Folder.zip"
+      
 #    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
 before_install:
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
@@ -81,7 +82,7 @@ before_deploy:
   - rm -Rf $REPO_NAME/examples/M5Stack-SD-Menu/SD-Content
   - zip -r $TRAVIS_BUILD_DIR/$REPO_NAME.zip $REPO_NAME -x *.git*
   - cd $M5_SD_BUILD_DIR 
-  - zip -r $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip ./
+  - zip -r $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP ./
   - cd $TRAVIS_BUILD_DIR
 
   # - export BODY=$(cat CHANGELOG.md) # boo! Travis doesn't like multiline body
@@ -98,7 +99,7 @@ deploy:
   draft: true
   file_glob: true
   file: 
-    - $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
+    - $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP
   #  - $TRAVIS_BUILD_DIR/$REPO_NAME.zip
   #file: $TRAVIS_BUILD_DIR/SD-Apps-Folder.zip
   on:
