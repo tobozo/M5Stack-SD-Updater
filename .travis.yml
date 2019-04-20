@@ -8,7 +8,7 @@ env:
     - M5_SD_BUILD_DIR=$TRAVIS_BUILD_DIR/build/SD-Content
   matrix:
     - EXAMPLE="M5Stack-SD-Menu" BOARD="esp32:esp32:m5stack-core-esp32:FlashFreq=80" ARCHIVE_ZIP="SD-Apps-Folder.zip"
-      
+    - EXAMPLE="M5Stack-SD-Menu" BOARD="esp32:esp32:odroid_esp32:FlashFreq=80" ARCHIVE_ZIP="SD-Apps-Folder-odroid.zip"  
 #    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
 before_install:
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
