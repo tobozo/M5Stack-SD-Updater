@@ -20,23 +20,37 @@ extern uint16_t MenuID;
 #define DOWNLOADER_BIN_VIRTUAL "/Downloader.bin" // old bin name, will be renamed, kept for backwards compat
 String UserAgent;
 
-bool done = false;
+bool wifisetup = false;
+bool ntpsetup  = false;
+bool done      = false;
 uint8_t progress = 0;
 float progress_modulo = 0;
-bool wifisetup = false;
-bool ntpsetup = false;
 
-const char* registryURL = "https://phpsecu.re/m5stack/sd-updater/registry.json";
+#define HTTP              "http://"
+#define HTTPS             "https://"
+#define API_HOST          "phpsecu.re"
+#ifdef ARDUINO_ODROID_ESP32
+  #define API_PATH          "/odroid-go"
+#else
+  #define API_PATH          "/m5stack"
+#endif
+#define CERT_PATH         "/cert"
+#define UPDATER_PATH      "/sd-updater"
+#define API_ENDPOINT      "catalog.json"
+#define REGISTRY_ENDPOINT "registry.json"
 
-const String certProviderURL = "http://phpsecu.re/m5stack/cert/";
-const String API_URL = "https://phpsecu.re/m5stack/sd-updater/";
-const String API_ENDPOINT = "catalog.json";
+const String API_REGISTRY_URL      = HTTPS API_HOST API_PATH UPDATER_PATH "/" REGISTRY_ENDPOINT;
+const String API_CERT_PROVIDER_URL = HTTP API_HOST API_PATH CERT_PATH "/";
+const String API_URL_HTTPS         = HTTPS API_HOST API_PATH UPDATER_PATH "/";
+const String API_URL_HTTP          = HTTP API_HOST API_PATH UPDATER_PATH "/";
 const char* API_APP_ENDPOINT_TPL = "%s.json";
 char API_APP_ENDPOINT_STR[32];
+
 mbedtls_md_context_t ctx;
 mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 byte shaResult[32];
 static String shaResultStr = "f7ff9bcd52fee13ae7ebd6b4e3650a4d9d16f8f23cab370d5cdea291e5b6bba6"; // cheap malloc: any string is good as long as it's 64 chars
+
 int downloadererrors = 0;
 int updatedfiles = 0;
 int newfiles = 0;
@@ -50,11 +64,14 @@ typedef struct {
 const char* nullHost;
 const char* nullCa;
 
-TLSCert GithubCert = { "github.com", github_ca };
-TLSCert PHPSecureCert = { "phpsecu.re", phpsecu_re_ca };
+//TLSCert GithubCert = { "github.com", github_ca };
+//TLSCert PHPSecureCert = { "phpsecu.re", phpsecu_re_ca };
 TLSCert NULLCert = { nullHost, nullCa };
 
-TLSCert TLSWallet[8] = {GithubCert, PHPSecureCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert };
+TLSCert TLSWallet[8] = {NULLCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert };
+
+bool wget( String bin_url, String appName, bool sha256sum );
+
 
 struct URLParts {
   String url;
@@ -64,9 +81,6 @@ struct URLParts {
   String auth;
   String uri;
 };
-
-
-bool wget( String bin_url, String appName, bool sha256sum );
 
 URLParts parseURL( String url ) { // logic stolen from HTTPClient::beginInternal()
   URLParts urlParts;
@@ -213,6 +227,46 @@ void drawAppMenu() {
   }
 }
 
+
+/* dead code ? */
+void cleanDir( const char* dir) {
+  tft.clear();
+  tft.setCursor(0,0);
+  tft.setTextColor(WHITE, BLACK);
+
+  File root = M5_FS.open( dir );
+  if(!root){
+    log_e("%s",  DEBUG_DIROPEN_FAILED );
+    return;
+  }
+  if(!root.isDirectory()){
+    log_e("%s",  DEBUG_NOTADIR );
+    return;
+  }
+
+  File file = root.openNextFile();
+  while(file){
+    if(file.isDirectory()){
+      //Serial.print("DEBUG_DIRLABEL");
+      //Serial.println(file.name());
+    } else {
+      const char* fileName = file.name();
+      file.close();
+      M5_FS.remove( fileName );
+      if( tft.getCursorY() > tft.height() ) {
+        tft.clear();
+        tft.setCursor(0,0);
+      }
+      Serial.printf( CLEANDIR_REMOVED, fileName );
+      tft.printf( CLEANDIR_REMOVED, fileName );
+    }
+    file = root.openNextFile();
+  }
+  tft.clear();
+  drawAppMenu();
+}
+
+
 /* this is to avoid using GOTO statements */
 typedef struct {
   bool deleteclient = true;
@@ -315,7 +369,7 @@ const char* updateWallet( String host, const char* ca) {
 
 
 const char* fetchLocalCert( String host ) {
-  String certPath = "/cert/" + host;
+  String certPath = String(CERT_PATH) + "/" + host;
   File certFile = M5_FS.open( certPath );
   if(! certFile ) { // failed to open the cert file
     return NULL;
@@ -354,12 +408,14 @@ const char* fetchCert( String host, bool checkWallet = true, bool checkFS = true
   if( checkWallet ) {
     const char* walletCert = fetchWalletCert( host );
     if( walletCert != NULL ) {
-      log_d("[FETCHING WALLET CERT] -> ");
+      log_d("[FETCHED WALLET CERT] -> ");
       return walletCert;
+    } else {
+      //
     }
   }
-  String certPath = "/cert/" + host;
-  String certURL = certProviderURL + host;
+  String certPath = String( CERT_PATH ) + "/" + host;
+  String certURL = API_CERT_PROVIDER_URL + host;
   if(  !checkFS || !M5_FS.exists( certPath ) ) {
     //log_d("[FETCHING REMOTE CERT] -> ");
     //wget(certURL , certPath, false, nullcert );
@@ -379,7 +435,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
   if( String( urlParts.protocol ) == "https" ) {
     const char* certdata = fetchCert( urlParts.host );
     if( certdata == NULL ) {
-      log_e(" [ERROR] An HTTPS URL was called but no certificate was provided");
+      log_e(" [ERROR] An HTTPS URL was called (%s) but no certificate was provided", urlParts.url.c_str() );
       return router.dismiss( client, true );
     }
     client->setCACert( certdata );
@@ -389,6 +445,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
       return router.dismiss( client, true );
     }
   } else {
+    log_d(" [INFO] An HTTP (NO TLS) URL was called (%s)", urlParts.url.c_str() );
     router.endhttp = true;
     http.begin( urlParts.url );  
   }
@@ -646,6 +703,14 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
   WiFiClientSecure *client = new WiFiClientSecure;
 
   if( ! syncConnect(client, syncAppRouter, urlParts) ) {
+    cleanDir( CERT_PATH ); // cleanup cached certs
+    URLParts urlParts = parseURL( appURL );
+    String certPath = String( CERT_PATH ) + "/" + urlParts.host;
+    String certURL = API_CERT_PROVIDER_URL + urlParts.host;
+    if( wget( certURL , certPath, false ) ) {
+      downloadererrors = 0;
+      return true;
+    }
     return false;
   }
 
@@ -700,45 +765,6 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
 }
 
 
-/* dead code ? */
-void cleanDir() {
-  tft.clear();
-  tft.setCursor(0,0);
-  tft.setTextColor(WHITE, BLACK);
-
-  File root = M5_FS.open("/");
-  if(!root){
-    log_e("%s",  DEBUG_DIROPEN_FAILED );
-    return;
-  }
-  if(!root.isDirectory()){
-    log_e("%s",  DEBUG_NOTADIR );
-    return;
-  }
-
-  File file = root.openNextFile();
-  while(file){
-    if(file.isDirectory()){
-      //Serial.print("DEBUG_DIRLABEL");
-      //Serial.println(file.name());
-    } else {
-      const char* fileName = file.name();
-      if(String( fileName )!=MENU_BIN && String( fileName )!=String(DOWNLOADER_BIN) && String( fileName ).endsWith(".bin")) {
-        file.close();
-        M5_FS.remove( fileName );
-        if( tft.getCursorY() > tft.height() ) {
-          tft.clear();
-          tft.setCursor(0,0);
-        }
-        Serial.printf( CLEANDIR_REMOVED, fileName );
-        tft.printf( CLEANDIR_REMOVED, fileName );
-      }
-    }
-    file = root.openNextFile();
-  }
-  tft.clear();
-  drawAppMenu();
-}
 
 
 void enableWiFi() {
@@ -807,13 +833,24 @@ void updateOne(const char* appName) {
   }
   if( wifisetup ) {
     enableNTP();
-    String appURL  = API_URL + String(API_APP_ENDPOINT_STR);
+    String appURL  = API_URL_HTTPS + String(API_APP_ENDPOINT_STR);
     M5Menu.windowClr();
     Serial.printf("\n[%s] :\n", API_APP_ENDPOINT_STR);
     tft.setTextColor( WHITE, tft.color565(128,128,128) );
     tft.setCursor(10, 36);
     tft.print( API_APP_ENDPOINT_STR );
-    getApp( appURL );
+    if( ! getApp( appURL ) ) { // no cert, invalid cert, invalid TLS host ?
+      cleanDir( CERT_PATH ); // cleanup cached certs
+      URLParts urlParts = parseURL( appURL );
+      String certPath = String( CERT_PATH ) + "/" + urlParts.host;
+      String certURL = API_CERT_PROVIDER_URL + urlParts.host;
+      if( wget( certURL , certPath, false ) ) {
+        getApp( appURL );
+      } else {
+        // failed
+        log_e("Failed to negotiate certificate for appURL %s\n", appURL.c_str() );
+      }
+    }
     delay(300);
     M5Menu.windowClr();
     tft.setCursor(10,60);
@@ -840,7 +877,7 @@ void updateAll() {
   if( wifisetup ) {
     enableNTP();
     while(!done && downloadererrors==0 ) {
-      syncAppRegistry( API_URL );
+      syncAppRegistry( API_URL_HTTPS );
       if( downloadererrors > 0 ) {
         syncFinished();
         break;

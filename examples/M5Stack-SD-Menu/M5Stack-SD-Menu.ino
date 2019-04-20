@@ -77,6 +77,20 @@
  * 
  */
 
+
+#if defined( ARDUINO_M5Stack_Core_ESP32 )
+  #warning M5STACK CLASSIC DETECTED !!
+#elif defined( ARDUINO_M5STACK_FIRE )
+  #warning M5STACK FIRE DETECTED !!
+#elif defined( ARDUINO_ODROID_ESP32 )
+  #warning ODROID DETECTED !!
+#elif defined ( ARDUINO_ESP32_DEV ) 
+  #warning WROVER DETECTED !!
+#else
+  #warning NOTHING DETECTED !!
+#endif
+
+
 #include "SPIFFS.h"
 #include <M5Stack.h>         // https://github.com/m5stack/M5Stack/
 #ifdef M5_LIB_VERSION
@@ -85,7 +99,11 @@
   #include "qrcode.h" // if M5Stack version <= 0.1.6 : qrCode from https://github.com/ricmoo/qrcode
 #endif
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
-#define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
+#ifdef ARDUINO_ODROID_ESP32
+  M5Display tft;
+#else
+  #define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
+#endif
 #define M5_FS SD
 //#define M5_FS SD_MMC
 #include <M5StackSAM.h>      // https://github.com/tobozo/M5StackSAM/tree/patch-1 (forked from https://github.com/tomsuch/M5StackSAM)
@@ -812,12 +830,14 @@ void launchApp( FileInfo info ) {
 void setup() {
   //Serial.begin( 115200 );
   M5.begin();
+  
   Serial.println( WELCOME_MESSAGE );
   Serial.println( INIT_MESSAGE );
   Serial.printf( M5_SAM_MENU_SETTINGS, M5SAM_LIST_PAGE_LABELS, M5SAM_LIST_MAX_COUNT);
   //tft.begin();
 
   if( digitalRead( BUTTON_A_PIN ) == 0 ) {
+    cleanDir( CERT_PATH );
     Serial.println( GOTOSLEEP_MESSAGE );
     M5.setWakeupButton( BUTTON_B_PIN );
     M5.powerOFF();
