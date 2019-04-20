@@ -41,3 +41,7 @@ wget https://github.com/phillowcompiler/2048_M5Stack/archive/master.zip --output
 unzip -d /tmp 2048_M5Stack.zip
 cp -Rf /tmp/2048_M5Stack-master/build/* $M5_SD_BUILD_DIR/
 rm -Rf /tmp/2048_M5Stack*
+
+cd $M5_SD_BUILD_DIR
+# force lowercase extensions
+find . -name '*.*' -exec sh -c 'a=$(echo "$0" | sed -r "s/([^.]*)\$/\L\1/"); [ "$a" != "$0" ] && mv "$0" "$a" ' {} \;
