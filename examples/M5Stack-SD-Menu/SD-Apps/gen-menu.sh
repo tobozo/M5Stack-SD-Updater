@@ -15,9 +15,10 @@ else
 fi
 
 if [ -f $outfile ]; then
-  echo "Compiling Beta $inofile"
-  sed -i -e 's/"\/sd-updater";/"\/sd-updater\/unstable"/g' $outfile
+  echo "Attempting to patch $outfile"
+  sed -i -e 's/"\/sd-updater"/"\/sd-updater\/unstable"/g' $outfile
   cat $outfile
+  echo "Compiling Beta $inofile"
   arduino --preserve-temp-files --verbose-build --verify $inofile &>/dev/null
   find /tmp -name \*.partitions.bin -exec rm {} \; #
   find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; # 
