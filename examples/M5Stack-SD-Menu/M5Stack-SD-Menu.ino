@@ -909,7 +909,7 @@ void setup() {
       M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
     } else { // create a dummy file to enable the feature
       fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
-      dummyDownloader.print("blah");
+      dummyDownloader.print("Fake Binary");
       dummyDownloader.close();
     }
   } else { // cleanup old legacy file if necessary

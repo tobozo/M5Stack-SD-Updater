@@ -16,7 +16,9 @@ enum HIDSignal {
 //#define USE_PSP_JOY
 /* M5Stack Faces Gameboy control plugin */
 //#define USE_FACES_GAMEBOY
-
+#ifdef ARDUINO_ODROID_ESP32
+  // #include "odroidGoControls.h"
+#endif
 
 #ifdef USE_PSP_JOY
   #include "joyPSP.h"

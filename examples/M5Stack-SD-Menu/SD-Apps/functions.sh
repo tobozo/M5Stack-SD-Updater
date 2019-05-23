@@ -56,9 +56,9 @@ function populatemeta {
       echo "[++++] No $JSONFILE JSON Meta file found, creating from the ether"
       export REPO_SHORTURL=`git.io $REPO_URL`
       if [ "" != "$REPO_SHORTURL" ]; then
-        echo "{\"width\":110,\"height\":110, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_SHORTURL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE
+        echo "{\"width\":120,\"height\":120, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_SHORTURL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE
       else
-        echo "{\"width\":110,\"height\":110, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_URL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE  
+        echo "{\"width\":120,\"height\":120, \"authorName\":\"@$REPO_USERNAME\", \"projectURL\": \"$REPO_URL\",\"credits\":\"$REPO_OWNER_URL\"}" > $JSONFILE
       fi
     fi
   fi
