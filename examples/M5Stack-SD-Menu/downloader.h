@@ -35,7 +35,7 @@ float progress_modulo = 0;
   #define API_PATH          "/m5stack"
 #endif
 #define CERT_PATH         "/cert"
-#define UPDATER_PATH      "/sd-updater"
+#define UPDATER_PATH      "/sd-updater/unstable"
 #define API_ENDPOINT      "catalog.json"
 #define REGISTRY_ENDPOINT "registry.json"
 
@@ -51,6 +51,8 @@ mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 byte shaResult[32];
 static String shaResultStr = "f7ff9bcd52fee13ae7ebd6b4e3650a4d9d16f8f23cab370d5cdea291e5b6bba6"; // cheap malloc: any string is good as long as it's 64 chars
 
+int tlserrors = 0;
+int jsonerrors = 0;
 int downloadererrors = 0;
 int updatedfiles = 0;
 int newfiles = 0;
@@ -376,6 +378,7 @@ const char* fetchLocalCert( String host ) {
   String certPath = String(CERT_PATH) + "/" + host;
   File certFile = M5_FS.open( certPath );
   if(! certFile ) { // failed to open the cert file
+    log_d("Failed to open the cert file %s", certPath.c_str() );
     return NULL;
   }
   String certStr = "";
@@ -445,7 +448,9 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
     client->setCACert( certdata );
     router.endhttp = true;
     if ( ! http.begin(*client, urlParts.url ) ) {
+      tlserrors++;
       log_e(" [ERROR] HTTPS failed");
+      router.endhttp = false;
       return router.dismiss( client, true );
     }
   } else {
@@ -606,6 +611,7 @@ bool getApp( String appURL ) {
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
       downloadererrors++;
+      jsonerrors++;
       log_e("\n[ERROR] JSON Parsing failed on %s\n",  appURL.c_str());
       delay(10000);
       return false;
@@ -616,6 +622,7 @@ bool getApp( String appURL ) {
     JsonObject& root = jsonBuffer.parseObject(payload);
     if (!root.success()) {
       downloadererrors++;
+      jsonerrors++;
       log_e("\n[ERROR] JSON Parsing failed on %s\n",  appURL.c_str());
       delay(10000);
       return false;
@@ -698,6 +705,7 @@ bool getApp( String appURL ) {
     uint16_t myprogress = progress + (i* float(progress_modulo/assets_count));
     printProgress(myprogress);
   }
+  return true;
 }
 
 
@@ -710,13 +718,15 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
   WiFiClientSecure *client = new WiFiClientSecure;
 
   if( ! syncConnect(client, syncAppRouter, urlParts) ) {
-    cleanDir( CERT_PATH ); // cleanup cached certs
-    URLParts urlParts = parseURL( appURL );
-    String certPath = String( CERT_PATH ) + "/" + urlParts.host;
-    String certURL = API_CERT_PROVIDER_URL + urlParts.host;
-    if( wget( certURL , certPath, false ) ) {
-      downloadererrors = 0;
-      return true;
+    if( tlserrors > 0 ) {
+      cleanDir( CERT_PATH ); // cleanup cached certs
+      URLParts urlParts = parseURL( appURL );
+      String certPath = String( CERT_PATH ) + "/" + urlParts.host;
+      String certURL = API_CERT_PROVIDER_URL + urlParts.host;
+      if( wget( certURL , certPath, false ) ) {
+        downloadererrors = 0;
+        return true;
+      }
     }
     return false;
   }
@@ -847,16 +857,20 @@ void updateOne(const char* appName) {
     tft.setTextColor( WHITE, tft.color565(128,128,128) );
     tft.setCursor(10, 36);
     tft.print( API_APP_ENDPOINT_STR );
-    if( ! getApp( appURL ) ) { // no cert, invalid cert, invalid TLS host ?
-      cleanDir( CERT_PATH ); // cleanup cached certs
-      URLParts urlParts = parseURL( appURL );
-      String certPath = String( CERT_PATH ) + "/" + urlParts.host;
-      String certURL = API_CERT_PROVIDER_URL + urlParts.host;
-      if( wget( certURL , certPath, false ) ) {
-        getApp( appURL );
+    if( ! getApp( appURL ) ) { // no cert, invalid cert, invalid TLS host or JSON parsin failed ?
+      if( tlserrors > 0 ) {
+        cleanDir( CERT_PATH ); // cleanup cached certs
+        URLParts urlParts = parseURL( appURL );
+        String certPath = String( CERT_PATH ) + "/" + urlParts.host;
+        String certURL = API_CERT_PROVIDER_URL + urlParts.host;
+        if( wget( certURL , certPath, false ) ) {
+          getApp( appURL );
+        } else {
+          // failed
+          log_e("Failed to negotiate certificate for appURL %s\n", appURL.c_str() );
+        }
       } else {
-        // failed
-        log_e("Failed to negotiate certificate for appURL %s\n", appURL.c_str() );
+        log_e( "Failed to get app %s, probably a JSON error ?", appName );
       }
     }
     delay(300);

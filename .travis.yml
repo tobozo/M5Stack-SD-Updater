@@ -11,6 +11,14 @@ env:
     - EXAMPLE="M5Stack-SD-Menu" BOARD="esp32:esp32:odroid_esp32:FlashFreq=80" ARCHIVE_ZIP="SD-Apps-Folder-odroid.zip"  
 #    - EXAMPLE="M5Stack-SDLoader-Snippet" BOARD="espressif:esp32:m5stack-core-esp32:FlashFreq=80"
 before_install:
+  - date -u
+  - uname -a
+  #- sudo apt-get install -qq -y libpcre3-dev libbz2-dev
+  - git fetch -t
+  - export git_version_last="$(git describe --abbrev=0 --tags --always)"
+  - export git_version="$(echo $git_version_last | awk -F . '{ printf "%d.%d.%d", $1,$2,$3 + 1}')"
+  - env | sort
+  - git log `git describe --tags --abbrev=0 HEAD^ --always`..HEAD --oneline 
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
   - sleep 3
   - export DISPLAY=:1.0
@@ -99,10 +107,13 @@ deploy:
   api_key: $GH_TOKEN
   overwrite: true
   skip_cleanup: true
+  #prerelease: false
+  #target_commitish: $(git rev-list -n 1 $git_version)
   target_commitish: $TRAVIS_COMMIT
   tag_name: $TRAVIS_TAG
   name: SD-Extras-autorelease $TRAVIS_TAG
   body: Automated release from Travis CI with added SD Apps binary files from Arduino compilation 
+  #body: "compare: $(git rev-list -n 1 $git_version_last)...$(git rev-list -n 1 $git_version)"
   draft: true
   file_glob: true
   file: 
@@ -124,5 +135,10 @@ notifications:
     on_failure: always  # options: [always|never|change] default: always
     on_start: never     # options: [always|never|change] default: always
 
+#branches:
+#  except:
+#    - /[0-9]+\.[0-9]+\.[0-9]+$/
     
-    
+after_deploy:
+  #- echo "
+  - curl -v -H "Authorization: token $GH_TOKEN" --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases" | jq -r ".[].draft"
