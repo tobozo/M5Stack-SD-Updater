@@ -93,9 +93,9 @@ before_deploy:
 
   - cd /home/travis/build/tobozo/
   - echo "#define M5_SD_UPDATER_VERSION F(\"${TRAVIS_TAG}\")" > $REPO_NAME/src/gitTagVersion.h
-  - rm -Rf $REPO_NAME/examples/M5Stack-SD-Menu/SD-Apps
-  - rm -Rf $REPO_NAME/examples/M5Stack-SD-Menu/SD-Content
-  - zip -r $TRAVIS_BUILD_DIR/$REPO_NAME.zip $REPO_NAME -x *.git*
+  #- rm -Rf $REPO_NAME/examples/M5Stack-SD-Menu/SD-Apps
+  #- rm -Rf $REPO_NAME/examples/M5Stack-SD-Menu/SD-Content
+  - zip -r $TRAVIS_BUILD_DIR/$REPO_NAME.zip $REPO_NAME -x *.git* -x "$REPO_NAME/examples/M5Stack-SD-Menu/SD-Apps" -x "$REPO_NAME/examples/M5Stack-SD-Menu/SD-Content"
   - cd $M5_SD_BUILD_DIR 
   - zip -r $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP ./
   - cd $TRAVIS_BUILD_DIR

@@ -15,13 +15,17 @@ else
 fi
 
 if [ -f $outfile ]; then
-  echo "Attempting to patch $outfile"
+  echo "Attempting to enable unstable channel by patching $outfile"
   sed -i -e 's/"\/sd-updater"/"\/sd-updater\/unstable"/g' $outfile
-  cat $outfile
-  echo "Compiling Beta $inofile"
-  arduino --preserve-temp-files --verbose-build --verify $inofile &>/dev/null
-  find /tmp -name \*.partitions.bin -exec rm {} \; #
-  find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; # 
+  grep unstable $outfile && export patchok=1 || export patchok=0
+  if (( $patchok == 1 )); then
+    echo "Compiling Beta $inofile"
+    arduino --preserve-temp-files --verbose-build --verify $inofile &>/dev/null
+    find /tmp -name \*.partitions.bin -exec rm {} \; #
+    find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; # 
+  else
+    echo "Pathing unstable channel failed !!";
+  fi
 else
   echo "WARN: cannot compile BetaLauncher.bin"
 fi
