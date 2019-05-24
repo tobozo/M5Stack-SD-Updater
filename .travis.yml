@@ -107,11 +107,11 @@ deploy:
   api_key: $GH_TOKEN
   overwrite: true
   skip_cleanup: true
-  #prerelease: false
+  prerelease: true
   #target_commitish: $(git rev-list -n 1 $git_version)
   target_commitish: $TRAVIS_COMMIT
-  tag_name: $TRAVIS_TAG
-  name: SD-Extras-autorelease $TRAVIS_TAG
+  tag_name: $git_version # $TRAVIS_TAG
+  name: SD-Extras-autorelease $git_version
   body: Automated release from Travis CI with added SD Apps binary files from Arduino compilation 
   #body: "compare: $(git rev-list -n 1 $git_version_last)...$(git rev-list -n 1 $git_version)"
   draft: true
