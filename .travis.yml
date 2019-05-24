@@ -15,8 +15,7 @@ before_install:
   - uname -a
   #- sudo apt-get install -qq -y libpcre3-dev libbz2-dev
   - git fetch -t
-  - export git_version_last="$(git describe --abbrev=0 --tags --always)"
-  - export git_version="$(echo $git_version_last | awk -F . '{ printf "%d.%d.%d", $1,$2,$3 + 1}')"
+  - export git_version_last="$(git describe --abbrev=0 --tags --always)" && export TRAVIS_TAG="$(echo $git_version_last | awk -F . '{ printf "%d.%d.%d", $1,$2,$3 + 1}')"
   - env | sort
   - git log `git describe --tags --abbrev=0 HEAD^ --always`..HEAD --oneline 
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
@@ -110,8 +109,8 @@ deploy:
   prerelease: true
   #target_commitish: $(git rev-list -n 1 $git_version)
   target_commitish: $TRAVIS_COMMIT
-  tag_name: $git_version # $TRAVIS_TAG
-  name: SD-Extras-autorelease $git_version
+  tag_name: $TRAVIS_TAG
+  name: SD-Extras-autorelease $TRAVIS_TAG
   body: Automated release from Travis CI with added SD Apps binary files from Arduino compilation 
   #body: "compare: $(git rev-list -n 1 $git_version_last)...$(git rev-list -n 1 $git_version)"
   draft: true
