@@ -2,11 +2,11 @@
 
 # REQUIRES: $IDE_VERSION, $M5_SD_BUILD_DIR
 
-date -u
-uname -a
-git fetch -t
-env | sort
-git log `git describe --tags --abbrev=0 HEAD^ --always`..HEAD --oneline
+#date -u
+#uname -a
+#git fetch -t
+#env | sort
+#git log `git describe --tags --abbrev=0 HEAD^ --always`..HEAD --oneline
 
 
 
@@ -16,7 +16,7 @@ if [[ "$IDE_VERSION" != "" ]]; then
   sleep 3
   export DISPLAY=:1.0
   export JAVA_ARGS="-Djavax.jmdns.level=OFF"
-  wget –quiet http://downloads.arduino.cc/arduino-$IDE_VERSION-linux64.tar.xz
+  wget –quiet http://downloads.arduino.cc/arduino-$IDE_VERSION-linux64.tar.xz >/dev/null 2>&1
   if [ !-f arduino-$IDE_VERSION-linux64.tar.xz ]; then
     echo "Failed to download arduino-$IDE_VERSION-linux64.tar.xz"
     sleep 5
