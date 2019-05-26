@@ -7,8 +7,8 @@ arduino --pref "boardsmanager.additional.urls=https://dl.espressif.com/dl/packag
 arduino --install-boards esp32:esp32 &>/dev/null
 arduino --board $BOARD --save-prefs
 source $SDAPP_FOLDER/gen-menu.sh
-cd $SDAPP_FOLDER
-./gen-apps.sh
+source $SDAPP_FOLDER/gen-apps.sh
+
 echo "Fetching precompiled projects"
 ./get-precompiled.sh
 ls $M5_SD_BUILD_DIR/ -la
