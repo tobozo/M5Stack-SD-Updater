@@ -67,7 +67,7 @@ function populatemeta {
   AVATAR_URL=`sed 's/gist.//g' <<< $AVATAR_URL`
   if [ ! -f $AVATARFILE ]; then
     echo "**** Will download avatar from $AVATAR_URL and save it as $AVATARFILE"
-    wget $AVATAR_URL --output-document=temp
+    wget –quiet $AVATAR_URL --output-document=temp
     convert temp -resize 120x120 $AVATARFILE
     identify $AVATARFILE
     rm temp

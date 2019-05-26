@@ -124,7 +124,7 @@ for D in *; do
         'M5Stack_NyanCat_Ext')
           echo "Renaming file to prevent namespace collision"
           mv M5Stack_NyanCat.ino M5Stack_NyanCat_Ext.ino
-          wget https://github.com/jimpo/nyancat/raw/master/nyancat.mp3 --output-document=$M5_SD_BUILD_DIR/mp3/NyanCat.mp3
+          wget –quiet https://github.com/jimpo/nyancat/raw/master/nyancat.mp3 --output-document=$M5_SD_BUILD_DIR/mp3/NyanCat.mp3
           sed -i 's/\/NyanCat.mp3/\/mp3\/NyanCat.mp3/g' M5Stack_NyanCat_Ext.ino
         ;;
 
