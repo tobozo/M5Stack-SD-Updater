@@ -8,8 +8,10 @@ cd $PWD
 #  git config --global user.name "Travis CI"
 #  git tag ${TRAVIS_TAG}
 #fi
+cd $REPO_NAME
 export git_version_last="$(git describe --abbrev=0 --tags --always)" 
 export TRAVIS_TAG="$(echo $git_version_last | awk -F . '{ printf "%d.%d.%d", $1,$2,$3 + 1}')"
+cd ..
 echo $TRAVIS_BRANCH | grep "unstable" && export prerelease=true || export prerelease=false
 git tag ${TRAVIS_TAG}
 echo "Before deploy Travis tag : $TRAVIS_TAG"
