@@ -11,5 +11,5 @@ mkdir -p ~/Arduino/libraries
 ln -s $PWD ~/Arduino/libraries/.  
 echo "Installing extra libraries"
 cd $SDAPP_FOLDER
-./get-deps.sh 
+./get-deps.sh
  

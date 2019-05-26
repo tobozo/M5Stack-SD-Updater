@@ -19,6 +19,7 @@ if [[ "$IDE_VERSION" != "" ]]; then
   wget http://downloads.arduino.cc/arduino-$IDE_VERSION-linux64.tar.xz  &>/dev/null
   if [ !-f arduino-$IDE_VERSION-linux64.tar.xz ]; then
     echo "Failed to download arduino-$IDE_VERSION-linux64.tar.xz"
+    sleep 5
     exit 1
   fi
   tar xf arduino-$IDE_VERSION-linux64.tar.xz  &>/dev/null
@@ -28,7 +29,9 @@ if [[ "$IDE_VERSION" != "" ]]; then
   mkdir -p $M5_SD_BUILD_DIR
 
 else
-
+  
   echo "NO IDE VERSION !!"
+  sleep 5
+  exit 1  
 
 fi

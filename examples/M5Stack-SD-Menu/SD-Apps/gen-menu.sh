@@ -11,6 +11,7 @@ if [ -f $inofile ]; then
   cp $M5_SD_BUILD_DIR/TobozoLauncher.bin $M5_SD_BUILD_DIR/menu.bin
 else
   echo "ERROR: cannot compile menu.bin"
+  sleep 5
   exit 1
 fi
 
@@ -25,10 +26,12 @@ if [ -f $outfile ]; then
     find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; # 
   else
     echo "ERROR: Pathing unstable channel failed !!";
+    sleep 5
     exit 1
   fi
 else
   echo "ERROR: cannot compile BetaLauncher.bin"
+  sleep 5
   exit 1
 fi
 
