@@ -38,7 +38,7 @@ if [ -f $TRAVIS_BUILD_DIR/$REPO_NAME.zip ]; then
 else
   echo "Failed to create $TRAVIS_BUILD_DIR/$REPO_NAME.zip !!!";
   exit 1
-endif
+fi
 
 cd $M5_SD_BUILD_DIR 
 zip -r $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP ./  &>/dev/null
@@ -47,7 +47,7 @@ if [ -f $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP ]; then
 else
   echo "Failed to create $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP !!!";
   exit 1
-endif
+fi
 
 cd $TRAVIS_BUILD_DIR
 
