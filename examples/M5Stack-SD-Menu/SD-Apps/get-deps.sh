@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# TODO: foreach this from JSON
+# TODO: foreach this from JSON 
 
 wget –-quiet https://github.com/adafruit/Adafruit_NeoPixel/archive/master.zip --output-document=Adafruit_NeoPixel.zip
 unzip -d ~/Arduino/libraries Adafruit_NeoPixel.zip
