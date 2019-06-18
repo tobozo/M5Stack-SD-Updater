@@ -42,13 +42,14 @@ if [ -f $outfile ]; then
     find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; # 
     if [ -f $M5_SD_BUILD_DIR/BetaLauncher.bin ]; then
       # fine
+      echo "SUCCESS: compiled BetaLauncher.bin from $inofile"
     else
       echo "ERROR: Failed to compile BetaLauncher.bin from $inofile, aborting"
       sleep 5
       exit 1
     fi
   else
-    echo "ERROR: Pathing unstable channel failed !!";
+    echo "ERROR: Patching unstable channel failed !!";
     sleep 5
     exit 1
   fi

@@ -10,6 +10,7 @@ if [ "$TRAVIS_BRANCH" != "master" ]; then
   curl -H "Authorization: token $GH_TOKEN" --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases" | jq -r ".[] | select(.tag_name==\"unstable\")" | jq -r ".assets[] | select(.name==\"$ARCHIVE_ZIP\")  .browser_download_url" | wget --output-document=$ARCHIVE_ZIP -q -i -
   if [ -f $ARCHIVE_ZIP ]; then
      echo "$ARCHIVE_ZIP found"
+     ls $ARCHIVE_ZIP -la
   else
     echo "ERROR: Could not find a valid $ARCHIVE_ZIP from latest releases, time to tune up jq queries ?"
     sleep 5

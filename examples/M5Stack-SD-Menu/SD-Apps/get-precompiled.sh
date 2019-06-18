@@ -17,7 +17,7 @@ rm -Rf /tmp/M5Stack_LovyanLauncher*
 
 wget --quiet https://github.com/lovyan03/M5Stack_LovyanToyBox/archive/master.zip --output-document=M5Stack_LovyanToyBox.zip
 unzip -d /tmp M5Stack_LovyanToyBox.zip
-cp -Rf /tmp/M5Stack_LovyanToyBox-master/LovyanLauncher/build/* $M5_SD_BUILD_DIR/
+cp -Rf /tmp/M5Stack_LovyanToyBox-master/LovyanToyBox/build/* $M5_SD_BUILD_DIR/
 rm -Rf /tmp/M5Stack_LovyanToyBox*
 
 wget --quiet https://github.com/robo8080/SD_Updater_TestData/archive/master.zip --output-document=SD-Apps.zip
