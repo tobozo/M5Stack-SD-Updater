@@ -4,10 +4,13 @@ source $SDAPP_FOLDER/gen-menu.sh
 
 if [ "$TRAVIS_BRANCH" != "master" ]; then
   # UNSTABLE
+  export git_version_last="$(git describe --abbrev=0 --tags --always)"
+  export git_version_next="v$(echo $git_version_last | awk -F . '{ printf "%d.%d.%d", $1,$2,$3 + 1}')"
+  
   echo "Will download last binaries"
   #export LAST_SDAPP_FILE="SD-Apps-Folder.zip"
   #curl --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases/latest?access_token=$GH_TOKEN" | jq -r ".assets[0].browser_download_url" | wget --output-document=$LAST_SDAPP_FILE -i -
-  curl -H "Authorization: token $GH_TOKEN" --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases" | jq -r ".[] | select(.tag_name==\"unstable\")" | jq -r ".assets[] | select(.name==\"$ARCHIVE_ZIP\")  .browser_download_url" | wget --output-document=$ARCHIVE_ZIP -q -i -
+  curl -H "Authorization: token $GH_TOKEN" --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases" | jq -r ".[] | select(.tag_name==\"$git_version_next\")" | jq -r ".assets[] | select(.name==\"$ARCHIVE_ZIP\")  .browser_download_url" | wget --output-document=$ARCHIVE_ZIP -q -i -
   if [ -f $ARCHIVE_ZIP ]; then
      echo "$ARCHIVE_ZIP found"
      ls $ARCHIVE_ZIP -la
@@ -17,7 +20,7 @@ if [ "$TRAVIS_BRANCH" != "master" ]; then
     exit 1
   fi
   
-  unzip -d /tmp/$ARCHIVE_ZIP $ARCHIVE_ZIP
+  unzip -d /tmp/$ARCHIVE_ZIP $ARCHIVE_ZIP | exit 1
   cp -Ruf /tmp/$ARCHIVE_ZIP/* $M5_SD_BUILD_DIR/
   
   echo "Fetching precompiled projects"

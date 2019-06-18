@@ -14,7 +14,7 @@ pwd
 
 cd $TRAVIS_BUILD_DIR
 export git_version_last="$(git describe --abbrev=0 --tags --always)" 
-export git_version_next="$(echo $git_version_last | awk -F . '{ printf "%d.%d.%d", $1,$2,$3 + 1}')"
+export git_version_next="v$(echo $git_version_last | awk -F . '{ printf "%d.%d.%d", $1,$2,$3 + 1}')"
 #cd ..
 echo $TRAVIS_BRANCH | grep "unstable" && export prerelease=true || export prerelease=false
 git tag ${git_version_next}
