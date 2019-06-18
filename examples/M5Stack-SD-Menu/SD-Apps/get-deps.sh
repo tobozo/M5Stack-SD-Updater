@@ -2,7 +2,7 @@
 
 # TODO: foreach this from JSON
 
-wget -–quiet https://github.com/adafruit/Adafruit_NeoPixel/archive/master.zip --output-document=Adafruit_NeoPixel.zip
+wget –-quiet https://github.com/adafruit/Adafruit_NeoPixel/archive/master.zip --output-document=Adafruit_NeoPixel.zip
 unzip -d ~/Arduino/libraries Adafruit_NeoPixel.zip
 
 wget –-quiet https://github.com/adafruit/Adafruit_AMG88xx/archive/1.0.2.zip --output-document=Adafruit_AMG88xx.zip
@@ -25,13 +25,13 @@ unzip -d ~/Arduino/libraries ESP32-Chimera-Core.zip
 wget –-quiet https://github.com/earlephilhower/ESP8266Audio/archive/master.zip --output-document=ESP8266Audio.zip
 unzip -d ~/Arduino/libraries ESP8266Audio.zip
 
-wget -–quiet https://github.com/Seeed-Studio/Grove_BMP280/archive/1.0.1.zip --output-document=Grove_BMP280.zip
+wget –-quiet https://github.com/Seeed-Studio/Grove_BMP280/archive/1.0.1.zip --output-document=Grove_BMP280.zip
 unzip -d ~/Arduino/libraries Grove_BMP280.zip
 
 wget –-quiet https://github.com/Gianbacchio/ESP8266_Spiram/archive/master.zip --output-document=ESP8266_Spiram.zip
 unzip -d ~/Arduino/libraries ESP8266_Spiram.zip
 
-wget -–quiet http://www.buildlog.net/blog/wp-content/uploads/2018/02/Game_Audio.zip --output-document=Game_Audio.zip
+wget –-quiet http://www.buildlog.net/blog/wp-content/uploads/2018/02/Game_Audio.zip --output-document=Game_Audio.zip
 mkdir -p ~/Arduino/libraries/Game_Audio
 unzip -d ~/Arduino/libraries/Game_Audio Game_Audio.zip
 
