@@ -13,7 +13,7 @@ if [ "$TRAVIS_BRANCH" != "master" ]; then
   echo "Will download last binaries"
   #export LAST_SDAPP_FILE="SD-Apps-Folder.zip"
   #curl --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases/latest?access_token=$GH_TOKEN" | jq -r ".assets[0].browser_download_url" | wget --output-document=$LAST_SDAPP_FILE -i -
-  curl -H "Authorization: token $GH_TOKEN" --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases" | jq -r ".[] | select(.tag_name==\"$git_version_next\")" | jq -r ".assets[] | select(.name==\"$ARCHIVE_ZIP\")  .browser_download_url" | wget --output-document=$ARCHIVE_ZIP -q -i -
+  curl -H "Authorization: token $GH_TOKEN" --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases" | jq -r ".[] | select(.tag_name==\"$git_version_last\")" | jq -r ".assets[] | select(.name==\"$ARCHIVE_ZIP\")  .browser_download_url" | wget --output-document=$ARCHIVE_ZIP -q -i -
   if [ -f $ARCHIVE_ZIP ]; then
      echo "$ARCHIVE_ZIP found"
      ls $ARCHIVE_ZIP -la
