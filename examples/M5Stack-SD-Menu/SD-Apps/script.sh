@@ -2,17 +2,16 @@
 
 source $SDAPP_FOLDER/gen-menu.sh
 
-
 if [ "$TRAVIS_BRANCH" != "master" ]; then
-  # only rebuild all when master is updated
-  echo "Skipping rebuild, will download last binaries"
-  export LAST_SDAPP_FILE="SD-Apps-Folder.zip"
+  # UNSTABLE
+  echo "Will download last binaries"
+  #export LAST_SDAPP_FILE="SD-Apps-Folder.zip"
   #curl --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases/latest?access_token=$GH_TOKEN" | jq -r ".assets[0].browser_download_url" | wget --output-document=$LAST_SDAPP_FILE -i -
-  curl -H "Authorization: token $GH_TOKEN" --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases" | jq -r ".[] | select(.tag_name==\"unstable\")" | jq -r ".assets[] | select(.name==\"$ARCHIVE_ZIP\")  .browser_download_url" | wget –quiet --output-document=$ARCHIVE_ZIP -i -
+  curl -H "Authorization: token $GH_TOKEN" --retry 5 "https://api.github.com/repos/tobozo/M5Stack-SD-Updater/releases" | jq -r ".[] | select(.tag_name==\"unstable\")" | jq -r ".assets[] | select(.name==\"$ARCHIVE_ZIP\")  .browser_download_url" | wget --output-document=$ARCHIVE_ZIP -q -i -
   if [ -f $ARCHIVE_ZIP ]; then
      echo "$ARCHIVE_ZIP found"
   else
-    echo "Could not find a valid $ARCHIVE_ZIP from latest releases, time to tune up jq queries ?"
+    echo "ERROR: Could not find a valid $ARCHIVE_ZIP from latest releases, time to tune up jq queries ?"
     sleep 5
     exit 1
   fi
@@ -26,6 +25,16 @@ if [ "$TRAVIS_BRANCH" != "master" ]; then
   sleep 15 # give some time to the logs to come up     
   
 else
+  # MASTER
+  
+#if [ ! -z "$TRAVIS_TAG" ]; then
+#    # zip the package if tagged build
+#    tools/build-release.sh -a$ESP32_GITHUB_TOKEN
+#else
+#    # run cmake and sketch tests
+#    tools/check_cmakelists.sh && tools/build-tests.sh
+#fi
+
   source $SDAPP_FOLDER/gen-apps.sh
 fi
 

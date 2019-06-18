@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Generate TobozoLauncher.bin and BetaLauncher.bin
+
+
 cd $TRAVIS_BUILD_DIR;
 arduino --pref "compiler.warning_level=none" --save-prefs   &>/dev/null
 arduino --pref "build.warn_data_percentage=75" --save-prefs   &>/dev/null
@@ -15,7 +18,13 @@ if [ -f $inofile ]; then
   arduino --preserve-temp-files --verbose-build --verify $inofile &>/dev/null
   find /tmp -name \*.partitions.bin -exec rm {} \; #
   find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/TobozoLauncher.bin \; #
-  cp $M5_SD_BUILD_DIR/TobozoLauncher.bin $M5_SD_BUILD_DIR/menu.bin
+  if [ -f $M5_SD_BUILD_DIR/TobozoLauncher.bin ]; then
+    cp $M5_SD_BUILD_DIR/TobozoLauncher.bin $M5_SD_BUILD_DIR/menu.bin
+  else
+    echo "ERROR: Failed to compile $inofile, aborting"
+    sleep 5
+    exit 1
+  fi
 else
   echo "ERROR: cannot compile menu.bin"
   sleep 5
@@ -31,6 +40,13 @@ if [ -f $outfile ]; then
     arduino --preserve-temp-files --verbose-build --verify $inofile &>/dev/null
     find /tmp -name \*.partitions.bin -exec rm {} \; #
     find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; # 
+    if [ -f $M5_SD_BUILD_DIR/BetaLauncher.bin ]; then
+      # fine
+    else
+      echo "ERROR: Failed to compile BetaLauncher.bin from $inofile, aborting"
+      sleep 5
+      exit 1
+    fi
   else
     echo "ERROR: Pathing unstable channel failed !!";
     sleep 5
@@ -43,4 +59,4 @@ else
 fi
 
 echo "Fake Binary" >> $M5_SD_BUILD_DIR/Downloader.bin
-echo "Main APPs Compilation successful, now compiling deps"
+echo "Launchers Compilation successful"

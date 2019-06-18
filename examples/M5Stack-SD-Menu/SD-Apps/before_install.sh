@@ -16,8 +16,10 @@ if [[ "$IDE_VERSION" != "" ]]; then
   sleep 3
   export DISPLAY=:1.0
   export JAVA_ARGS="-Djavax.jmdns.level=OFF"
-  wget –quiet http://downloads.arduino.cc/arduino-$IDE_VERSION-linux64.tar.xz >/dev/null 2>&1
-  if [ !-f arduino-$IDE_VERSION-linux64.tar.xz ]; then
+  wget -–quiet http://downloads.arduino.cc/arduino-$IDE_VERSION-linux64.tar.xz >/dev/null 2>&1
+  if [ -f arduino-$IDE_VERSION-linux64.tar.xz ]; then
+    # ok
+  else
     echo "Failed to download arduino-$IDE_VERSION-linux64.tar.xz"
     sleep 5
     exit 1
