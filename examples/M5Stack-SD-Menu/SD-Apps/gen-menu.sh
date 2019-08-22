@@ -16,8 +16,8 @@ export outfile=$SDAPP_FOLDER/../downloader.h
 if [ -f $inofile ]; then
   echo "Compiling $inofile"
   arduino --preserve-temp-files --verbose-build --verify $inofile &>/dev/null
-  find /tmp -name \*.partitions.bin -exec rm {} \; #
-  find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/TobozoLauncher.bin \; #
+  find /tmp/arduino* -name \*.partitions.bin -exec rm {} \; #
+  find /tmp/arduino* -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/TobozoLauncher.bin \; #
   if [ -f $M5_SD_BUILD_DIR/TobozoLauncher.bin ]; then
     cp $M5_SD_BUILD_DIR/TobozoLauncher.bin $M5_SD_BUILD_DIR/menu.bin
   else
@@ -38,8 +38,8 @@ if [ -f $outfile ]; then
   if (( $patchok == 1 )); then
     echo "Compiling Beta $inofile"
     arduino --preserve-temp-files --verbose-build --verify $inofile &>/dev/null
-    find /tmp -name \*.partitions.bin -exec rm {} \; #
-    find /tmp -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; # 
+    find /tmp/arduino* -name \*.partitions.bin -exec rm {} \; #
+    find /tmp/arduino* -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; # 
     if [ -f $M5_SD_BUILD_DIR/BetaLauncher.bin ]; then
       # fine
       echo "SUCCESS: compiled BetaLauncher.bin from $inofile"
