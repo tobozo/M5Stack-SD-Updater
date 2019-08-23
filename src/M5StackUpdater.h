@@ -71,17 +71,30 @@ extern "C" {
 #include "esp_ota_ops.h"
 #include "esp_image_format.h"
 }
+#if defined(SD_EXTERNAL_DISPLAY)
+#warning external display
+#include <FS.h>
+#else
 #include <M5Stack.h>
+#endif
 #include <Update.h>
 #include <Preferences.h>
 #ifndef MENU_BIN
 #define MENU_BIN "/menu.bin"
 #endif
+#ifndef DATA_DIR
+#define DATA_DIR "/data"
+#endif
 
-#ifdef M5STACK
+
 // backwards compat
 #define M5SDMenuProgress SDMenuProgress
-#endif
+
+// #ifdef ARDUINO_ODROID_ESP32
+// #ifdef odroid_esp32
+// #ifdef M5STACK_Core_ESP32
+
+
 
 class SDUpdater {
   public:
@@ -90,6 +103,24 @@ class SDUpdater {
     void displayUpdateUI( String label );
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
+    static const int BACKUP_SD_TO_SPIFFS = 1;
+    static const int BACKUP_SPIFFS_TO_SD = 2;
+    SDUpdater( const String SPIFFS2SDFolder="" );
+    String SKETCH_NAME = "";
+    bool enableSPIFFS = true;
+    bool SPIFFS_MOUNTED = false;
+    void copyFile( String sourceName, int dir );
+    void copyFile( String sourceName, fs::FS &sourceFS, int dir );
+    void copyFile( fs::File &sourceFile, int dir );
+    void copyFile( String sourceName, fs::FS &sourceFS, String destName, fs::FS &destinationFS );
+    void copyFile( fs::File &sourceFile, String destName, fs::FS &destinationFS );
+    void copyDir( int direction );
+    void copyDir( const char * dirname, uint8_t levels, int direction );
+    void copyDir(fs::FS &sourceFS, const char * dirname, uint8_t levels, int direction );
+    void makePathToFile( String destName, fs::FS destinationFS );
+    String gnu_basename( String path );
+    bool SPIFFSFormat();
+    bool SPIFFSisEmpty();
   private:
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
