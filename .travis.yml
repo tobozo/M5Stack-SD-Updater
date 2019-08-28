@@ -27,21 +27,21 @@ after_deploy:
   - source $SDAPP_FOLDER/after_deploy.sh
 
 deploy:
-  - provider: releases
-    on:
-      branch: unstable
-      tags: false
-    api_key: $GH_TOKEN
-    overwrite: true
-    skip_cleanup: true
-    prerelease: true # $prerelease
-    target_commitish: $TRAVIS_COMMIT
-    tag_name: $TRAVIS_TAG
-    name: SD-Updater-autorelease $TRAVIS_TAG
-    body: Automated Unstable release from Travis CI (prerelease=$prerelease)
-    file:
-      - $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP
-    file_glob: true
+#  - provider: releases
+#    on:
+#      branch: unstable
+#      tags: false
+#    api_key: $GH_TOKEN
+#    overwrite: true
+#    skip_cleanup: true
+#    prerelease: true # $prerelease
+#    target_commitish: $TRAVIS_COMMIT
+#    tag_name: $TRAVIS_TAG
+#    name: SD-Updater-autorelease $TRAVIS_TAG
+#    body: Automated Unstable release from Travis CI (prerelease=$prerelease)
+#    file:
+#      - $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP
+#    file_glob: true
 
   - provider: releases
     on:
