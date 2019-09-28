@@ -11,7 +11,7 @@
 #define MOVINGFILE_MESSAGE F("Moving ")
 #define FILESIZE_UNITS F(" bytes")
 
-#define MENU_TITLE F("SD CARD LOADER")
+#define MENU_TITLE F("SD LAUNCHER")
 #define MENU_SUBTITLE F("Applications")
 #define MENU_BTN_INFO F("SELECT")
 #define MENU_BTN_SET F("SET")
@@ -34,7 +34,7 @@
 #define DOWNLOADER_MODAL_BODY "  - Connect to WiFi\n\n  - Get app list from remote registry\n\n  - Download/overwrite files\n\n  - Restart this menu\n\n\n\n  THIS OPERATION IS INSECURE!!\n\n  YOU DO THIS AT YOUR OWN RISK!!"
 #define DOWNLOADER_MODAL_ENDED "Synchronization complete"
 #define DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED "Some errors occured. "
-#define DOWNLOADER_MODAL_BODY_ERRORS_OCCURED "  %d errors occured during the download\n\n  %d files were verified\n\n  %d files were updated\n\n  %d files were created\n\n\n\n  Reboot M5Stack?\n\n"
+#define DOWNLOADER_MODAL_BODY_ERRORS_OCCURED "  %d errors occured during the download\n\n  %d files were verified\n\n  %d files were updated\n\n  %d files were created\n\n\n\n  M5Stack will reboot in 10s"
 #define DOWNLOADER_MODAL_REBOOT "REBOOT"
 #define DOWNLOADER_MODAL_RETRY "RETRY"
 #define DOWNLOADER_MODAL_BACK "BACK"

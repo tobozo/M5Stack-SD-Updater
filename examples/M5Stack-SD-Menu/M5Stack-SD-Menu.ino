@@ -90,7 +90,8 @@
   #warning NOTHING DETECTED !!
 #endif
 
-
+#include <sys/time.h>
+#include "compile_time.h"
 #include "SPIFFS.h"
 #include <M5Stack.h>         // https://github.com/m5stack/M5Stack/
 #ifdef M5_LIB_VERSION
@@ -126,7 +127,7 @@ uint8_t brightness = MAX_BRIGHTNESS;
  * 
  */
 bool migrateSPIFFS = false;
-const uint8_t extensionsCount = 5; // change this if you add / remove an extension
+const uint8_t extensionsCount = 6; // change this if you add / remove an extension
 String allowedExtensions[extensionsCount] = {
     // do NOT remove jpg and json or the menu will crash !!!
     "jpg", "json", "mod", "mp3", "cert"
@@ -362,11 +363,34 @@ void qrRender( String text, float sizeinpixels ) {
 }
 
 
+bool iFile_exists( fs::FS &fs, String &fname ) {
+  if( fs.exists( fname.c_str() ) ) {
+    return true;
+  }
+  String locasename = fname;
+  String hicasename = fname;
+  locasename.toLowerCase();
+  hicasename.toUpperCase();
+  if( fs.exists( locasename.c_str() ) ) {
+    fname = locasename;
+    return true;
+  }
+  if( fs.exists( hicasename.c_str() ) ) {
+    fname = hicasename;
+    return true;
+  }
+  return false;
+}
+
+
+
 void getFileInfo( fs::FS &fs, File &file, const char* binext=".bin" ) {
+  String BINEXT = binext;
+  BINEXT.toUpperCase();
   String fileName   = file.name();
   uint32_t fileSize = file.size();
-  time_t t= file.getLastWrite();
-  struct tm * tmstruct = localtime(&t);
+  time_t lastWrite = file.getLastWrite();
+  struct tm * tmstruct = localtime(&lastWrite);
   char fileDate[64] = "1980-01-01 00:07:20";
   sprintf(fileDate, "%04d-%02d-%02d %02d:%02d:%02d",(tmstruct->tm_year)+1900,( tmstruct->tm_mon)+1, tmstruct->tm_mday,tmstruct->tm_hour , tmstruct->tm_min, tmstruct->tm_sec);
   if( (tmstruct->tm_year)+1900 < 2000 ) {
@@ -380,26 +404,43 @@ void getFileInfo( fs::FS &fs, File &file, const char* binext=".bin" ) {
   }
   String currentIconFile = "/jpg" + fileName;
   currentIconFile.replace( binext, ".jpg" );
-  if( fs.exists( currentIconFile.c_str() ) ) {
+  currentIconFile.replace( BINEXT, ".jpg" ); // temp fix for esp-idf filename bug ( 2048.bin is returned as 2048.BIN )
+  if( iFile_exists( fs, currentIconFile ) ) {
     fileInfo[appsCount].hasIcon = true;
     fileInfo[appsCount].iconName = currentIconFile;
   }
   currentIconFile.replace( ".jpg", "_gh.jpg" );
-  if( fs.exists( currentIconFile.c_str() ) ) {
+  currentIconFile.replace( ".JPG", "_gh.jpg" ); // temp fix for esp-idf filename bug ( 2048.jpg is returned as 2048.JPG )
+  if( iFile_exists( fs, currentIconFile ) ) {
     fileInfo[appsCount].hasFace = true;
     fileInfo[appsCount].faceName = currentIconFile;
+    if( !fileInfo[appsCount].hasIcon ) {
+      // inherit
+      fileInfo[appsCount].hasIcon = true;
+      fileInfo[appsCount].iconName = currentIconFile;
+    }
+  } else {
+    if( fileInfo[appsCount].hasIcon ) {
+      // inherit
+      fileInfo[appsCount].hasFace = true;
+      fileInfo[appsCount].faceName = fileInfo[appsCount].iconName;
+    } else {
+      log_e("[GH_JPG]: no currentAvatarFile %s", currentIconFile.c_str() );
+    }
   }
   String currentDataFolder = appDataFolder + fileName;
   currentDataFolder.replace( binext, "" );
+  currentDataFolder.replace( BINEXT, "" );
   if( fs.exists( currentDataFolder.c_str() ) ) {
     fileInfo[appsCount].hasData = true; // TODO: actually use this feature
   }
   String currentMetaFile = "/json" + fileName;
   currentMetaFile.replace( binext, ".json" );
+  currentMetaFile.replace( BINEXT, ".json" );
   if( fs.exists(currentMetaFile.c_str() ) ) {
     fileInfo[appsCount].hasMeta = true;
     fileInfo[appsCount].metaName = currentMetaFile;
-  }
+  } else log_e("[JSON]: no currentMetaFile %s", currentIconFile.c_str() );
   if( fileInfo[appsCount].hasMeta == true ) {
     getMeta( fs, fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta );
   }
@@ -407,9 +448,9 @@ void getFileInfo( fs::FS &fs, File &file, const char* binext=".bin" ) {
 
 
 bool isValidAppName( const char* fileName ) {
-  if(String( fileName )!=MENU_BIN // ignore menu
+  if(   String( fileName )!=MENU_BIN // ignore menu
      && ( String( fileName ).endsWith( ".bin" ) // ignore files not ending in ".bin"
-      || String( fileName ).endsWith( ".BIN" ) ) // handle esp-idf vfs bug (thanks to https://twitter.com/phillowcompiler)
+     || String( fileName ).endsWith( ".BIN" ) ) // handle esp-idf vfs bug (thanks to https://twitter.com/phillowcompiler)
      && !String( fileName ).startsWith( "/." ) ) { // ignore dotfiles (thanks to https://twitter.com/micutil)
     return true;
   }
@@ -437,11 +478,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
       }
     } else {
       if( isValidAppName( file.name() ) ) { 
-        if( String( file.name() ).endsWith( ".BIN" ) ) {
-          getFileInfo( fs, file, ".BIN" );
-        } else {
-          getFileInfo( fs, file );
-        }
+        getFileInfo( fs, file );
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
           //Serial.println( String( DEBUG_IGNORED ) + file.name() );
@@ -513,7 +550,6 @@ void buildM5Menu() {
   }
 }
 
-
 void drawM5Menu( bool renderButtons = false ) {
   const char* paginationTpl = "%s (page %d / %d)";
   char paginationStr[64];
@@ -523,6 +559,7 @@ void drawM5Menu( bool renderButtons = false ) {
   M5Menu.setListCaption( paginationStr );
   if( renderButtons ) {
     M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    drawSDUpdaterChannel();
   }
   M5Menu.showList();
   renderIcon( MenuID );
@@ -583,11 +620,11 @@ void menuInfo() {
   M5Menu.windowClr();
   if( MenuID == 0 ) {
     // downloader
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LAUNCH, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    M5Menu.drawAppMenu( String(MENU_TITLE)+SD_UPDATER_CHANNEL, MENU_BTN_LAUNCH, MENU_BTN_PAGE, MENU_BTN_NEXT );
   } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
+    M5Menu.drawAppMenu( String(MENU_TITLE)+SD_UPDATER_CHANNEL, MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
   } else {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
+    M5Menu.drawAppMenu( String(MENU_TITLE)+SD_UPDATER_CHANNEL, MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
   }
   renderMeta( fileInfo[MenuID].jsonMeta );
   if( fileInfo[MenuID].hasFace ) {
@@ -803,11 +840,11 @@ void checkMenuStickyPartition() {
     M5.Lcd.println("TobozoLauncher on app0");
     size_t sksize = ESP.getSketchSize();
     if (!comparePartition(running, nextupdate, sksize)) {
-      bool flgSD = SD.begin( TFCARD_CS_PIN, SPI, 40000000);
+      bool flgSD = M5_FS.begin( TFCARD_CS_PIN, SPI, 40000000);
       M5.Lcd.print(" copy to app1");
       File dst;
       if (flgSD) {
-        dst = (SD.open(menubinfilename, FILE_WRITE ));
+        dst = (M5_FS.open(menubinfilename, FILE_WRITE ));
         M5.Lcd.print(" and SD menu.bin");
       }
       if (copyPartition( flgSD ? &dst : NULL, nextupdate, running, sksize)) {
@@ -826,6 +863,37 @@ void checkMenuStickyPartition() {
   }
 }
 
+
+void checkMenuTimeStamp() {
+  File menu = M5_FS.open( MENU_BIN );
+  time_t lastWrite = menu.getLastWrite();
+  
+  struct tm * tmstruct = localtime(&lastWrite);
+  
+  int epoch_time;
+  if( (tmstruct->tm_year)+1900 < 2000 ) {
+    Serial.printf("Menu.bin has no reliable time set (%04d-%02d-%02d %02d:%02d:%02d), will use this sketch build date to set the clock\n",
+      (tmstruct->tm_year)+1900,( tmstruct->tm_mon)+1, tmstruct->tm_mday,tmstruct->tm_hour , tmstruct->tm_min, tmstruct->tm_sec
+    );
+    epoch_time = __TIME_UNIX__;
+  } else {
+    Serial.printf("Menu.bin has a realistic time set (%04d-%02d-%02d %02d:%02d:%02d), will use its lastWrite date to set the clock\n",
+      (tmstruct->tm_year)+1900,( tmstruct->tm_mon)+1, tmstruct->tm_mday,tmstruct->tm_hour , tmstruct->tm_min, tmstruct->tm_sec
+    );
+    epoch_time = mktime(tmstruct); // epoch time ( seconds since 1st jan 1969 )
+  }
+
+  timeval epoch = {epoch_time, 0};
+  const timeval *tv = &epoch;
+  settimeofday(tv, NULL);
+
+  struct tm now;
+  getLocalTime(&now,0);
+  Serial.println(&now,"Clock time is now set to: %B %d %Y %H:%M:%S (%A)");
+
+  menu.close();
+  
+}
 
 void updateApp( FileInfo info ) {
   String appName = info.fileName;
@@ -869,6 +937,15 @@ void setup() {
   Serial.println( INIT_MESSAGE );
   Serial.printf( M5_SAM_MENU_SETTINGS, M5SAM_LIST_PAGE_LABELS, M5SAM_LIST_MAX_COUNT);
   //tft.begin();
+
+  char * channel = strstr( UPDATER_PATH, "unstable" );
+  if ( channel == NULL ) {
+    // master
+    SD_UPDATER_CHANNEL="master";
+  } else {
+    // unstable
+    SD_UPDATER_CHANNEL="unstable";
+  }
 
   if( digitalRead( BUTTON_A_PIN ) == 0 ) {
     cleanDir( CERT_PATH );
@@ -915,7 +992,8 @@ void setup() {
   tft.setTextSize( 1 );
   tft.clear();
 
-
+  // TODO: check menu.bin datetime and set
+  checkMenuTimeStamp();
   checkMenuStickyPartition();
 
   sdUpdater.SDMenuProgress( 10, 100 );

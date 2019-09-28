@@ -1,4 +1,4 @@
-
+#define MBEDTLS_ERROR_C
 #include "certificates.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -44,6 +44,7 @@ const String API_CERT_PROVIDER_URL = HTTP API_HOST API_PATH CERT_PATH "/";
 const String API_URL_HTTPS         = HTTPS API_HOST API_PATH UPDATER_PATH "/";
 const String API_URL_HTTP          = HTTP API_HOST API_PATH UPDATER_PATH "/";
 const char* API_APP_ENDPOINT_TPL = "%s.json";
+String SD_UPDATER_CHANNEL    = "";
 char API_APP_ENDPOINT_STR[32];
 
 mbedtls_md_context_t ctx;
@@ -142,7 +143,7 @@ bool modalConfirm( String question, String title, String body, const char* label
     case UI_DOWN:
     default:
       // already false
-      M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
+      M5Menu.drawAppMenu( String(MENU_TITLE)+SD_UPDATER_CHANNEL, MENU_BTN_INFO, MENU_BTN_LOAD, MENU_BTN_NEXT );
       M5Menu.showList();
     break;
 
@@ -217,10 +218,17 @@ void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float siz
   tft.fillRect(x + 9*size, y + 1*size, 2*size, 7*size, barColors[3]);
 }
 
+void drawSDUpdaterChannel() {
+  tft.setTextColor(TFT_WHITE, tft.color565(0,0,128) );
+  tft.drawJpg(bluefork_jpg, bluefork_jpg_len, 2, 8 );
+  tft.drawString( SD_UPDATER_CHANNEL, 16, 11 );
+  tft.setTextColor(TFT_WHITE, tft.color565(128,128,128) );
+}
 
 void drawAppMenu() {
   M5Menu.windowClr();
   M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "");
+  drawSDUpdaterChannel();
   if( wifisetup ) {
     drawRSSIBar( 290, 4, 5, tft.color565(0,0,128), 2.0 );
   }
@@ -439,6 +447,8 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
   if(!client) {
     return router.dismiss( client, true );
   }
+  
+  http.setConnectTimeout( 10000 ); // 10s timeout = 10000
   if( String( urlParts.protocol ) == "https" ) {
     const char* certdata = fetchCert( urlParts.host );
     if( certdata == NULL ) {
@@ -446,6 +456,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
       return router.dismiss( client, true );
     }
     client->setCACert( certdata );
+    client->setTimeout( 10 ); // in seconds
     router.endhttp = true;
     if ( ! http.begin(*client, urlParts.url ) ) {
       tlserrors++;
@@ -456,7 +467,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
   } else {
     log_d(" [INFO] An HTTP (NO TLS) URL was called (%s)", urlParts.url.c_str() );
     router.endhttp = true;
-    http.begin( urlParts.url );  
+    http.begin( urlParts.url );
   }
 
   int httpCode = http.GET();
@@ -555,12 +566,24 @@ bool wget( String bin_url, String appName, bool sha256sum ) {
 }
 
 
+static void countDownReboot( void * param ) {
+  unsigned long wait = 10000;
+  unsigned long startCountDown = millis();
+  while( startCountDown + wait > millis() ) {
+    delay( 100 );
+  }
+  ESP.restart();
+  vTaskDelete( NULL );
+}
+
+
 void syncFinished( bool restart=true ) {
   M5Menu.windowClr();
   tft.setCursor(10,60);
   tft.setTextColor(WHITE, tft.color565(128,128,128));
   tft.println( SYNC_FINISHED );
   Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
+  xTaskCreatePinnedToCore( countDownReboot, "countDownReboot", 2048, NULL, 5, NULL, 0 );
   char modalBody[256];
   sprintf( modalBody, DOWNLOADER_MODAL_BODY_ERRORS_OCCURED, downloadererrors, checkedfiles, updatedfiles, newfiles);
   modalConfirm( DOWNLOADER_MODAL_ENDED, DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED, modalBody, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RETRY, DOWNLOADER_MODAL_BACK );
@@ -831,6 +854,7 @@ void enableNTP() {
   getLocalTime(&tmstruct, 5000);
   Serial.printf("\nNow is : %d-%02d-%02d %02d:%02d:%02d\n",(tmstruct.tm_year)+1900,( tmstruct.tm_mon)+1, tmstruct.tm_mday,tmstruct.tm_hour , tmstruct.tm_min, tmstruct.tm_sec);
   Serial.println("");
+  ntpsetup = true;
   // TODO: modal-confirm date
   delay(500);
   tft.clear();
@@ -858,7 +882,7 @@ void updateOne(const char* appName) {
     tft.setCursor(10, 36);
     tft.print( API_APP_ENDPOINT_STR );
     if( ! getApp( appURL ) ) { // no cert, invalid cert, invalid TLS host or JSON parsin failed ?
-      if( tlserrors > 0 ) {
+      //if( tlserrors > 0 ) {
         cleanDir( CERT_PATH ); // cleanup cached certs
         URLParts urlParts = parseURL( appURL );
         String certPath = String( CERT_PATH ) + "/" + urlParts.host;
@@ -869,9 +893,9 @@ void updateOne(const char* appName) {
           // failed
           log_e("Failed to negotiate certificate for appURL %s\n", appURL.c_str() );
         }
-      } else {
-        log_e( "Failed to get app %s, probably a JSON error ?", appName );
-      }
+      //} else {
+      //  log_e( "Failed to get app %s, probably a JSON error ?", appName );
+      //}
     }
     delay(300);
     M5Menu.windowClr();
