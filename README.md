@@ -15,7 +15,7 @@
 
 ## ABOUT
 
-- **M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) to package your apps on a SD card and load them from a menu such as the [default SD Menu example](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu) of this project or [@lovyan03](https://github.com/lovyan03)'s [Treeview based SD Menu](https://github.com/lovyan03/M5Stack_LovyanLauncher). For a Micropython compatible version of this library, see the [M5Stack_MicroPython  custom_sdupdater](https://github.com/ciniml/M5Stack_MicroPython/tree/custom_sdupdater)**
+- **M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) or [Odroid-Go](https://forum.odroid.com/viewtopic.php?t=31705) to package your apps on a SD card and load them from a menu such as the [default SD Menu example](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu) of this project or [@lovyan03](https://github.com/lovyan03)'s [Treeview based SD Menu](https://github.com/lovyan03/M5Stack_LovyanLauncher). For a Micropython compatible version of this library, see the [M5Stack_MicroPython  custom_sdupdater](https://github.com/ciniml/M5Stack_MicroPython/tree/custom_sdupdater)**
 
 - It is inspired by gamebuino, however it does not use a modified bootloader.
 
@@ -38,12 +38,12 @@
 
 **Make sure you have the following libraries:** - they should be installed in: ....\Documents\Arduino\libraries
 
-- [M5Stack library](https://github.com/m5stack/M5Stack) - this is probably already installed - if not you can get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+- [M5Stack library](https://github.com/m5stack/M5Stack) or [ESP32-Chimera-Core](https://github.com/tobozo/ESP32-Chimera-Core) - this is probably already installed - if not you can get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
 
 - M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
 
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
-- M5StackSAM: [https://github.com/tobozo/M5StackSAM/tree/patch-1](https://github.com/tobozo/M5StackSAM/tree/patch-1) (modified version until patch is merged)
+- M5StackSAM: [https://github.com/tobozo/M5StackSAM/](https://github.com/tobozo/M5StackSAM/) (modified version until patch is merged)
 
 <br />
 
