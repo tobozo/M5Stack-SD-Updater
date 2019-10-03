@@ -425,7 +425,7 @@ void getFileInfo( fs::FS &fs, File &file, const char* binext=".bin" ) {
       fileInfo[appsCount].hasFace = true;
       fileInfo[appsCount].faceName = fileInfo[appsCount].iconName;
     } else {
-      log_e("[GH_JPG]: no currentAvatarFile %s", currentIconFile.c_str() );
+      log_w("[GH_JPG]: no currentAvatarFile %s", currentIconFile.c_str() );
     }
   }
   String currentDataFolder = appDataFolder + fileName;
@@ -440,7 +440,7 @@ void getFileInfo( fs::FS &fs, File &file, const char* binext=".bin" ) {
   if( fs.exists(currentMetaFile.c_str() ) ) {
     fileInfo[appsCount].hasMeta = true;
     fileInfo[appsCount].metaName = currentMetaFile;
-  } else log_e("[JSON]: no currentMetaFile %s", currentIconFile.c_str() );
+  } else log_w("[JSON]: no currentMetaFile %s", currentIconFile.c_str() );
   if( fileInfo[appsCount].hasMeta == true ) {
     getMeta( fs, fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta );
   }
@@ -486,7 +486,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
           break; // don't make M5Stack list explode
         }
       } else {
-        log_d( "%s %s", DEBUG_IGNORED, file.name() );
+        if( String( file.name() ).endsWith(".tmp") ) {
+          fs.remove( file.name() );
+          log_d( "%s %s", DEBUG_CLEANED, file.name() );
+        } else {
+          log_d( "%s %s", DEBUG_IGNORED, file.name() );
+        }
       }
     }
     file = root.openNextFile();
