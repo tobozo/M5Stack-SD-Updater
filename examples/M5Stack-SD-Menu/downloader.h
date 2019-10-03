@@ -759,7 +759,7 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
 
   renderDownloadIcon( TFT_GREEN, 140, 80, 10.0 );
   #if ARDUINOJSON_VERSION_MAJOR==6
-    DynamicJsonDocument jsonBuffer(4096);
+    DynamicJsonDocument jsonBuffer(8192);
     DeserializationError error = deserializeJson(jsonBuffer, payload);
     if (error) {
       downloadererrors++;

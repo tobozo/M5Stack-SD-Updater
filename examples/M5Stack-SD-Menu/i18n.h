@@ -63,6 +63,7 @@
 #define DEBUG_NOTADIR F("Not a directory")
 #define DEBUG_DIRLABEL F("  DIR : ")
 #define DEBUG_IGNORED F("  IGNORED FILE: ")
+#define DEBUG_CLEANED F("  CLEANED FILE: ")
 #define DEBUG_ABORTLISTING F("  ***Max files reached for M5StackSam Menu, please adjust M5SAM_LIST_MAX_COUNT for more (maximum is 255, sorry :-)")
 #define DEBUG_FILELABEL F("  FILE: ")
 
