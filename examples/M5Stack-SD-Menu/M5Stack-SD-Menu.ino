@@ -107,7 +107,7 @@
 #endif
 #define M5_FS SD
 //#define M5_FS SD_MMC
-#include <M5StackSAM.h>      // https://github.com/tobozo/M5StackSAM/tree/patch-1 (forked from https://github.com/tomsuch/M5StackSAM)
+#include <M5StackSAM.h>      // https://github.com/tobozo/M5StackSAM/ (forked from https://github.com/tomsuch/M5StackSAM)
 #include <ArduinoJson.h>     // https://github.com/bblanchon/ArduinoJson/
 #include "i18n.h"            // language file
 #include "assets.h"          // some artwork for the UI
@@ -147,7 +147,8 @@ struct JSONMeta {
 
 /* filenames cache structure */
 struct FileInfo {
-  String fileName;  // the binary name
+  String shortName; // the binary name, without the file extension and the leading slash
+  String fileName;  // path to the binary file
   String metaName;  // a json file with all meta info on the binary
   String iconName;  // a jpeg image representing the binary
   String faceName;  // a jpeg image representing the author
@@ -165,6 +166,7 @@ SDUpdater sdUpdater;
 M5SAM M5Menu;
 
 uint16_t appsCount = 0; // how many binary files
+uint16_t appsCountProgress = 0; // progress window
 bool inInfoMenu = false; // menu state machine
 unsigned long lastcheck = millis(); // timer check
 unsigned long lastpush = millis(); // keypad/keyboard activity
@@ -398,6 +400,11 @@ void getFileInfo( fs::FS &fs, File &file, const char* binext=".bin" ) {
   }
   Serial.println( "[" + String(fileDate) + "]" + String( DEBUG_FILELABEL ) + fileName );
   fileInfo[appsCount].fileName = fileName;
+
+  fileInfo[appsCount].shortName = fileInfo[appsCount].fileName.substring(1);
+  fileInfo[appsCount].shortName.replace( ".bin", "" );
+  fileInfo[appsCount].shortName.replace( ".BIN", "" );
+  
   fileInfo[appsCount].fileSize = fileSize;
   if( fileName.startsWith("/--") ) {
     fileName.replace("--", "");
@@ -458,8 +465,8 @@ bool isValidAppName( const char* fileName ) {
 }
 
 
-void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
-  Serial.printf( String( DEBUG_DIRNAME ).c_str(), dirName );
+void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
+  log_i( String( DEBUG_DIRNAME ).c_str(), dirName );
   File root = fs.open( dirName );
   if( !root ){
     log_e( "%s", DEBUG_DIROPEN_FAILED );
@@ -474,11 +481,19 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
     if( file.isDirectory() ){
       log_d( "%s %s", DEBUG_DIRLABEL, file.name() );
       if( levels ){
-        listDir( fs, file.name(), levels -1 );
+        listDir( fs, file.name(), levels -1, process );
       }
     } else {
-      if( isValidAppName( file.name() ) ) { 
-        getFileInfo( fs, file );
+      if( isValidAppName( file.name() ) ) {
+        if( process ) {
+          getFileInfo( fs, file );
+          if( appsCountProgress > 0 ) {
+            float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
+            tft.progressBar( 110, 112, 100, 20, progressRatio);
+            tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
+            tft.drawString( fileInfo[appsCount].shortName, 160, 148, 2);
+          }
+        }
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
           //Serial.println( String( DEBUG_IGNORED ) + file.name() );
@@ -498,7 +513,15 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
   }
   if( fs.exists( MENU_BIN ) ) {
     file = fs.open( MENU_BIN );
-    getFileInfo( fs, file );
+    if( process ) {
+      getFileInfo( fs, file );
+      if( appsCountProgress > 0 ) {
+        float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
+        tft.progressBar( 110, 112, 100, 20, progressRatio);
+        tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
+        tft.drawString( fileInfo[appsCount].shortName, 160, 148, 2);
+      }
+    }
     appsCount++;
   } else {
     log_w( "[WARNING] No %s file found\n", MENU_BIN );
@@ -506,8 +529,11 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels ){
 }
 
 
-/* bubble sort filenames */
-void aSortFiles() {
+/* 
+ *  bubble sort filenames 
+ *  '32' is based on SD Card filename limitations
+ */
+void aSortFiles( uint8_t depth_level=32 ) {
   bool swapped;
   FileInfo temp;
   String name1, name2;
@@ -517,13 +543,20 @@ void aSortFiles() {
       name1 = fileInfo[i].fileName[0];
       name2 = fileInfo[i+1].fileName[0];
       if( name1==name2 ) {
-        name1 = fileInfo[i].fileName[1];
-        name2 = fileInfo[i+1].fileName[1];
-        if( name1==name2 ) {
-          name1 = fileInfo[i].fileName[2];
-          name2 = fileInfo[i+1].fileName[2];        
-        } else {
-          // give it up :-)
+        uint8_t depth = 0;
+        while( depth <= depth_level ) {
+          depth++;
+          if( depth > fileInfo[i].fileName.length() || depth > fileInfo[i+1].fileName.length() ) {
+            // end of filename
+            break;
+          }
+          name1 = fileInfo[i].fileName[depth];
+          name2 = fileInfo[i+1].fileName[depth];
+          if( name1==name2 ) {
+            continue;
+          } else {
+            break;
+          }
         }
       }
       if ( name1 > name2 || name1==MENU_BIN ) {
@@ -538,29 +571,28 @@ void aSortFiles() {
 
 
 void buildM5Menu() {
+
   PageID = 0;
-  Pages = appsCount / M5SAM_LIST_PAGE_LABELS;
-  if( appsCount % M5SAM_LIST_PAGE_LABELS != 0 ) Pages++;
+  Pages = appsCount / M5Menu.listPagination;
+  if( appsCount % M5Menu.listPagination != 0 ) Pages++;
   PageIndex = 0;
   M5Menu.clearList();
   M5Menu.setListCaption( MENU_SUBTITLE );
   for( uint16_t i=0; i < appsCount; i++ ) {
-    String shortName = fileInfo[i].fileName.substring(1);
-    shortName.replace( ".bin", "" );
-    shortName.replace( ".BIN", "" );
-    if( shortName=="menu" ) {
-      shortName = ABOUT_THIS_MENU;
+    if( fileInfo[i].shortName == "menu" ) {
+      M5Menu.addList( ABOUT_THIS_MENU );
+    } else {
+      M5Menu.addList( fileInfo[i].shortName );
     }
-    M5Menu.addList( shortName );
   }
 }
 
 void drawM5Menu( bool renderButtons = false ) {
-  const char* paginationTpl = "%s (page %d / %d)";
+  const char* paginationTpl = "Page %d / %d";
   char paginationStr[64];
-  PageID = MenuID / M5SAM_LIST_PAGE_LABELS;
-  PageIndex = MenuID % M5SAM_LIST_PAGE_LABELS;
-  sprintf(paginationStr, paginationTpl, MENU_SUBTITLE, PageID+1, Pages);
+  PageID = MenuID / M5Menu.listPagination;
+  PageIndex = MenuID % M5Menu.listPagination;
+  sprintf(paginationStr, paginationTpl, PageID+1, Pages);
   M5Menu.setListCaption( paginationStr );
   if( renderButtons ) {
     M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
@@ -576,7 +608,7 @@ void drawM5Menu( bool renderButtons = false ) {
 void pageDown() {
   if( PageID < Pages -1 ) {
     PageID++;
-    MenuID = (PageID * M5SAM_LIST_PAGE_LABELS) -1;
+    MenuID = (PageID * M5Menu.listPagination) -1;
     M5Menu.setListID( MenuID );
     M5Menu.nextList();
     MenuID = M5Menu.getListID();
@@ -592,8 +624,8 @@ void pageDown() {
 void menuUp() {
   MenuID = M5Menu.getListID();
   if( MenuID > 0 ) {
-    if( (MenuID - 1)%M5SAM_LIST_PAGE_LABELS==0 ) {
-      MenuID += (M5SAM_LIST_PAGE_LABELS-1);
+    if( (MenuID - 1)%M5Menu.listPagination==0 ) {
+      MenuID += (M5Menu.listPagination-1);
     } else {
       MenuID--;
     }
@@ -607,13 +639,13 @@ void menuUp() {
 
 void menuDown( int jumpSize = 1 ) {
   if(MenuID<appsCount-1){
-    if( (MenuID + 1)%M5SAM_LIST_PAGE_LABELS==0 ) {
-      MenuID -= (M5SAM_LIST_PAGE_LABELS-1);
+    if( (MenuID + 1)%M5Menu.listPagination==0 ) {
+      MenuID -= (M5Menu.listPagination-1);
     } else {
       MenuID++;
     }
   } else {
-    MenuID = PageID * M5SAM_LIST_PAGE_LABELS;
+    MenuID = PageID * M5Menu.listPagination;
   }
   M5Menu.setListID( MenuID );
   drawM5Menu( inInfoMenu );
@@ -625,7 +657,7 @@ void menuInfo() {
   M5Menu.windowClr();
   if( MenuID == 0 ) {
     // downloader
-    M5Menu.drawAppMenu( String(MENU_TITLE)+SD_UPDATER_CHANNEL, MENU_BTN_LAUNCH, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    M5Menu.drawAppMenu( String(MENU_TITLE)+SD_UPDATER_CHANNEL, MENU_BTN_LAUNCH, "SOURCE", MENU_BTN_BACK );
   } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
     M5Menu.drawAppMenu( String(MENU_TITLE)+SD_UPDATER_CHANNEL, MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
   } else {
@@ -644,8 +676,7 @@ void menuInfo() {
  *  TODO: create an app manager for the SD Card
  */
 void scanDataFolder() {
-  /* check if mandatory folders exists and create if necessary */
-  // data folder
+  // check if mandatory folders exists and create if necessary
   if( !M5_FS.exists( appDataFolder ) ) {
     M5_FS.mkdir( appDataFolder );
   }
@@ -659,19 +690,19 @@ void scanDataFolder() {
   if( !migrateSPIFFS ) {
     return;
   }
-  Serial.println( DEBUG_SPIFFS_SCAN );
+  log_i( DEBUG_SPIFFS_SCAN );
   if( !SPIFFS.begin() ){
-    Serial.println( DEBUG_SPIFFS_MOUNTFAILED );
+    log_e( DEBUG_SPIFFS_MOUNTFAILED );
   } else {
     File root = SPIFFS.open( "/" );
     if( !root ){
-      Serial.println( DEBUG_DIROPEN_FAILED );
+      log_e( DEBUG_DIROPEN_FAILED );
     } else {
       if( !root.isDirectory() ){
-        Serial.println( DEBUG_NOTADIR );
+        log_i( DEBUG_NOTADIR );
       } else {
         File file = root.openNextFile();
-        Serial.println( file.name() );
+        log_i( file.name() );
         String fileName = file.name();
         String destName = "";
         if( fileName.endsWith( ".bin" ) || fileName.endsWith( ".BIN" ) ) {
@@ -689,11 +720,11 @@ void scanDataFolder() {
           size_t fileSize = file.size();
           File destFile = M5_FS.open( destName, FILE_WRITE );
           if( !destFile ){
-            Serial.println( DEBUG_SPIFFS_WRITEFAILED) ;
+            log_e( DEBUG_SPIFFS_WRITEFAILED) ;
           } else {
             static uint8_t buf[512];
             size_t packets = 0;
-            Serial.println( String( DEBUG_FILECOPY ) + fileName );
+            log_i( String( DEBUG_FILECOPY ) + fileName );
             
             while( file.read( buf, 512) ) {
               destFile.write( buf, 512 );
@@ -702,14 +733,14 @@ void scanDataFolder() {
             }
             destFile.close();
             Serial.println();
-            Serial.println( DEBUG_FILECOPY_DONE );
+            log_i( DEBUG_FILECOPY_DONE );
             SPIFFS.remove( fileName );
-            Serial.println( DEBUG_WILL_RESTART );
+            log_i( DEBUG_WILL_RESTART );
             delay( 500 );
             ESP.restart();
           }
         } else {
-          Serial.println( DEBUG_NOTHING_TODO );
+          log_i( DEBUG_NOTHING_TODO );
         } // aa
       } // aaaaa
     } // aaaaaaaaa
@@ -781,8 +812,7 @@ bool replaceItem( fs::FS &fs, String SourceName, String  DestName) {
 }
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
-bool comparePartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length)
-{
+bool comparePartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length) {
     size_t lengthLeft = length;
     const size_t bufSize = SPI_FLASH_SEC_SIZE;
     std::unique_ptr<uint8_t[]> buf1(new uint8_t[bufSize]);
@@ -803,9 +833,8 @@ bool comparePartition(const esp_partition_t* src1, const esp_partition_t* src2, 
 }
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
-bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* src, size_t length)
-{
-    M5.Lcd.fillRect( 110, 112, 100, 20, 0);
+bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* src, size_t length) {
+    tft.fillRect( 110, 112, 100, 20, 0);
     size_t lengthLeft = length;
     const size_t bufSize = SPI_FLASH_SEC_SIZE;
     std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
@@ -824,7 +853,7 @@ bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* 
       progress = 100 * offset / length;
       if (progressOld != progress) {
         progressOld = progress;
-        M5.Lcd.progressBar( 110, 112, 100, 20, progress);
+        tft.progressBar( 110, 112, 100, 20, progress);
       }
     }
     return true;
@@ -835,37 +864,39 @@ void checkMenuStickyPartition() {
   const esp_partition_t *running = esp_ota_get_running_partition();
   const esp_partition_t *nextupdate = esp_ota_get_next_update_partition(NULL);
   const char* menubinfilename PROGMEM {MENU_BIN} ;
-  M5.Lcd.setCursor(0,0);
+  tft.setTextDatum(MC_DATUM);
+  tft.setCursor(0,0);
   if (!nextupdate) {
-    M5.Lcd.setTextFont(4);
-    M5.Lcd.print("! WARNING !\r\nNo OTA partition.\r\nCan't use SD-Updater.");
+    tft.setTextFont(4);
+    tft.print("! WARNING !\r\nNo OTA partition.\r\nCan't use SD-Updater.");
     delay(3000);
   } else if (running && running->label[3] == '0' && nextupdate->label[3] == '1') {
-    M5.Lcd.setTextFont(2);
-    M5.Lcd.println("TobozoLauncher on app0");
+    tft.drawString("TobozoLauncher on app0", 160, 10, 2);
     size_t sksize = ESP.getSketchSize();
     if (!comparePartition(running, nextupdate, sksize)) {
       bool flgSD = M5_FS.begin( TFCARD_CS_PIN, SPI, 40000000);
-      M5.Lcd.print(" copy to app1");
+      tft.drawString("Synchronizing 'app1' partition", 160, 24, 2);
       File dst;
       if (flgSD) {
         dst = (M5_FS.open(menubinfilename, FILE_WRITE ));
-        M5.Lcd.print(" and SD menu.bin");
+        tft.drawString("Overwriting " MENU_BIN, 160, 38, 2);
       }
       if (copyPartition( flgSD ? &dst : NULL, nextupdate, running, sksize)) {
-        M5.Lcd.println("\r\nDone.");
+        tft.drawString("Done", 160, 52, 2);
       }
       if (flgSD) dst.close();
     }
-    SDUpdater::updateNVS();     
-    M5.Lcd.println("Rebooting app1...");
+    SDUpdater::updateNVS();
+    tft.drawString("Hot-loading 'app1' partition", 160, 66, 2);
     if (Update.canRollBack()) {
       Update.rollBack();
       ESP.restart();
     } else {
+      tft.print("! WARNING !\r\nUpdate.rollBack() failed.");
       log_e("Failed to rollback after copy");
     }
   }
+  tft.setTextDatum(TL_DATUM);
 }
 
 
@@ -906,7 +937,13 @@ void updateApp( FileInfo info ) {
   appName.replace(".BIN", "");
   appName.replace("/", "");
   Serial.println( appName );
-  updateOne( appName.c_str() );
+  if( info.fileName == String( DOWNLOADER_BIN ) ) {
+    if( modalConfirm( "Change channel ?", "    Channel chooser", "    You are about to change your SD Card channel.\r\n    Are you sure ?" ) ) {
+      Serial.println("TODO: implement channel chooser");
+    }
+  } else {
+    updateOne( appName.c_str() );
+  }
   drawM5Menu( inInfoMenu );
 }
 
@@ -937,10 +974,19 @@ void launchApp( FileInfo info ) {
 void setup() {
   //Serial.begin( 115200 );
   M5.begin();
+  WiFi.onEvent(WiFiEvent);
+
+  // make sure you're using the latest from https://github.com/tobozo/M5StackSAM/
+  M5Menu.listMaxLabelSize = 32; // list labels will be trimmed
+  M5Menu.listPagination = 8; // 8 items per page
+  M5Menu.listPageLabelsOffset = 42; // initially 80, pixels offset from top screen for list items
+  M5Menu.listCaptionDatum = TR_DATUM; // initially TC_DATUM=top centered, TL_DATUM=top left (default), top/right/bottom/left
+  M5Menu.listCaptionXPos = tft.width()-10; // initially M5.Lcd.width()/2, text cursor position-x for list caption
+  M5Menu.listCaptionYPos = 42; // initially 45, text cursor position-x for list caption
   
   Serial.println( WELCOME_MESSAGE );
   Serial.println( INIT_MESSAGE );
-  Serial.printf( M5_SAM_MENU_SETTINGS, M5SAM_LIST_PAGE_LABELS, M5SAM_LIST_MAX_COUNT);
+  Serial.printf( M5_SAM_MENU_SETTINGS, M5Menu.listPagination, M5SAM_LIST_MAX_COUNT);
   //tft.begin();
 
   char * channel = strstr( UPDATER_PATH, "unstable" );
@@ -1001,7 +1047,9 @@ void setup() {
   checkMenuTimeStamp();
   checkMenuStickyPartition();
 
-  sdUpdater.SDMenuProgress( 10, 100 );
+  tft.fillRect(110, 112, 100, 20,0);
+  tft.progressBar( 110, 112, 100, 20, 10);
+
   // do SD / SPIFFS health checks
   scanDataFolder();
 
@@ -1025,11 +1073,17 @@ void setup() {
     }    
   }
 
-  sdUpdater.SDMenuProgress( 20, 100 );
-  listDir(M5_FS, "/", 0);
-  sdUpdater.SDMenuProgress( 30, 100 );
-  aSortFiles();
-  sdUpdater.SDMenuProgress( 40, 100 );
+  tft.progressBar( 110, 112, 100, 20, 20);
+  appsCount = 0;
+  listDir(M5_FS, "/", 0, false); // count valid files first so a progress meter can be displayed
+  appsCountProgress = appsCount;
+  appsCount = 0;
+  tft.drawJpg( disk01_jpg, 1775, (tft.width()-30)/2, 50 );
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString("Scanning SD Card", 160, 95, 2);
+  listDir(M5_FS, "/", 0, true); // now retrieve files meta
+  tft.setTextDatum(TL_DATUM);
+  aSortFiles(); // bubble sort alphabetically
   buildM5Menu();
 
   #ifdef USE_PSP_JOY
@@ -1041,11 +1095,8 @@ void setup() {
   // TODO: animate loading screen
   tft.clear();
 
-  for( uint8_t i=50; i<=80; i++ ) {
-    sdUpdater.SDMenuProgress( i, 100 );
-  }
-
-  sdUpdater.SDMenuProgress( -1, 100 );
+  //sdUpdater.SDMenuProgress( -1, 100 ); // remove the progress bar
+  tft.fillRect(110, 112, 100, 20,0);
   
   drawM5Menu( true );
   inInfoMenu = false;

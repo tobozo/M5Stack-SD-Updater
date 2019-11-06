@@ -22,7 +22,7 @@
 #define MENU_BTN_PAGE F(">>")
 #define MENU_BTN_NEXT F(">")
 
-#define ABOUT_THIS_MENU F("About This Launcher")
+#define ABOUT_THIS_MENU F("--About This Launcher--")
 
 #define AUTHOR_PREFIX F("By ")
 #define AUTHOR_SUFFIX F(" **")
