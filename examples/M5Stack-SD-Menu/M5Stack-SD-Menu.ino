@@ -690,19 +690,19 @@ void scanDataFolder() {
   if( !migrateSPIFFS ) {
     return;
   }
-  log_i( DEBUG_SPIFFS_SCAN );
+  log_i( "%s", DEBUG_SPIFFS_SCAN );
   if( !SPIFFS.begin() ){
-    log_e( DEBUG_SPIFFS_MOUNTFAILED );
+    log_e( "%s", DEBUG_SPIFFS_MOUNTFAILED );
   } else {
     File root = SPIFFS.open( "/" );
     if( !root ){
-      log_e( DEBUG_DIROPEN_FAILED );
+      log_e( "%s", DEBUG_DIROPEN_FAILED );
     } else {
       if( !root.isDirectory() ){
-        log_i( DEBUG_NOTADIR );
+        log_i( "%s", DEBUG_NOTADIR );
       } else {
         File file = root.openNextFile();
-        log_i( file.name() );
+        log_i( "%s", file.name() );
         String fileName = file.name();
         String destName = "";
         if( fileName.endsWith( ".bin" ) || fileName.endsWith( ".BIN" ) ) {
@@ -720,7 +720,7 @@ void scanDataFolder() {
           size_t fileSize = file.size();
           File destFile = M5_FS.open( destName, FILE_WRITE );
           if( !destFile ){
-            log_e( DEBUG_SPIFFS_WRITEFAILED) ;
+            log_e( "%s", DEBUG_SPIFFS_WRITEFAILED) ;
           } else {
             static uint8_t buf[512];
             size_t packets = 0;
@@ -733,14 +733,14 @@ void scanDataFolder() {
             }
             destFile.close();
             Serial.println();
-            log_i( DEBUG_FILECOPY_DONE );
+            log_i( "%s", DEBUG_FILECOPY_DONE );
             SPIFFS.remove( fileName );
-            log_i( DEBUG_WILL_RESTART );
+            log_i( "%s", DEBUG_WILL_RESTART );
             delay( 500 );
             ESP.restart();
           }
         } else {
-          log_i( DEBUG_NOTHING_TODO );
+          log_i( "%s", DEBUG_NOTHING_TODO );
         } // aa
       } // aaaaa
     } // aaaaaaaaa
@@ -998,13 +998,6 @@ void setup() {
     SD_UPDATER_CHANNEL="unstable";
   }
 
-  if( digitalRead( BUTTON_A_PIN ) == 0 ) {
-    cleanDir( CERT_PATH );
-    Serial.println( GOTOSLEEP_MESSAGE );
-    M5.setWakeupButton( BUTTON_B_PIN );
-    M5.powerOFF();
-  }
-
   tft.setBrightness(100);
   lastcheck = millis();
   bool toggle = true;
@@ -1037,6 +1030,13 @@ void setup() {
       M5.setWakeupButton( BUTTON_B_PIN );
       M5.powerOFF();
     }
+  }
+
+  if( digitalRead( BUTTON_A_PIN ) == 0 ) {
+    cleanDir( SD_CERT_PATH );
+    Serial.println( GOTOSLEEP_MESSAGE );
+    M5.setWakeupButton( BUTTON_B_PIN );
+    M5.powerOFF();
   }
 
   tft.setTextColor( WHITE );
@@ -1078,7 +1078,8 @@ void setup() {
   listDir(M5_FS, "/", 0, false); // count valid files first so a progress meter can be displayed
   appsCountProgress = appsCount;
   appsCount = 0;
-  tft.drawJpg( disk01_jpg, 1775, (tft.width()-30)/2, 50 );
+
+  tft.drawJpg(sd_updater_jpg, sd_updater_jpg_len, (tft.width()-32)/2, 40);
   tft.setTextDatum(MC_DATUM);
   tft.drawString("Scanning SD Card", 160, 95, 2);
   listDir(M5_FS, "/", 0, true); // now retrieve files meta

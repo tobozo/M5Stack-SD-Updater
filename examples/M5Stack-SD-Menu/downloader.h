@@ -34,16 +34,20 @@ float progress_modulo = 0;
 #else
   #define API_PATH          "/m5stack"
 #endif
-#define CERT_PATH         "/cert"
-#define UPDATER_PATH      "/sd-updater/unstable"
-#define API_ENDPOINT      "catalog.json"
-#define REGISTRY_ENDPOINT "registry.json"
 
-const String API_REGISTRY_URL      = HTTPS API_HOST API_PATH UPDATER_PATH "/" REGISTRY_ENDPOINT;
-const String API_CERT_PROVIDER_URL = HTTP API_HOST API_PATH CERT_PATH "/";
-const String API_URL_HTTPS         = HTTPS API_HOST API_PATH UPDATER_PATH "/";
-const String API_URL_HTTP          = HTTP API_HOST API_PATH UPDATER_PATH "/";
-const char* API_APP_ENDPOINT_TPL = "%s.json";
+#define REGISTRY_PATH     "/registry"
+#define REGISTRY_ENDPOINT "/registry.json"
+#define API_CERT_PATH     "/cert/" // needs a trailing slash !!
+#define UPDATER_PATH      "/sd-updater/unstable"
+#define CATALOG_ENDPOINT  "/catalog.json"
+
+#define SD_CERT_PATH      "/cert/" // SD temporary path where certificates are stored, needs a trailing slash !!
+
+const String API_REGISTRY_URL      = HTTPS API_HOST API_PATH REGISTRY_PATH REGISTRY_ENDPOINT;
+const String API_CERT_PROVIDER_URL = HTTP API_HOST API_PATH API_CERT_PATH;
+const String API_URL_HTTPS         = HTTPS API_HOST API_PATH UPDATER_PATH;
+const String API_URL_HTTP          = HTTP API_HOST API_PATH UPDATER_PATH;
+const char* API_APP_ENDPOINT_TPL = "/%s.json";
 String SD_UPDATER_CHANNEL    = "";
 char API_APP_ENDPOINT_STR[32];
 
@@ -244,7 +248,13 @@ void cleanDir( const char* dir) {
   tft.setCursor(0,0);
   tft.setTextColor(WHITE, BLACK);
 
-  File root = M5_FS.open( dir );
+  String dirToOpen = String( dir );
+
+  if( dirToOpen.endsWith("/" ) ) {
+    dirToOpen = dirToOpen.substring(0, dirToOpen.length()-1);   
+  }
+
+  File root = M5_FS.open( dirToOpen );
   if(!root){
     log_e("%s",  DEBUG_DIROPEN_FAILED );
     return;
@@ -288,7 +298,9 @@ typedef struct {
     }
     if( endhttp ) {
       log_d("[HEAP before http.end(): %d]", ESP.getFreeHeap() );
-      http.end();
+      if( http.connected() ) {
+        http.end();
+      }
       endhttp = false;
       log_d("[HEAP after http.end(): %d]", ESP.getFreeHeap() );
     }
@@ -383,7 +395,7 @@ const char* updateWallet( String host, const char* ca) {
 
 
 const char* fetchLocalCert( String host ) {
-  String certPath = String(CERT_PATH) + "/" + host;
+  String certPath = String( SD_CERT_PATH ) + host;
   File certFile = M5_FS.open( certPath );
   if(! certFile ) { // failed to open the cert file
     log_d("Failed to open the cert file %s", certPath.c_str() );
@@ -429,7 +441,7 @@ const char* fetchCert( String host, bool checkWallet = true, bool checkFS = true
       //
     }
   }
-  String certPath = String( CERT_PATH ) + "/" + host;
+  String certPath = String( SD_CERT_PATH ) + host;
   String certURL = API_CERT_PROVIDER_URL + host;
   if(  !checkFS || !M5_FS.exists( certPath ) ) {
     //log_d("[FETCHING REMOTE CERT] -> ");
@@ -452,7 +464,9 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
   if( String( urlParts.protocol ) == "https" ) {
     const char* certdata = fetchCert( urlParts.host );
     if( certdata == NULL ) {
+      tlserrors++;
       log_e(" [ERROR] An HTTPS URL was called (%s) but no certificate was provided", urlParts.url.c_str() );
+      router.endhttp = false;
       return router.dismiss( client, true );
     }
     client->setCACert( certdata );
@@ -562,7 +576,7 @@ bool wget( String bin_url, String appName, bool sha256sum ) {
   }
   wgetRouter.endhttp = false;
   wgetRouter.deleteclient = false;
-  return true; //wgetRouter.dismiss( client, false );
+  return wgetRouter.dismiss( client, false );
 }
 
 
@@ -734,28 +748,32 @@ bool getApp( String appURL ) {
 
 bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
   syncStart();
-  String appURL = BASE_URL + API_ENDPOINT;
+  String appURL = BASE_URL + CATALOG_ENDPOINT;
+  String payload = "";
   URLParts urlParts = parseURL( appURL );
   HTTPRouter syncAppRouter;
 
   WiFiClientSecure *client = new WiFiClientSecure;
 
   if( ! syncConnect(client, syncAppRouter, urlParts) ) {
+    log_e( "Could not connect to registry at %s", appURL.c_str() );
+    syncAppRouter.dismiss( client, false );
     if( tlserrors > 0 ) {
-      cleanDir( CERT_PATH ); // cleanup cached certs
-      URLParts urlParts = parseURL( appURL );
-      String certPath = String( CERT_PATH ) + "/" + urlParts.host;
+      cleanDir( SD_CERT_PATH ); // cleanup cached certs
+      //URLParts urlParts = parseURL( appURL );
+      String certPath = String( SD_CERT_PATH ) + urlParts.host;
       String certURL = API_CERT_PROVIDER_URL + urlParts.host;
       if( wget( certURL , certPath, false ) ) {
-        downloadererrors = 0;
-        return true;
+        Serial.println("Certificate changed, the ESP will continue");
+        modalConfirm( "OPERATION CANCELED", "    New TLS certificate installed", "    This will require a restart.\r\n\r\n    Reboot now?" );
+        ESP.restart();
       }
     }
     return false;
+  } else {
+    payload = http.getString();
+    syncAppRouter.dismiss( client, false );
   }
-
-  String payload = http.getString();
-  syncAppRouter.dismiss( client, false );
 
   renderDownloadIcon( TFT_GREEN, 140, 80, 10.0 );
   #if ARDUINOJSON_VERSION_MAJOR==6
@@ -788,7 +806,7 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
   for(uint16_t i=0;i<appsCount;i++) {
     String appName = root["apps"][i]["name"].as<String>();
     //if( appName == "Downloader" ) continue;
-    String appURL  = BASE_URL + appName + ".json";
+    String appURL  = BASE_URL + "/" + appName + ".json";
     progress = float(i*progress_modulo);
     M5Menu.windowClr();
     printProgress(progress);
@@ -807,84 +825,84 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
 
 
 void WiFiEvent(WiFiEvent_t event) {
-  Serial.printf("[WiFi-event] event: %d\n", event);
+  log_w("[WiFi-event] event: %d\n", event);
 
   switch (event) {
     case SYSTEM_EVENT_WIFI_READY:
-        Serial.println("WiFi interface ready");
+        log_w("WiFi interface ready");
         break;
     case SYSTEM_EVENT_SCAN_DONE:
-        Serial.println("Completed scan for access points");
+        log_w("Completed scan for access points");
         break;
     case SYSTEM_EVENT_STA_START:
-        Serial.println("WiFi client started");
+        log_w("WiFi client started");
         break;
     case SYSTEM_EVENT_STA_STOP:
-        Serial.println("WiFi clients stopped");
+        log_w("WiFi clients stopped");
         break;
     case SYSTEM_EVENT_STA_CONNECTED:
-        Serial.println("Connected to access point");
+        log_w("Connected to access point");
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
-        Serial.println("Disconnected from WiFi access point");
+        log_w("Disconnected from WiFi access point");
         break;
     case SYSTEM_EVENT_STA_AUTHMODE_CHANGE:
-        Serial.println("Authentication mode of access point has changed");
+        log_w("Authentication mode of access point has changed");
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
         Serial.print("Obtained IP address: ");
         Serial.println(WiFi.localIP());
         break;
     case SYSTEM_EVENT_STA_LOST_IP:
-        Serial.println("Lost IP address and IP address is reset to 0");
+        log_w("Lost IP address and IP address is reset to 0");
         break;
     case SYSTEM_EVENT_STA_WPS_ER_SUCCESS:
-        Serial.println("WiFi Protected Setup (WPS): succeeded in enrollee mode");
+        log_w("WiFi Protected Setup (WPS): succeeded in enrollee mode");
         break;
     case SYSTEM_EVENT_STA_WPS_ER_FAILED:
-        Serial.println("WiFi Protected Setup (WPS): failed in enrollee mode");
+        log_w("WiFi Protected Setup (WPS): failed in enrollee mode");
         break;
     case SYSTEM_EVENT_STA_WPS_ER_TIMEOUT:
-        Serial.println("WiFi Protected Setup (WPS): timeout in enrollee mode");
+        log_w("WiFi Protected Setup (WPS): timeout in enrollee mode");
         break;
     case SYSTEM_EVENT_STA_WPS_ER_PIN:
-        Serial.println("WiFi Protected Setup (WPS): pin code in enrollee mode");
+        log_w("WiFi Protected Setup (WPS): pin code in enrollee mode");
         break;
     case SYSTEM_EVENT_AP_START:
-        Serial.println("WiFi access point started");
+        log_w("WiFi access point started");
         break;
     case SYSTEM_EVENT_AP_STOP:
-        Serial.println("WiFi access point  stopped");
+        log_w("WiFi access point  stopped");
         break;
     case SYSTEM_EVENT_AP_STACONNECTED:
-        Serial.println("Client connected");
+        log_w("Client connected");
         break;
     case SYSTEM_EVENT_AP_STADISCONNECTED:
-        Serial.println("Client disconnected");
+        log_w("Client disconnected");
         break;
     case SYSTEM_EVENT_AP_STAIPASSIGNED:
-        Serial.println("Assigned IP address to client");
+        log_w("Assigned IP address to client");
         break;
     case SYSTEM_EVENT_AP_PROBEREQRECVED:
-        Serial.println("Received probe request");
+        log_w("Received probe request");
         break;
     case SYSTEM_EVENT_GOT_IP6:
-        Serial.println("IPv6 is preferred");
+        log_w("IPv6 is preferred");
         break;
     case SYSTEM_EVENT_ETH_START:
-        Serial.println("Ethernet started");
+        log_w("Ethernet started");
         break;
     case SYSTEM_EVENT_ETH_STOP:
-        Serial.println("Ethernet stopped");
+        log_w("Ethernet stopped");
         break;
     case SYSTEM_EVENT_ETH_CONNECTED:
-        Serial.println("Ethernet connected");
+        log_w("Ethernet connected");
         break;
     case SYSTEM_EVENT_ETH_DISCONNECTED:
-        Serial.println("Ethernet disconnected");
+        log_w("Ethernet disconnected");
         break;
     case SYSTEM_EVENT_ETH_GOT_IP:
-        Serial.println("Obtained IP address");
+        log_w("Ethernet obtained IP address");
         break;
     default: break;
   }
@@ -913,7 +931,7 @@ void enableWiFi() {
     if(rssi%3==0) {
       Serial.println(WIFI_MSG_CONNECTING);
     }
-    if(startup + 10000 < millis()) {
+    if(startup + 30000 < millis()) {
       Serial.println(WIFI_MSG_TIMEOUT);
       tft.println(WIFI_MSG_TIMEOUT);
       delay(1000);
@@ -958,7 +976,10 @@ void updateOne(const char* appName) {
   while( !wifisetup ) {
     enableWiFi();
     maxAttempts--;
-    if( maxAttempts < 0 ) break;
+    if( maxAttempts < 0 ) {
+      WiFi.mode(WIFI_OFF);
+      break;
+    }
   }
   if( wifisetup ) {
     enableNTP();
@@ -970,12 +991,14 @@ void updateOne(const char* appName) {
     tft.print( API_APP_ENDPOINT_STR );
     if( ! getApp( appURL ) ) { // no cert, invalid cert, invalid TLS host or JSON parsin failed ?
       if( tlserrors > 0 ) {
-        cleanDir( CERT_PATH ); // cleanup cached certs
+        cleanDir( SD_CERT_PATH ); // cleanup cached certs
         URLParts urlParts = parseURL( appURL );
-        String certPath = String( CERT_PATH ) + "/" + urlParts.host;
+        String certPath = String( SD_CERT_PATH ) + urlParts.host;
         String certURL = API_CERT_PROVIDER_URL + urlParts.host;
         if( wget( certURL , certPath, false ) ) {
-          getApp( appURL );
+          modalConfirm( "OPERATION CANCELED", "    New TLS certificate installed", "    This will require a restart.\r\n\r\n    Reboot now?" );
+          ESP.restart();
+          //getApp( appURL );
         } else {
           // failed
           log_e("Failed to negotiate certificate for appURL %s\n", appURL.c_str() );
@@ -1005,7 +1028,10 @@ void updateAll() {
   while( !wifisetup ) {
     enableWiFi();
     maxAttempts--;
-    if( maxAttempts < 0 ) break;
+    if( maxAttempts < 0 ) {
+      WiFi.mode(WIFI_OFF);
+      break;
+    }
   }
   if( wifisetup ) {
     enableNTP();
