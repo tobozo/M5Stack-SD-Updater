@@ -80,7 +80,7 @@
 #define MODAL_REGISTRY_DAMAGED "    New Registry file may be damaged"
 #define MODAL_REBOOT_REGISTRY_UPDATED "    Please reboot and choose a channel.\r\n\r\n    Reboot now?"
 
-#define DEBUG_DIRNAME F("Listing directory: %s\n")
+#define DEBUG_DIRNAME "Listing directory: %s\n"
 #define DEBUG_DIROPEN_FAILED F("Failed to open directory")
 #define DEBUG_NOTADIR F("Not a directory")
 #define DEBUG_DIRLABEL F("  DIR : ")
@@ -92,7 +92,7 @@
 #define DEBUG_SPIFFS_SCAN F("Scanning SPIFFS for binaries")
 #define DEBUG_SPIFFS_MOUNTFAILED F("SPIFFS Mount Failed")
 #define DEBUG_SPIFFS_WRITEFAILED F("- failed to open file for writing")
-#define DEBUG_FILECOPY F("Starting File Copy for ")
+#define DEBUG_FILECOPY "Starting File Copy for "
 #define DEBUG_FILECOPY_DONE F("Transfer finished")
 #define DEBUG_WILL_RESTART F("Binary removed from SPIFFS, will now restart")
 #define DEBUG_NOTHING_TODO F("No binary to transfer")

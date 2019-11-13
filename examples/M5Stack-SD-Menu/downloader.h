@@ -29,7 +29,7 @@
  */
 
 #define MBEDTLS_ERROR_C
-#include "certificates.h"
+//#include "certificates.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
@@ -37,7 +37,7 @@
 #include "mbedtls/md.h"
 
 // registry this launcher is tied to
-#include "registry.default.h"
+#include "registry.h"
 
 long timezone = 0; // UTC
 byte daysavetime = 1; // UTC + 1
@@ -48,6 +48,7 @@ extern SDUpdater sdUpdater; // used for menu progress
 extern M5SAM M5Menu;
 extern uint16_t appsCount;
 extern uint16_t MenuID;
+extern AppRegistry Registry;
 
 #define DOWNLOADER_BIN "/--Downloader--.bin" // Fixme/Hack: a dummy file will be created so it appears in the menu as an app
 #define DOWNLOADER_BIN_VIRTUAL "/Downloader.bin" // old bin name, will be renamed, kept for backwards compat
@@ -59,13 +60,8 @@ bool ntpsetup  = false;
 bool done      = false;
 uint8_t progress = 0;
 float progress_modulo = 0;
-
-const String appRegistryFolder = "/.registry";
-const String appRegistryDefaultName = "default.json";
-
-const char* AppEndpointURLTpl = "/%s.json";
-String SDUpdaterChannelNameStr    = "";
-char AppEndpointURLStr[32];
+const uint16_t M5MENU_GREY = tft.color565(128,128,128);
+const uint16_t M5MENU_BLUE = tft.color565(0,0,128);
 
 
 mbedtls_md_context_t ctx;
@@ -108,6 +104,7 @@ struct URLParts {
   String uri;
 };
 
+
 URLParts parseURL( String url ) { // logic stolen from HTTPClient::beginInternal()
   URLParts urlParts;
   int index = url.indexOf(':');
@@ -139,112 +136,14 @@ URLParts parseURL( String url ) { // logic stolen from HTTPClient::beginInternal
 }
 
 
-
-
-typedef struct {
-  String name;
-  String description;
-  String url;
-  String api_host;
-  String api_path;
-  String api_cert_path;
-  String updater_path;
-  String catalog_endpoint;
-
-  String api_cert_provider_url_http;
-  String api_url_https;
-  String api_url_http;
-
-  void init() {
-    api_cert_provider_url_http = "http://" + api_host + api_path + api_cert_path;
-    api_url_https              = "https://" + api_host + api_path + updater_path;
-    api_url_http               = "https://" + api_host + api_path + updater_path;
-  }
-  void print() {
-    Serial.printf("\n\tname: %s\n\tdescription: %s\n\turl: %s\n\tapi_host: %s\n\tapi_path: %s\n\tapi_cert_path: %s\n\tupdater_path: %s\n\tcatalog_endpoint: %s\n\tapi_cert_provider_url_http: %s\n\tapi_url_https: %s\n\tapi_url_http: %s\n\n",
-      name.c_str(),
-      description.c_str(),
-      url.c_str(),
-      api_host.c_str(),
-      api_path.c_str(),
-      api_cert_path.c_str(),
-      updater_path.c_str(),
-      catalog_endpoint.c_str(),
-      api_cert_provider_url_http.c_str(),
-      api_url_https.c_str(),
-      api_url_http.c_str()
-    );
-  }
-} AppRegistryItem;
-
-typedef struct {
-  String name;
-  String description;
-  String url;
-  String pref_default_channel; // local option for SDUpdater use only
-  AppRegistryItem masterChannel;
-  AppRegistryItem unstableChannel;
-  AppRegistryItem defaultChannel;
-  void init() {
-    masterChannel.init();
-    unstableChannel.init();
-    if( pref_default_channel == "master" ) {
-      defaultChannel = masterChannel;
-    } else {
-      defaultChannel = unstableChannel;
-    }
-    print();
-  }
-  void print() {
-    Serial.println("Registry infos:");
-    Serial.printf("\n\tname: %s\n\tdescription: %s\n\turl: %s\n\tpref_default_channel: %s\n\n",
-      name.c_str(),
-      description.c_str(),
-      url.c_str(),
-      pref_default_channel.c_str()
-    );
-    Serial.println("Master channel infos:");
-    masterChannel.print();
-    Serial.println("Unstable channel infos:");
-    unstableChannel.print();
-    Serial.println("Default channel infos:");
-    defaultChannel.print();
-  }
-} AppRegistry;
-
-
-AppRegistryItem defaultMasterChannel = {
-  "master", // name
-  DEFAULT_MASTER_DESC,
-  DEFAULT_MASTER_URL,
-  DEFAULT_MASTER_API_HOST,
-  DEFAULT_MASTER_API_PATH,
-  DEFAULT_MASTER_API_CERT_PATH,
-  DEFAULT_MASTER_UPDATER_PATH,
-  DEFAULT_MASTER_CATALOG_ENDPOINT
-};
-
-AppRegistryItem defaultUnstableChannel = {
-  "unstable", // name
-  DEFAULT_UNSTABLE_DESC,
-  DEFAULT_UNSTABLE_URL,
-  DEFAULT_UNSTABLE_API_HOST,
-  DEFAULT_UNSTABLE_API_PATH,
-  DEFAULT_UNSTABLE_API_CERT_PATH,
-  DEFAULT_UNSTABLE_UPDATER_PATH,
-  DEFAULT_UNSTABLE_CATALOG_ENDPOINT
-};
-
-AppRegistry defaultAppRegistry = {
-  DEFAULT_REGISTRY_NAME,
-  DEFAULT_REGISTRY_DESC,
-  DEFAULT_REGISTRY_URL, // should exist as "default.json" on SD Card
-  DEFAULT_REGISTRY_CHANNEL,
-  defaultMasterChannel,
-  defaultUnstableChannel
-};
-
-extern AppRegistry Registry;
+String heapState() {
+  log_i("\nRAM SIZE:\t%.2f KB\nFREE RAM:\t%.2f KB\nMAX ALLOC:\t%.2f KB", 
+    ESP.getHeapSize() / 1024.0, 
+    ESP.getFreeHeap() / 1024.0, 
+    ESP.getMaxAllocHeap() / 1024.0
+  );
+  return "";
+}
 
 
 void registrySave( AppRegistry registry, String appRegistryLocalFile = "" ) {
@@ -264,9 +163,9 @@ void registrySave( AppRegistry registry, String appRegistryLocalFile = "" ) {
     return;
   }
 
-  DynamicJsonDocument jsonBuffer(2048);
+  DynamicJsonDocument jsonRegistryBuffer(2048);
 
-  JsonObject channels            = jsonBuffer.createNestedObject("channels");
+  JsonObject channels            = jsonRegistryBuffer.createNestedObject("channels");
   JsonObject masterChannelJson   = channels.createNestedObject("master");
   JsonObject unstableChannelJson = channels.createNestedObject("unstable");
 
@@ -288,21 +187,22 @@ void registrySave( AppRegistry registry, String appRegistryLocalFile = "" ) {
   unstableChannelJson["updater_path"] = registry.unstableChannel.updater_path;
   unstableChannelJson["endpoint"]     = registry.unstableChannel.catalog_endpoint;
   
-  jsonBuffer["name"]                 = registry.name;
-  jsonBuffer["description"]          = registry.description;
-  jsonBuffer["url"]                  = registry.url;
-  jsonBuffer["pref_default_channel"] = registry.pref_default_channel;
+  jsonRegistryBuffer["name"]                 = registry.name;
+  jsonRegistryBuffer["description"]          = registry.description;
+  jsonRegistryBuffer["url"]                  = registry.url;
+  jsonRegistryBuffer["pref_default_channel"] = registry.pref_default_channel;
 
   Serial.println("Created json:");
-  serializeJsonPretty(jsonBuffer, Serial);
+  serializeJsonPretty(jsonRegistryBuffer, Serial);
   Serial.println();
 
-  if (serializeJson(jsonBuffer, file) == 0) {
+  if (serializeJson(jsonRegistryBuffer, file) == 0) {
     Serial.println(F("Failed to write to file"));
   }
   file.close();
   Serial.println("Successfully created " + appRegistryLocalFile);
 }
+
 
 void registryFetch( AppRegistry registry, String appRegistryLocalFile = "" ) {
   if( !wifiSetupWorked() ) {
@@ -337,12 +237,9 @@ void registryFetch( AppRegistry registry, String appRegistryLocalFile = "" ) {
     File destFile   = M5_FS.open( appRegistryDefaultFile, FILE_WRITE );
     static uint8_t buf[512];
     size_t packets = 0;
-    Serial.println("Starting copy");
     while( (packets = sourceFile.read( buf, sizeof(buf))) > 0 ) {
       destFile.write( buf, packets );
-      Serial.write( buf, packets );
     }
-    Serial.println();
     destFile.close();
     sourceFile.close();
     modalConfirm( UPDATE_SUCCESS, MODAL_REGISTRY_UPDATED, MODAL_REBOOT_REGISTRY_UPDATED, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
@@ -350,19 +247,20 @@ void registryFetch( AppRegistry registry, String appRegistryLocalFile = "" ) {
   ESP.restart();
 }
 
+
+
+
 AppRegistry registryInit( String appRegistryLocalFile = "" ) {
   if( appRegistryLocalFile == "" ) {
-    //SDUpdaterChannelNameStr = String( DEFAULT_REGISTRY_CHANNEL );
     appRegistryLocalFile = appRegistryFolder + "/" + appRegistryDefaultName;
-  } else {
-    //SDUpdaterChannelNameStr = "master";
   }
-  Serial.println("Opening channel file: " + appRegistryLocalFile);
+  log_i("Opening channel file: %s", appRegistryLocalFile.c_str());
   
   if( !M5_FS.exists( appRegistryLocalFile ) ) {
     // create file
-    Serial.println("Registry file " + appRegistryLocalFile + " does not exist, creating from firmware defaults");
+    log_i("Registry file %s does not exist, creating from firmware defaults", appRegistryLocalFile.c_str() );
     registrySave( defaultAppRegistry, appRegistryFolder + "/" + appRegistryDefaultName );
+    defaultAppRegistry.init();
     return defaultAppRegistry;
   }
   // load from file
@@ -372,16 +270,16 @@ AppRegistry registryInit( String appRegistryLocalFile = "" ) {
   AppRegistryItem masterChannel;
   AppRegistryItem unstableChannel;
 
-  StaticJsonDocument<2048> jsonBuffer;
-  DeserializationError error = deserializeJson( jsonBuffer, file );
+  DynamicJsonDocument jsonRegistryBuffer(2048);
+  DeserializationError error = deserializeJson( jsonRegistryBuffer, file );
   if (error) {
-    Serial.println("JSON Error while reading registry file " + appRegistryLocalFile );
+    log_e("JSON Error while reading registry file %s", appRegistryLocalFile.c_str() );
     defaultAppRegistry.init();
     return defaultAppRegistry;
   }
-  JsonObject root = jsonBuffer.as<JsonObject>();
+  JsonObject root = jsonRegistryBuffer.as<JsonObject>();
   if ( root.isNull() ) {
-    Serial.println("Registry file " + appRegistryLocalFile + " has empty JSON");
+    log_w("Registry file %s has empty JSON", appRegistryLocalFile.c_str() );
     defaultAppRegistry.init();
     return defaultAppRegistry;
   } else  {
@@ -394,7 +292,7 @@ AppRegistry registryInit( String appRegistryLocalFile = "" ) {
      || root["channels"]["master"]["updater_path"].as<String>() ==""
      || root["channels"]["master"]["endpoint"].as<String>() =="" ) {
      // bad master item
-     Serial.println("Bad master channel in JSON file");
+     log_w("%s", "Bad master channel in JSON file");
      defaultAppRegistry.init();
      return defaultAppRegistry;
     } else {
@@ -419,7 +317,7 @@ AppRegistry registryInit( String appRegistryLocalFile = "" ) {
      || root["channels"]["unstable"]["updater_path"].as<String>() ==""
      || root["channels"]["unstable"]["endpoint"].as<String>() =="" ) {
      // bad master item
-     Serial.println("Bad unstable channel in JSON file");
+     log_w("%s", "Bad unstable channel in JSON file");
      defaultAppRegistry.init();
      return defaultAppRegistry;
     } else {
@@ -438,10 +336,11 @@ AppRegistry registryInit( String appRegistryLocalFile = "" ) {
     if( root["name"].as<String>() == ""
      || root["description"].as<String>() == ""
      || root["url"].as<String>() == "" ) {
-      Serial.println("Bad channel meta in JSON file");
+      log_w("%s", "Bad channel meta in JSON file");
       defaultAppRegistry.init();
       return defaultAppRegistry;
     } else {
+      String SDUpdaterChannelNameStr    = "";
       if( !root["pref_default_channel"].isNull() && root["pref_default_channel"].as<String>() != "" ) {
         // inherit from json
         SDUpdaterChannelNameStr = root["pref_default_channel"].as<String>();
@@ -463,8 +362,6 @@ AppRegistry registryInit( String appRegistryLocalFile = "" ) {
   }
 
 };
-
-
 
 
 int modalConfirm( String question, String title, String body, const char* labelA=DOWNLOADER_MODAL_YES, const char* labelB=DOWNLOADER_MODAL_NO, const char* labelC=DOWNLOADER_MODAL_CANCEL ) {
@@ -493,12 +390,13 @@ void printProgress(uint16_t progress) {
   uint16_t x = tft.getCursorX();
   uint16_t y = tft.getCursorX();
   tft.setCursor(10, 194);
-  tft.setTextColor(WHITE, tft.color565(128,128,128));
+  tft.setTextColor(WHITE, M5MENU_GREY);
   tft.print( OVERALL_PROGRESS_TITLE );
   tft.print(String(progress));
   tft.print("%");
   tft.setCursor(x, y);
 }
+
 
 void renderDownloadIcon(uint16_t color=GREEN, int16_t x=272, int16_t y=7, float size=2.0 ) {
   float halfsize = size/2;
@@ -506,6 +404,7 @@ void renderDownloadIcon(uint16_t color=GREEN, int16_t x=272, int16_t y=7, float 
   tft.fillTriangle(x+size, y,          x+3*size, y,          x+2*size, y+5*size, color);
   tft.fillRect( x, -halfsize+y+6*size, 1+4*size, size, color);
 }
+
 
 void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float size=1.0) {
   uint16_t barColors[4] = { bgcolor, bgcolor, bgcolor, bgcolor };
@@ -546,10 +445,10 @@ void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float siz
 
 
 void drawSDUpdaterChannel() {
-  tft.setTextColor(TFT_WHITE, tft.color565(0,0,128) );
+  tft.setTextColor(TFT_WHITE, M5MENU_BLUE );
   tft.drawJpg(bluefork_jpg, bluefork_jpg_len, 2, 8 );
   tft.drawString( Registry.defaultChannel.name, 16, 11 );
-  tft.setTextColor(TFT_WHITE, tft.color565(128,128,128) );
+  tft.setTextColor(TFT_WHITE, M5MENU_GREY );
 }
 
 
@@ -558,7 +457,7 @@ void drawAppMenu() {
   M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "");
   drawSDUpdaterChannel();
   if( wifisetup ) {
-    drawRSSIBar( 290, 4, 5, tft.color565(0,0,128), 2.0 );
+    drawRSSIBar( 290, 4, 5, M5MENU_BLUE, 2.0 );
   }
   if( ntpsetup ) {
     // TODO: draw something
@@ -665,20 +564,20 @@ void sha256_sum(fs::FS &fs, const char* fileName) {
     return;
   }
   tft.drawJpg( checksum_jpg, checksum_jpg_len, 10, 125, 22, 32 );
-  uint8_t buff[4096] = { 0 };
-  size_t sizeOfBuff = sizeof(buff);
+  uint8_t shabuff[4096] = { 0 };
+  size_t sizeOfBuff = sizeof(shabuff);
   mbedtls_md_init(&ctx);
   mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
   mbedtls_md_starts(&ctx);
   size_t n;
-  while ((n = checkFile.read(buff, sizeOfBuff)) > 0) {
-    mbedtls_md_update(&ctx, (const unsigned char *) buff, n);
+  while ((n = checkFile.read(shabuff, sizeOfBuff)) > 0) {
+    mbedtls_md_update(&ctx, (const unsigned char *) shabuff, n);
     if( fileSize/10 > sizeOfBuff && fileSize != len ) {
       sdUpdater.M5SDMenuProgress(fileSize-len, fileSize);
     }
     len -= n;
   }
-  tft.fillRect( 10, 125, 22, 32, tft.color565(128,128,128) );
+  tft.fillRect( 10, 125, 22, 32, M5MENU_GREY );
   checkFile.close();
   mbedtls_md_finish(&ctx, shaResult);
   mbedtls_md_free(&ctx);
@@ -813,7 +712,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
     return router.dismiss( client, true );
   }
   if(httpCode != HTTP_CODE_OK) {
-    Serial.printf("\n[ERROR %d] HTTP GET %s failed: %s\n", httpCode, urlParts.url.c_str(), http.errorToString(httpCode).c_str());
+    log_e("\n[ERROR %d] HTTP GET %s failed: %s\n", httpCode, urlParts.url.c_str(), http.errorToString(httpCode).c_str());
     return router.dismiss( client, true );
   }
   return true;
@@ -886,8 +785,8 @@ bool wget( String bin_url, String appName ) {
   mbedtls_md_finish(&ctx, shaResult);
   mbedtls_md_free(&ctx);
   sha_sum_to_str();
-  tft.fillRect( 10, 125, 70, 32, tft.color565(128,128,128) );
-  renderDownloadIcon( tft.color565(128,128,128) );
+  tft.fillRect( 10, 125, 70, 32, M5MENU_GREY );
+  renderDownloadIcon( M5MENU_GREY );
   unsigned long dl_duration;
   float bytespermillis;
   dl_duration = ( millis() - downwloadstart );
@@ -917,7 +816,7 @@ static void countDownReboot( void * param ) {
 void syncFinished( bool restart=true ) {
   M5Menu.windowClr();
   tft.setCursor(10,60);
-  tft.setTextColor(WHITE, tft.color565(128,128,128));
+  tft.setTextColor(WHITE, M5MENU_GREY);
   tft.println( SYNC_FINISHED );
   Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
   xTaskCreatePinnedToCore( countDownReboot, "countDownReboot", 2048, NULL, 5, NULL, 0 );
@@ -929,6 +828,7 @@ void syncFinished( bool restart=true ) {
     delay(1000);
   }
 }
+
 
 void syncStart() {
   downloadererrors = 0;
@@ -964,10 +864,10 @@ bool getApp( String appURL ) {
 
   String payload = http.getString();
   getAppRouter.dismiss( client, false );
-  renderDownloadIcon( tft.color565(128,128,128) );
+  renderDownloadIcon( M5MENU_GREY );
   
-  DynamicJsonDocument jsonBuffer(8192);
-  DeserializationError error = deserializeJson(jsonBuffer, payload);
+  DynamicJsonDocument jsonAppBuffer(8192);
+  DeserializationError error = deserializeJson(jsonAppBuffer, payload);
   if (error) {
     downloadererrors++;
     jsonerrors++;
@@ -975,7 +875,7 @@ bool getApp( String appURL ) {
     delay(10000);
     return false;
   }
-  JsonObject root = jsonBuffer.as<JsonObject>();
+  JsonObject root = jsonAppBuffer.as<JsonObject>();
 
   uint16_t appsCount = root["apps_count"].as<uint16_t>();
   if(appsCount!=1) {
@@ -1007,18 +907,19 @@ bool getApp( String appURL ) {
     Serial.printf( "  [%s]", fileName.c_str() );
     if(M5_FS.exists( finalName )) {
       Serial.print("[SHA256 Sum ->][....");
+      // check the sha sum of the *local* file
       sha256_sum( M5_FS, finalName.c_str() );
       Serial.print("]");
       if( shaResultStr.equals( sha_sum ) ) {
         log_d("[checksums match]");
         checkedfiles++;
-        printVerifyProgress( WGET_SKIPPING, GREEN, tft.color565(128,128,128), WHITE);
+        printVerifyProgress( WGET_SKIPPING, GREEN, M5MENU_GREY, WHITE);
         continue;
       }
       log_d("[checksums differ]");
-      printVerifyProgress( WGET_UPDATING, TFT_ORANGE, tft.color565(128,128,128), WHITE);
+      printVerifyProgress( WGET_UPDATING, TFT_ORANGE, M5MENU_GREY, WHITE);
     } else {
-      printVerifyProgress( WGET_CREATING, WHITE, tft.color565(128,128,128), WHITE);
+      printVerifyProgress( WGET_CREATING, WHITE, M5MENU_GREY, WHITE);
     }
     {
       appURL = base_url + filePath + fileName;
@@ -1030,6 +931,8 @@ bool getApp( String appURL ) {
         const char* nullcert = (const char*)NULL;
         wget( appURL, tempFileName );
       }
+      // now check the sha sum of the *downloaded* file
+      sha256_sum( M5_FS, tempFileName.c_str() );
     }
     if( shaResultStr.equals( sha_sum ) ) {
       checkedfiles++;
@@ -1043,12 +946,12 @@ bool getApp( String appURL ) {
         M5_FS.rename( tempFileName, finalName );
       } else {
         // download failed, error was previously disclosed
-        printVerifyProgress( DOWNLOAD_FAIL, RED, tft.color565(128,128,128), WHITE);
+        printVerifyProgress( DOWNLOAD_FAIL, RED, M5MENU_GREY, WHITE);
       }
     } else {
       downloadererrors++;
       Serial.printf("  [SHA256 SUM ERROR] Remote hash: %s, Local hash: %s ### keeping local file and removing temp file ###\n", String(sha_sum).c_str(), shaResultStr.c_str() );
-      printVerifyProgress( SHASHUM_FAIL, RED, tft.color565(128,128,128), WHITE);
+      printVerifyProgress( SHASHUM_FAIL, RED, M5MENU_GREY, WHITE);
       M5_FS.remove( tempFileName );
     }
     uint16_t myprogress = progress + (i* float(progress_modulo/assets_count));
@@ -1076,7 +979,7 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
       String certPath = String( SD_CERT_PATH ) + urlParts.host;
       String certURL = Registry.defaultChannel.api_cert_provider_url_http + urlParts.host;
       if( wget( certURL , certPath ) ) {
-        Serial.println("Certificate changed, the ESP will continue");
+        log_w( NEW_TLS_CERTIFICATE_INSTALLED );
         modalConfirm( DOWNLOADER_MODAL_CANCELED, NEW_TLS_CERTIFICATE_INSTALLED, MODAL_RESTART_REQUIRED, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
         ESP.restart();
       }
@@ -1089,14 +992,14 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
 
   renderDownloadIcon( TFT_GREEN, 140, 80, 10.0 );
 
-  DynamicJsonDocument jsonBuffer(8192);
-  DeserializationError error = deserializeJson(jsonBuffer, payload);
+  DynamicJsonDocument jsonAppBuffer(8192);
+  DeserializationError error = deserializeJson(jsonAppBuffer, payload);
   if (error) {
     downloadererrors++;
     log_e("\n%s\n", "JSON Parsing failed!");
     return false;
   }
-  JsonObject root = jsonBuffer.as<JsonObject>();
+  JsonObject root = jsonAppBuffer.as<JsonObject>();
 
   appsCount = root["apps_count"].as<uint16_t>();
   if( appsCount==0 ) {
@@ -1115,11 +1018,12 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
     M5Menu.windowClr();
     printProgress(progress);
     Serial.printf("\n[%s] :\n", appName.c_str());
-    tft.setTextColor( WHITE, tft.color565(128,128,128) );
+    tft.setTextColor( WHITE, M5MENU_GREY );
     tft.setCursor(10, 36);
     tft.print( appName );
     getApp( appURL );
     delay(150);
+    heapState();
   }
 
   syncFinished();
@@ -1127,7 +1031,7 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
   return true;
 }
 
-
+/*
 void WiFiEvent(WiFiEvent_t event) {
   log_w("[WiFi-event] event: %d\n", event);
 
@@ -1210,7 +1114,7 @@ void WiFiEvent(WiFiEvent_t event) {
     default: break;
   }
 }
-
+*/
 
 
 void enableWiFi() {
@@ -1224,12 +1128,12 @@ void enableWiFi() {
   tft.clear();
   drawAppMenu();
   tft.setCursor(10, 50);
-  tft.setTextColor(WHITE, tft.color565(128,128,128));
+  tft.setTextColor(WHITE, M5MENU_GREY);
   tft.println(WIFI_MSG_WAITING);
   size_t rssi = 0;
   
   while (WiFi.status() != WL_CONNECTED) {
-    drawRSSIBar( 122, 100, rssi++, tft.color565(128,128,128), 4.0 );
+    drawRSSIBar( 122, 100, rssi++, M5MENU_GREY, 4.0 );
     delay(500);
     if(rssi%3==0) {
       Serial.println(WIFI_MSG_CONNECTING);
@@ -1253,7 +1157,7 @@ void enableNTP() {
   tft.clear();
   drawAppMenu();
   tft.setCursor(10, 50);
-  tft.setTextColor(WHITE, tft.color565(128,128,128));
+  tft.setTextColor(WHITE, M5MENU_GREY);
   tft.println("Contacting NTP Server");
   tft.drawJpg( ntp_jpeg, ntp_jpeg_len, 144, 104, 32, 32 );
   configTime(timezone*3600, daysavetime*3600, "pool.ntp.org", "asia.pool.ntp.org", "europe.pool.ntp.org");
@@ -1287,18 +1191,18 @@ bool wifiSetupWorked() {
 
 
 
-void updateOne(const char* appName) {
+void updateOne(String appName) {
   syncStart();
   uint16_t oldAppsCount = appsCount;
+  String AppEndpointURLStr = "/" + appName + ".json";
   appsCount = 1;
   if( wifiSetupWorked() ) {
-    sprintf(AppEndpointURLStr, AppEndpointURLTpl, appName);
-    Serial.printf("Will update app : %s\n", AppEndpointURLStr);
-    String appURL  = Registry.defaultChannel.api_url_https + String(AppEndpointURLStr);
+    Serial.printf("Will update app : %s\n", AppEndpointURLStr.c_str());
+    String appURL  = Registry.defaultChannel.api_url_https + AppEndpointURLStr;
     M5Menu.windowClr();
-    Serial.printf("\n[%s] :\n", AppEndpointURLStr);
-    tft.setTextColor( WHITE, tft.color565(128,128,128) );
-    tft.setCursor(10, 36);
+    Serial.printf( "\n[%s] :\n", AppEndpointURLStr.c_str() );
+    tft.setTextColor( WHITE, M5MENU_GREY );
+    tft.setCursor( 10, 36 );
     tft.print( AppEndpointURLStr );
     if( ! getApp( appURL ) ) { // no cert, invalid cert, invalid TLS host or JSON parsin failed ?
       if( tlserrors > 0 ) {
@@ -1315,13 +1219,13 @@ void updateOne(const char* appName) {
           log_e("Failed to negotiate certificate for appURL %s\n", appURL.c_str() );
         }
       } else {
-        log_e( "Failed to get app %s, probably a JSON error ?", appName );
+        log_e( "Failed to get app %s, probably a JSON error ?", appName.c_str() );
       }
     }
     delay(300);
     M5Menu.windowClr();
     tft.setCursor(10,60);
-    tft.setTextColor(WHITE, tft.color565(128,128,128));
+    tft.setTextColor(WHITE, M5MENU_GREY);
     tft.println( SYNC_FINISHED );
     Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
     WiFi.mode( WIFI_OFF );
@@ -1336,6 +1240,14 @@ void updateOne(const char* appName) {
 
 void updateAll() {
   if( wifiSetupWorked() ) {
+    // TODO: cleanup heap memory before doing some greedy HTTP stuff ?
+    /*
+    for( uint16_t i=0; i<appsCount;i++) {
+      delete &fileInfo[i].jsonMeta;
+      delete &fileInfo[i];
+    }
+    log_e("[HEAP after delete fileInfo[i]: %d]", ESP.getFreeHeap() );
+    */
     while(!done && downloadererrors==0 ) {
       syncAppRegistry( Registry.defaultChannel.api_url_https );
       if( downloadererrors > 0 ) {

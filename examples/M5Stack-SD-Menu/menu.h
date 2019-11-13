@@ -62,6 +62,7 @@
 #include "i18n.h"            // language file
 #include "assets.h"          // some artwork for the UI
 #include "controls.h"        // keypad / joypad / keyboard controls
+#include "fsformat.h"        // filesystem bin formats, functions, helpers
 #include "downloader.h"      // binaries downloader module A.K.A YOLO Downloader
 #include "partition_manager.h"
 
@@ -86,81 +87,18 @@ String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
 
 
-/* 
- *  
- * /!\ When set to true, files with those extensions 
- * will be transferred to the SD Card if found on SPIFFS.
- * Directory is automatically created.
- * 
- */
-bool migrateSPIFFS = false;
-const uint8_t extensionsCount = 6; // change this if you add / remove an extension
-String allowedExtensions[extensionsCount] = {
-    // do NOT remove jpg and json or the menu will crash !!!
-    "jpg", "json", "mod", "mp3", "cert"
-};
-String appDataFolder = "/data"; // if an app needs spiffs data, it's stored here
-String launcherSignature = "Launcher.bin"; // app with name ending like this can overwrite menu.bin
-
-
-
-
-
-/* Storing json meta file information r */
-struct JSONMeta {
-  int width; // app image width
-  int height; // app image height
-  String authorName = "";
-  String projectURL = "";
-  String credits = ""; // scroll this ?
-  // TODO: add more interesting properties
-};
-
-/* filenames cache structure */
-struct FileInfo {
-  String shortName; // the binary name, without the file extension and the leading slash
-  String fileName;  // path to the binary file
-  String metaName;  // a json file with all meta info on the binary
-  String iconName;  // a jpeg image representing the binary
-  String faceName;  // a jpeg image representing the author
-  uint32_t fileSize;
-  bool hasIcon = false;
-  bool hasMeta = false;
-  bool hasFace = false; // github avatar
-  bool hasData = false; // app requires a spiffs /data folder
-  JSONMeta jsonMeta;
-};
-
-
-FileInfo fileInfo[M5SAM_LIST_MAX_COUNT];
 SDUpdater sdUpdater;
 M5SAM M5Menu;
 AppRegistry Registry;
 
 
-
 /* vMicro compliance, see https://github.com/tobozo/M5Stack-SD-Updater/issues/5#issuecomment-386749435 */
 void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta );
+void freeAllMeta();
+void freeMeta();
 void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
 void qrRender( String text, float sizeinpixels );
-
-
-void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta ) {
-  File file = fs.open( metaFileName );
-
-  StaticJsonDocument<512> jsonBuffer;
-  DeserializationError error = deserializeJson( jsonBuffer, file );
-  if (error) return;
-  JsonObject root = jsonBuffer.as<JsonObject>();
-  if ( !root.isNull() ) {
-    jsonMeta.width  = root["width"];
-    jsonMeta.height = root["height"];
-    jsonMeta.authorName = root["authorName"].as<String>();
-    jsonMeta.projectURL = root["projectURL"].as<String>();
-    jsonMeta.credits    = root["credits"].as<String>();
-  }
-}
 
 
 void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
@@ -227,7 +165,7 @@ void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
 
 /* by file info */
 void renderIcon( FileInfo &fileInfo ) {
-  if( !fileInfo.hasMeta || !fileInfo.hasIcon ) {
+  if( !fileInfo.hasMeta() || !fileInfo.hasIcon() ) {
     return;
   }
   JSONMeta jsonMeta = fileInfo.jsonMeta;
@@ -318,108 +256,8 @@ void qrRender( String text, float sizeinpixels ) {
 }
 
 
-bool iFile_exists( fs::FS &fs, String &fname ) {
-  if( fs.exists( fname.c_str() ) ) {
-    return true;
-  }
-  String locasename = fname;
-  String hicasename = fname;
-  locasename.toLowerCase();
-  hicasename.toUpperCase();
-  if( fs.exists( locasename.c_str() ) ) {
-    fname = locasename;
-    return true;
-  }
-  if( fs.exists( hicasename.c_str() ) ) {
-    fname = hicasename;
-    return true;
-  }
-  return false;
-}
-
-
-
-void getFileInfo( fs::FS &fs, File &file, const char* binext=".bin" ) {
-  String BINEXT = binext;
-  BINEXT.toUpperCase();
-  String fileName   = file.name();
-  uint32_t fileSize = file.size();
-  time_t lastWrite = file.getLastWrite();
-  struct tm * tmstruct = localtime(&lastWrite);
-  char fileDate[64] = "1980-01-01 00:07:20";
-  sprintf(fileDate, "%04d-%02d-%02d %02d:%02d:%02d",(tmstruct->tm_year)+1900,( tmstruct->tm_mon)+1, tmstruct->tm_mday,tmstruct->tm_hour , tmstruct->tm_min, tmstruct->tm_sec);
-  if( (tmstruct->tm_year)+1900 < 2000 ) {
-    // time is not set
-  }
-  Serial.println( "[" + String(fileDate) + "]" + String( DEBUG_FILELABEL ) + fileName );
-  fileInfo[appsCount].fileName = fileName;
-
-  fileInfo[appsCount].shortName = fileInfo[appsCount].fileName.substring(1);
-  fileInfo[appsCount].shortName.replace( ".bin", "" );
-  fileInfo[appsCount].shortName.replace( ".BIN", "" );
-  
-  fileInfo[appsCount].fileSize = fileSize;
-  if( fileName.startsWith("/--") ) {
-    fileName.replace("--", "");
-  }
-  String currentIconFile = "/jpg" + fileName;
-  currentIconFile.replace( binext, ".jpg" );
-  currentIconFile.replace( BINEXT, ".jpg" ); // temp fix for esp-idf filename bug ( 2048.bin is returned as 2048.BIN )
-  if( iFile_exists( fs, currentIconFile ) ) {
-    fileInfo[appsCount].hasIcon = true;
-    fileInfo[appsCount].iconName = currentIconFile;
-  }
-  currentIconFile.replace( ".jpg", "_gh.jpg" );
-  currentIconFile.replace( ".JPG", "_gh.jpg" ); // temp fix for esp-idf filename bug ( 2048.jpg is returned as 2048.JPG )
-  if( iFile_exists( fs, currentIconFile ) ) {
-    fileInfo[appsCount].hasFace = true;
-    fileInfo[appsCount].faceName = currentIconFile;
-    if( !fileInfo[appsCount].hasIcon ) {
-      // inherit
-      fileInfo[appsCount].hasIcon = true;
-      fileInfo[appsCount].iconName = currentIconFile;
-    }
-  } else {
-    if( fileInfo[appsCount].hasIcon ) {
-      // inherit
-      fileInfo[appsCount].hasFace = true;
-      fileInfo[appsCount].faceName = fileInfo[appsCount].iconName;
-    } else {
-      log_w("[GH_JPG]: no currentAvatarFile %s", currentIconFile.c_str() );
-    }
-  }
-  String currentDataFolder = appDataFolder + fileName;
-  currentDataFolder.replace( binext, "" );
-  currentDataFolder.replace( BINEXT, "" );
-  if( fs.exists( currentDataFolder.c_str() ) ) {
-    fileInfo[appsCount].hasData = true; // TODO: actually use this feature
-  }
-  String currentMetaFile = "/json" + fileName;
-  currentMetaFile.replace( binext, ".json" );
-  currentMetaFile.replace( BINEXT, ".json" );
-  if( fs.exists(currentMetaFile.c_str() ) ) {
-    fileInfo[appsCount].hasMeta = true;
-    fileInfo[appsCount].metaName = currentMetaFile;
-  } else log_w("[JSON]: no currentMetaFile %s", currentIconFile.c_str() );
-  if( fileInfo[appsCount].hasMeta == true ) {
-    getMeta( fs, fileInfo[appsCount].metaName, fileInfo[appsCount].jsonMeta );
-  }
-}
-
-
-bool isValidAppName( const char* fileName ) {
-  if(   String( fileName )!=MENU_BIN // ignore menu
-     && ( String( fileName ).endsWith( ".bin" ) // ignore files not ending in ".bin"
-     || String( fileName ).endsWith( ".BIN" ) ) // handle esp-idf vfs bug (thanks to https://twitter.com/phillowcompiler)
-     && !String( fileName ).startsWith( "/." ) ) { // ignore dotfiles (thanks to https://twitter.com/micutil)
-    return true;
-  }
-  return false;
-}
-
-
 void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
-  log_i( String( DEBUG_DIRNAME ).c_str(), dirName );
+  log_i( DEBUG_DIRNAME, dirName );
   File root = fs.open( dirName );
   if( !root ){
     log_e( "%s", DEBUG_DIROPEN_FAILED );
@@ -439,12 +277,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
     } else {
       if( isValidAppName( file.name() ) ) {
         if( process ) {
-          getFileInfo( fs, file );
+          getFileInfo( fileInfo[appsCount], fs, file );
           if( appsCountProgress > 0 ) {
             float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
             tft.progressBar( 110, 112, 100, 20, progressRatio);
             tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
-            tft.drawString( fileInfo[appsCount].shortName, 160, 148, 2);
+            tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
           }
         }
         appsCount++;
@@ -467,12 +305,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
   if( fs.exists( MENU_BIN ) ) {
     file = fs.open( MENU_BIN );
     if( process ) {
-      getFileInfo( fs, file );
+      getFileInfo( fileInfo[appsCount], fs, file );
       if( appsCountProgress > 0 ) {
         float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
         tft.progressBar( 110, 112, 100, 20, progressRatio);
         tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
-        tft.drawString( fileInfo[appsCount].shortName, 160, 148, 2);
+        tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
       }
     }
     appsCount++;
@@ -532,10 +370,10 @@ void buildM5Menu() {
   M5Menu.clearList();
   M5Menu.setListCaption( MENU_SUBTITLE );
   for( uint16_t i=0; i < appsCount; i++ ) {
-    if( fileInfo[i].shortName == "menu" ) {
+    if( fileInfo[i].shortName() == "menu" ) {
       M5Menu.addList( ABOUT_THIS_MENU );
     } else {
-      M5Menu.addList( fileInfo[i].shortName );
+      M5Menu.addList( fileInfo[i].displayName() );
     }
   }
 }
@@ -549,8 +387,6 @@ void drawM5Menu( bool renderButtons = false ) {
   M5Menu.setListCaption( paginationStr );
   if( renderButtons ) {
     M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
-    //drawRSSIBar( 290, 4, 5, tft.color565(0,0,128), 2.0 );
-    //tft.drawJpg( download_jpg, download_jpg_len, 44, 125, 26, 32 );
     tft.drawJpg(sd_updater15x16_jpg, sd_updater15x16_jpg_len, 296, 6, 15, 16);
     drawSDUpdaterChannel();
   }
@@ -620,140 +456,10 @@ void menuInfo() {
     M5Menu.drawAppMenu( String(MENU_TITLE)+Registry.defaultChannel.name, MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
   }
   renderMeta( fileInfo[MenuID].jsonMeta );
-  if( fileInfo[MenuID].hasFace ) {
+  if( fileInfo[MenuID].hasFace() ) {
     renderFace( fileInfo[MenuID].faceName );
   }
   lastpush = millis();
-}
-
-
-/* 
- *  Scan SPIFFS for binaries and move them onto the SD Card
- *  TODO: create an app manager for the SD Card
- */
-void scanDataFolder() {
-  // check if mandatory folders exists and create if necessary
-  if( !M5_FS.exists( appDataFolder ) ) {
-    M5_FS.mkdir( appDataFolder );
-  }
-  if( !M5_FS.exists( appRegistryFolder ) ) {
-    M5_FS.mkdir( appRegistryFolder );
-  }
-  for( uint8_t i=0; i<extensionsCount; i++ ) {
-    String dir = "/" + allowedExtensions[i];
-    if( !M5_FS.exists( dir ) ) {
-      M5_FS.mkdir( dir );
-    }
-  }
-  if( !migrateSPIFFS ) {
-    return;
-  }
-  log_i( "%s", DEBUG_SPIFFS_SCAN );
-  if( !SPIFFS.begin() ){
-    log_e( "%s", DEBUG_SPIFFS_MOUNTFAILED );
-  } else {
-    File root = SPIFFS.open( "/" );
-    if( !root ){
-      log_e( "%s", DEBUG_DIROPEN_FAILED );
-    } else {
-      if( !root.isDirectory() ){
-        log_i( "%s", DEBUG_NOTADIR );
-      } else {
-        File file = root.openNextFile();
-        log_i( "%s", file.name() );
-        String fileName = file.name();
-        String destName = "";
-        if( fileName.endsWith( ".bin" ) || fileName.endsWith( ".BIN" ) ) {
-          destName = fileName;
-        }
-        // move allowed file types to their own folders
-        for( uint8_t i=0; i<extensionsCount; i++)  {
-          String ext = "." + allowedExtensions[i];
-          if( fileName.endsWith( ext ) ) {  
-            destName = "/" + allowedExtensions[i] + fileName;
-          }
-        }
-        if( destName!="" ) {
-          sdUpdater.displayUpdateUI( String( MOVINGFILE_MESSAGE ) + fileName );
-          size_t fileSize = file.size();
-          File destFile = M5_FS.open( destName, FILE_WRITE );
-          if( !destFile ){
-            log_e( "%s", DEBUG_SPIFFS_WRITEFAILED) ;
-          } else {
-            static uint8_t buf[512];
-            size_t packets = 0;
-            log_i( String( DEBUG_FILECOPY ) + fileName );
-            
-            while( file.read( buf, 512) ) {
-              destFile.write( buf, 512 );
-              packets++;
-              sdUpdater.SDMenuProgress( (packets*512)-511, fileSize );
-            }
-            destFile.close();
-            Serial.println();
-            log_i( "%s", DEBUG_FILECOPY_DONE );
-            SPIFFS.remove( fileName );
-            log_i( "%s", DEBUG_WILL_RESTART );
-            delay( 500 );
-            ESP.restart();
-          }
-        } else {
-          log_i( "%s", DEBUG_NOTHING_TODO );
-        } // aa
-      } // aaaaa
-    } // aaaaaaaaa
-  } // aaaaaaaaaaaaah!
-} // nooooooooooooooes!!
-
-
-
-bool replaceItem( fs::FS &fs, String SourceName, String  DestName) {
-  if( !fs.exists( SourceName ) ) {
-    Serial.printf("Source file %s does not exists !\n", SourceName.c_str() );
-    return false;
-  }
-  fs.remove( DestName );
-  fs::File source = fs.open( SourceName );
-  if( !source ) {
-    Serial.printf("Failed to open source file %s\n", SourceName.c_str() );
-    return false;
-  }
-  fs::File dest = fs.open( DestName, FILE_WRITE );
-  if( !dest ) {
-    Serial.printf("Failed to open dest file %s\n", DestName.c_str() );
-    return false;
-  }
-  uint8_t buf[4096]; // 4K buffer should be enough to fast-copy the file
-  uint8_t dot = 0;
-  size_t fileSize = source.size();
-  size_t n;
-  while ((n = source.read(buf, sizeof(buf))) > 0) {
-    Serial.print(".");
-    if(dot++%64==0) {
-      Serial.println();
-      sdUpdater.SDMenuProgress( (dot*4096)-4095, fileSize );
-    }
-    dest.write(buf, n);
-  }
-  dest.close();
-  source.close();
-  return true;
-}
-
-bool replaceMenu( fs::FS &fs, FileInfo &info) {
-  if(!replaceItem( fs, info.fileName, String(MENU_BIN) ) ) {
-    return false;
-  }
-  if( info.hasIcon ) {
-    replaceItem( fs, info.iconName, "/jpg/menu.jpg" );
-  }
-  if( info.hasFace ) {
-    replaceItem( fs, info.faceName, "/jpg/menu_gh.jpg" );
-  }
-  if( info.hasMeta ) {
-    replaceItem( fs, info.metaName, "/json/menu.json" );
-  }
-  return true;
 }
 
 
@@ -835,18 +541,19 @@ void downloaderMenu() {
   drawM5Menu( inInfoMenu );
 }
 
-void updateApp( FileInfo info ) {
-  String appName = info.fileName;
-  appName.replace(".bin", "");
-  appName.replace(".BIN", "");
-  appName.replace("/", "");
+
+void updateApp( FileInfo &info ) {
+  String appName = info.shortName();
+  //appName.replace(".bin", "");
+  //appName.replace(".BIN", "");
+  //appName.replace("/", "");
   Serial.println( appName );
-  updateOne( appName.c_str() );
+  updateOne( appName );
   drawM5Menu( inInfoMenu );
 }
 
 
-void launchApp( FileInfo info ) {
+void launchApp( FileInfo &info ) {
   if( info.fileName == String( DOWNLOADER_BIN ) ) {
     if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) == HID_SELECT ) {
       updateAll();
@@ -856,11 +563,11 @@ void launchApp( FileInfo info ) {
     return;
   }
   if( info.fileName.endsWith( launcherSignature ) ) {
-    Serial.printf("Will overwrite current %s with a copy of %s\n", MENU_BIN, info.fileName.c_str() );
-    if( replaceMenu( M5_FS, info ) ) {
+    log_w("Will overwrite current %s with a copy of %s\n", MENU_BIN, info.fileName.c_str() );
+    if( replaceLauncher( M5_FS, info ) ) {
       // fine
     } else {
-      Serial.println("Failed to overwrite ?????");
+      log_e("Failed to overwrite %s!", info.fileName.c_str());
       return;
     }
   }
@@ -870,6 +577,7 @@ void launchApp( FileInfo info ) {
 
 
 void UISetup() {
+
   // make sure you're using the latest from https://github.com/tobozo/M5StackSAM/
   M5Menu.listMaxLabelSize = 32; // list labels will be trimmed
   M5Menu.listPagination = 8; // 8 items per page
@@ -882,15 +590,11 @@ void UISetup() {
   Serial.println( INIT_MESSAGE );
   Serial.printf( M5_SAM_MENU_SETTINGS, M5Menu.listPagination, M5SAM_LIST_MAX_COUNT);
 
+  heapState();
+
   tft.setBrightness(100);
   lastcheck = millis();
   tft.drawJpg(disk01_jpg, 1775, (tft.width()-30)/2, 100);
-  //tft.setTextSize(1);
-  //int16_t posx = ( tft.width() / 2 ) - ( tft.textWidth( SD_LOADING_MESSAGE ) / 2 );
-  //if( posx <0 ) posx = 0;
-  //tft.setCursor( posx, 136 );
-
-
   tft.setTextDatum(MC_DATUM);
   tft.drawString( SD_LOADING_MESSAGE, 160, 142, 1 );
 
@@ -944,6 +648,7 @@ void doFSChecks() {
   }
 }
 
+
 void doFSInventory() {
   tft.setTextColor( WHITE );
   tft.setTextSize( 1 );
@@ -963,6 +668,7 @@ void doFSInventory() {
   drawM5Menu( true ); // render the menu
   lastcheck = millis(); // reset the timer
   lastpush = millis(); // reset the timer
+  heapState();
 }
 
 

@@ -84,7 +84,7 @@ void setup() {
 
   //Serial.begin( 115200 ); // M5.begin() starts the Serial
   M5.begin();
-  WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
+  //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
   UISetup(); // UI init and check if a SD exists 
 
   if( digitalRead( BUTTON_A_PIN ) == 0 ) {
@@ -97,7 +97,6 @@ void setup() {
 
   doFSChecks(); // replicate on SD and app1 partition, scan data folder, load registry
   doFSInventory(); // enumerate apps and render menu
-
 }
 
 
