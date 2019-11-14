@@ -91,7 +91,7 @@ TLSCert NULLCert = { nullHost, nullCa };
 TLSCert TLSWallet[8] = {NULLCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert, NULLCert };
 
 bool wget( String bin_url, String appName );
-int modalConfirm( String question, String title, String body, const char* labelA, const char* labelB, const char* labelC );
+int modalConfirm( const char* modalName, const char* question, const char* title, const char* body, const char* labelA, const char* labelB, const char* labelC );
 bool wifiSetupWorked();
 
 
@@ -206,7 +206,7 @@ void registrySave( AppRegistry registry, String appRegistryLocalFile = "" ) {
 
 void registryFetch( AppRegistry registry, String appRegistryLocalFile = "" ) {
   if( !wifiSetupWorked() ) {
-    modalConfirm( DOWNLOADER_MODAL_CANCELED, "    No connexion available", MODAL_SAME_PLAYER_SHOOT_AGAIN, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
+    modalConfirm( "wififail", DOWNLOADER_MODAL_CANCELED, "    No connexion available", MODAL_SAME_PLAYER_SHOOT_AGAIN, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
     ESP.restart();
   }
   URLParts urlParts = parseURL( registry.url );
@@ -222,12 +222,12 @@ void registryFetch( AppRegistry registry, String appRegistryLocalFile = "" ) {
       String certPath = String( SD_CERT_PATH ) + urlParts.host;
       String certURL = Registry.defaultChannel.api_cert_provider_url_http + urlParts.host;
       if( wget( certURL , certPath ) ) {
-        modalConfirm( DOWNLOADER_MODAL_CANCELED, NEW_TLS_CERTIFICATE_INSTALLED, MODAL_RESTART_REQUIRED, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
+        modalConfirm( "newtls", DOWNLOADER_MODAL_CANCELED, NEW_TLS_CERTIFICATE_INSTALLED, MODAL_RESTART_REQUIRED, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
         ESP.restart();
       }
     }
 
-    modalConfirm( DOWNLOADER_MODAL_CANCELED, MODAL_REGISTRY_DAMAGED, MODAL_SAME_PLAYER_SHOOT_AGAIN, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
+    modalConfirm( "regdeag", DOWNLOADER_MODAL_CANCELED, MODAL_REGISTRY_DAMAGED, MODAL_SAME_PLAYER_SHOOT_AGAIN, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
   } else {
     String appRegistryDefaultFile = appRegistryFolder + "/" + appRegistryDefaultName;
     File sourceFile = M5_FS.open( appRegistryLocalFile );
@@ -242,7 +242,7 @@ void registryFetch( AppRegistry registry, String appRegistryLocalFile = "" ) {
     }
     destFile.close();
     sourceFile.close();
-    modalConfirm( UPDATE_SUCCESS, MODAL_REGISTRY_UPDATED, MODAL_REBOOT_REGISTRY_UPDATED, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
+    modalConfirm( "regupd", UPDATE_SUCCESS, MODAL_REGISTRY_UPDATED, MODAL_REBOOT_REGISTRY_UPDATED, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
   }
   ESP.restart();
 }
@@ -364,7 +364,7 @@ AppRegistry registryInit( String appRegistryLocalFile = "" ) {
 };
 
 
-int modalConfirm( String question, String title, String body, const char* labelA=DOWNLOADER_MODAL_YES, const char* labelB=DOWNLOADER_MODAL_NO, const char* labelC=DOWNLOADER_MODAL_CANCEL ) {
+int modalConfirm( const char* modalName, const char* question, const char* title, const char* body, const char* labelA=DOWNLOADER_MODAL_YES, const char* labelB=DOWNLOADER_MODAL_NO, const char* labelC=DOWNLOADER_MODAL_CANCEL ) {
   bool response = false;
   tft.clear();
   M5Menu.drawAppMenu( question, labelA, labelB, labelC);
@@ -381,6 +381,12 @@ int modalConfirm( String question, String title, String body, const char* labelA
     delay( 100 );
     M5.update();
     hidState = getControls();
+    #ifdef TFT_SDA_READ
+      if( hidState == HID_SCREENSHOT ) {
+        screenShot( modalName );
+        hidState = HID_INERT;
+      }
+    #endif
   }
   return hidState;
 }
@@ -454,7 +460,11 @@ void drawSDUpdaterChannel() {
 
 void drawAppMenu() {
   M5Menu.windowClr();
-  M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "");
+  #if defined(ARDUINO_ODROID_ESP32) && defined(TFT_SDA_READ)
+    M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "", "");
+  #else
+    M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "");
+  #endif
   drawSDUpdaterChannel();
   if( wifisetup ) {
     drawRSSIBar( 290, 4, 5, M5MENU_BLUE, 2.0 );
@@ -822,7 +832,7 @@ void syncFinished( bool restart=true ) {
   xTaskCreatePinnedToCore( countDownReboot, "countDownReboot", 2048, NULL, 5, NULL, 0 );
   char modalBody[256];
   sprintf( modalBody, DOWNLOADER_MODAL_BODY_ERRORS_OCCURED, downloadererrors, checkedfiles, updatedfiles, newfiles);
-  modalConfirm( DOWNLOADER_MODAL_ENDED, DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED, modalBody, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RETRY, MENU_BTN_BACK );
+  modalConfirm( "syncend", DOWNLOADER_MODAL_ENDED, DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED, modalBody, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RETRY, MENU_BTN_BACK );
   if( restart ) {
     ESP.restart();
     delay(1000);
@@ -980,7 +990,7 @@ bool syncAppRegistry(String BASE_URL/*, const char* ca*/) {
       String certURL = Registry.defaultChannel.api_cert_provider_url_http + urlParts.host;
       if( wget( certURL , certPath ) ) {
         log_w( NEW_TLS_CERTIFICATE_INSTALLED );
-        modalConfirm( DOWNLOADER_MODAL_CANCELED, NEW_TLS_CERTIFICATE_INSTALLED, MODAL_RESTART_REQUIRED, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
+        modalConfirm( "tlsnew", DOWNLOADER_MODAL_CANCELED, NEW_TLS_CERTIFICATE_INSTALLED, MODAL_RESTART_REQUIRED, DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
         ESP.restart();
       }
     }
@@ -1211,7 +1221,7 @@ void updateOne(String appName) {
         String certPath = String( SD_CERT_PATH ) + urlParts.host;
         String certURL = Registry.defaultChannel.api_cert_provider_url_http + urlParts.host;
         if( wget( certURL , certPath ) ) {
-          modalConfirm( DOWNLOADER_MODAL_CANCELED, NEW_TLS_CERTIFICATE_INSTALLED, MODAL_RESTART_REQUIRED,  DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
+          modalConfirm( "tlsnew", DOWNLOADER_MODAL_CANCELED, NEW_TLS_CERTIFICATE_INSTALLED, MODAL_RESTART_REQUIRED,  DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, DOWNLOADER_MODAL_WTF );
           ESP.restart();
           //getApp( appURL );
         } else {

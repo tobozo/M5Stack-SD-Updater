@@ -30,14 +30,19 @@
 
 #if defined( ARDUINO_M5Stack_Core_ESP32 )
   #warning M5STACK CLASSIC DETECTED !!
+  #define PLATFORM_NAME "M5Stack"
 #elif defined( ARDUINO_M5STACK_FIRE )
   #warning M5STACK FIRE DETECTED !!
+  #define PLATFORM_NAME "M5Stack"
 #elif defined( ARDUINO_ODROID_ESP32 )
   #warning ODROID DETECTED !!
+  #define PLATFORM_NAME "Odroid-GO"
 #elif defined ( ARDUINO_ESP32_DEV ) 
   #warning WROVER DETECTED !!
+  #define PLATFORM_NAME "ESP32"
 #else
   #warning NOTHING DETECTED !!
+  #define PLATFORM_NAME "LAMBDA"
 #endif
 
 #include <sys/time.h>
@@ -283,6 +288,14 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
             tft.progressBar( 110, 112, 100, 20, progressRatio);
             tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
             tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
+            #ifdef TFT_SDA_READ
+            /*
+            if( fileInfo[appsCount].shortName() == "BetaLauncher" ) {
+              // capture
+              screenShot( "listdir" );
+            }
+            */
+            #endif
           }
         }
         appsCount++;
@@ -386,7 +399,11 @@ void drawM5Menu( bool renderButtons = false ) {
   sprintf(paginationStr, paginationTpl, PageID+1, Pages);
   M5Menu.setListCaption( paginationStr );
   if( renderButtons ) {
-    M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    #if defined(ARDUINO_ODROID_ESP32) && defined(TFT_SDA_READ)
+      M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_SCREENSHOT, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    #else
+      M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
+    #endif
     tft.drawJpg(sd_updater15x16_jpg, sd_updater15x16_jpg_len, 296, 6, 15, 16);
     drawSDUpdaterChannel();
   }
@@ -416,16 +433,9 @@ void pageUp() {
   if( PageID > 0 ) {
     PageID--;
     MenuID -= M5Menu.listPagination;
-    //if( MenuID > 0 ) MenuID --;
-    //M5Menu.setListID( MenuID );
-    //M5Menu.nextList();
-    //MenuID = M5Menu.getListID();
-  } else {
-    //PageID = Pages - 1;
-    //MenuID = appsCount - 1;
+    M5Menu.setListID( MenuID );
+    drawM5Menu( inInfoMenu );
   }
-  M5Menu.setListID( MenuID );
-  drawM5Menu( inInfoMenu );  
 }
 
 
@@ -466,12 +476,13 @@ void menuInfo() {
   M5Menu.windowClr();
   if( MenuID == 0 ) {
     // downloader
-    M5Menu.drawAppMenu( String(MENU_TITLE)+Registry.defaultChannel.name, MENU_BTN_LAUNCH, "SOURCE", MENU_BTN_BACK );
+    M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_LAUNCH, MENU_BTN_SOURCE, MENU_BTN_BACK );
   } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
-    M5Menu.drawAppMenu( String(MENU_TITLE)+Registry.defaultChannel.name, MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
+    M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
   } else {
-    M5Menu.drawAppMenu( String(MENU_TITLE)+Registry.defaultChannel.name, MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
+    M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
   }
+  drawSDUpdaterChannel();
   renderMeta( fileInfo[MenuID].jsonMeta );
   if( fileInfo[MenuID].hasFace() ) {
     renderFace( fileInfo[MenuID].faceName );
@@ -521,12 +532,12 @@ void checkMenuTimeStamp() {
 
 
 void downloaderMenu() {
-  int resp =  modalConfirm( CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, DOWNLOADER_MODAL_CANCEL );
+  int resp =  modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, DOWNLOADER_MODAL_CANCEL );
   // choose between updating the JSON or changing the default channel
   switch( resp ) {
 
     case HID_SELECT:
-      resp = modalConfirm( CHANNEL_CHOOSER, CHANNEL_CHOOSER_PROMPT, CHANNEL_CHOOSER_TEXT, DOWNLOADER_MODAL_CHANGE, DOWNLOADER_MODAL_CANCEL, MENU_BTN_BACK );
+      resp = modalConfirm( "chanpick", CHANNEL_CHOOSER, CHANNEL_CHOOSER_PROMPT, CHANNEL_CHOOSER_TEXT, DOWNLOADER_MODAL_CHANGE, DOWNLOADER_MODAL_CANCEL, MENU_BTN_BACK );
       switch( resp ) {
 
         case HID_SELECT:
@@ -546,7 +557,7 @@ void downloaderMenu() {
     break;
 
     case HID_PAGE_DOWN:
-      resp = modalConfirm( CHANNEL_DOWNLOADER, CHANNEL_DOWNLOADER_PROMPT, CHANNEL_DOWNLOADER_TEXT, MENU_BTN_UPDATE, DOWNLOADER_MODAL_CANCEL, MENU_BTN_BACK );
+      resp = modalConfirm( "chanupd", CHANNEL_DOWNLOADER, CHANNEL_DOWNLOADER_PROMPT, CHANNEL_DOWNLOADER_TEXT, MENU_BTN_UPDATE, DOWNLOADER_MODAL_CANCEL, MENU_BTN_BACK );
       switch( resp ) {
         case HID_SELECT:
           // TODO: WiFi connect, wget file and save to SD
@@ -572,7 +583,7 @@ void updateApp( FileInfo &info ) {
 
 void launchApp( FileInfo &info ) {
   if( info.fileName == String( DOWNLOADER_BIN ) ) {
-    if( modalConfirm( DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) == HID_SELECT ) {
+    if( modalConfirm( "launchapp", DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) == HID_SELECT ) {
       updateAll();
     }
     // action cancelled or refused by user
@@ -606,6 +617,22 @@ void UISetup() {
   Serial.println( WELCOME_MESSAGE );
   Serial.println( INIT_MESSAGE );
   Serial.printf( M5_SAM_MENU_SETTINGS, M5Menu.listPagination, M5SAM_LIST_MAX_COUNT);
+  Serial.printf("Has PSRam: %s\n", psramInit() ? "true" : "false");
+
+  #ifdef TFT_SDA_READ
+    uint16_t value_in = TFT_BLUE;
+    Serial.print("Test readPixel(), expected:");
+    Serial.print( value_in, HEX );
+    tft.fillRect(10,10,50,50, TFT_BLUE);       //  <----- Test color
+    uint16_t value_out = tft.readPixel(30,30);
+    Serial.print(", got:");
+    Serial.println(value_out, HEX);  // <----- Try to read color
+    if( value_in == value_out && psramInit() ) {
+      readPixelSuccess = true;
+      screenShotInit(); // allocate some psRam
+    }
+    tft.clear();
+  #endif
 
   heapState();
 
@@ -683,6 +710,12 @@ void doFSInventory() {
   aSortFiles(); // bubble sort alphabetically
   buildM5Menu();
   drawM5Menu( true ); // render the menu
+  #ifdef TFT_SDA_READ
+    /*
+    // capture
+    screenShot( "menu" );
+    */
+  #endif
   lastcheck = millis(); // reset the timer
   lastpush = millis(); // reset the timer
   heapState();
@@ -700,6 +733,11 @@ void HIDMenuObserve() {
     tft.setBrightness( brightness );
   }
   switch( hidState ) {
+    #ifdef TFT_SDA_READ
+      case HID_SCREENSHOT:
+        screenShot( "screenshot" );
+      break;
+    #endif
     case HID_DOWN:
       if( !inInfoMenu ) {
         menuDown();
@@ -725,7 +763,7 @@ void HIDMenuObserve() {
       if( inInfoMenu ) {
         // update
         if( fileInfo[MenuID].fileName == String( DOWNLOADER_BIN ) ) {
-          downloaderMenu();  
+          downloaderMenu();
         } else {
           updateApp( fileInfo[MenuID] );
         }

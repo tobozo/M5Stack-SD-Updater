@@ -1,7 +1,7 @@
 // left in a separate file for easy editing / overwriting
 
 #define DEFAULT_REGISTRY_NAME "SDUpdater"
-#define DEFAULT_REGISTRY_DESC "Tobozo's M5Stack Application registry @ phpsecu.re"
+#define DEFAULT_REGISTRY_DESC "Tobozo's " PLATFORM_NAME " Application registry @ phpsecu.re"
 #define DEFAULT_REGISTRY_URL "https://phpsecu.re/m5stack/registry/phpsecu.re.json" // should exist as "/.registry/default.json" on SD Card
 #define DEFAULT_REGISTRY_CHANNEL "unstable" // "master" or "unstable"
 

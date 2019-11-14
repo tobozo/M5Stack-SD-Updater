@@ -2,8 +2,8 @@
 #define __I18N_H
 
 
-#define WELCOME_MESSAGE F("Welcome to the M5Stack SD Menu Loader!")
-#define INIT_MESSAGE F("M5Stack SD Updater initializing...")
+#define WELCOME_MESSAGE F("Welcome to the " PLATFORM_NAME " SD Menu Loader!")
+#define INIT_MESSAGE F( PLATFORM_NAME " SD Updater initializing...")
 #define M5_SAM_MENU_SETTINGS "M5StackSam loaded with %d labels per page, max %d items\n"
 #define SD_LOADING_MESSAGE F("Checking SD Card...")
 #define INSERTSD_MESSAGE F("Insert SD")
@@ -11,23 +11,28 @@
 #define MOVINGFILE_MESSAGE F("Moving ")
 #define FILESIZE_UNITS F(" bytes")
 
-#define MENU_TITLE F("SD LAUNCHER")
+#define MENU_TITLE F( PLATFORM_NAME " SD LAUNCHER")
 #define MENU_SUBTITLE F("Applications")
 #define MENU_BTN_INFO F("SELECT")
 #define MENU_BTN_SET F("SET")
 #define MENU_BTN_LOAD F("LOAD")
 #define MENU_BTN_LAUNCH F("LAUNCH")
 #define MENU_BTN_UPDATE "UPDATE"
+#define MENU_BTN_SOURCE "SOURCE"
 #define MENU_BTN_BACK "BACK"
 #define MENU_BTN_PAGE F(">>")
 #define MENU_BTN_NEXT F(">")
+
+#ifdef TFT_SDA_READ
+  #define MENU_SCREENSHOT "SNAP"
+#endif
 
 #define ABOUT_THIS_MENU F("--About This Launcher--")
 
 #define AUTHOR_PREFIX F("By ")
 #define AUTHOR_SUFFIX F(" **")
 
-#define APP_DOWNLOADER_MENUTITLE "M5Stack Apps Downloader"
+#define APP_DOWNLOADER_MENUTITLE PLATFORM_NAME " Apps Downloader"
 
 #define CHANNEL_TOOL "CHANNEL TOOL"
 #define CHANNEL_TOOL_PROMPT "    Change or Update channel ?"
@@ -46,7 +51,7 @@
 #define DOWNLOADER_MODAL_BODY "  - Connect to WiFi\n\n  - Get app list from remote registry\n\n  - Download/overwrite files\n\n  - Restart this menu\n\n\n\n  THIS OPERATION IS INSECURE!!\n\n  YOU DO THIS AT YOUR OWN RISK!!"
 #define DOWNLOADER_MODAL_ENDED "Synchronization complete"
 #define DOWNLOADER_MODAL_TITLE_ERRORS_OCCURED "Some errors occured. "
-#define DOWNLOADER_MODAL_BODY_ERRORS_OCCURED "  %d errors occured during the download\n\n  %d files were verified\n\n  %d files were updated\n\n  %d files were created\n\n\n\n  M5Stack will reboot in 10s"
+#define DOWNLOADER_MODAL_BODY_ERRORS_OCCURED "  %d errors occured during the download\n\n  %d files were verified\n\n  %d files were updated\n\n  %d files were created\n\n\n\n  " PLATFORM_NAME " will reboot in 10s"
 #define DOWNLOADER_MODAL_REBOOT "REBOOT"
 #define DOWNLOADER_MODAL_RESTART "RESTART"
 #define DOWNLOADER_MODAL_WTF "UUH?"
