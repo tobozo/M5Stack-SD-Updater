@@ -412,6 +412,23 @@ void pageDown() {
   drawM5Menu( inInfoMenu );
 }
 
+void pageUp() {
+  if( PageID > 0 ) {
+    PageID--;
+    MenuID -= M5Menu.listPagination;
+    //if( MenuID > 0 ) MenuID --;
+    //M5Menu.setListID( MenuID );
+    //M5Menu.nextList();
+    //MenuID = M5Menu.getListID();
+  } else {
+    //PageID = Pages - 1;
+    //MenuID = appsCount - 1;
+  }
+  M5Menu.setListID( MenuID );
+  drawM5Menu( inInfoMenu );  
+}
+
+
 
 void menuUp() {
   MenuID = M5Menu.getListID();
@@ -528,7 +545,7 @@ void downloaderMenu() {
       }
     break;
 
-    case HID_PAGE:
+    case HID_PAGE_DOWN:
       resp = modalConfirm( CHANNEL_DOWNLOADER, CHANNEL_DOWNLOADER_PROMPT, CHANNEL_DOWNLOADER_TEXT, MENU_BTN_UPDATE, DOWNLOADER_MODAL_CANCEL, MENU_BTN_BACK );
       switch( resp ) {
         case HID_SELECT:
@@ -704,7 +721,7 @@ void HIDMenuObserve() {
         launchApp( fileInfo[MenuID] );
       }
     break;
-    case HID_PAGE:
+    case HID_PAGE_DOWN:
       if( inInfoMenu ) {
         // update
         if( fileInfo[MenuID].fileName == String( DOWNLOADER_BIN ) ) {
@@ -714,6 +731,13 @@ void HIDMenuObserve() {
         }
       } else {
         pageDown();
+      }
+    break;
+    case HID_PAGE_UP:
+      if( inInfoMenu ) {
+        // ignore
+      } else {
+        pageUp();
       }
     break;
     default:
