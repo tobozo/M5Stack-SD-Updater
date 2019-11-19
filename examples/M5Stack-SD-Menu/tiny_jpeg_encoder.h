@@ -1,6 +1,8 @@
 /**
  * tiny_jpeg.h
  *
+ * https://github.com/serge-rgb/TinyJPEG
+ *
  * Tiny JPEG Encoder
  *  - Sergio Gonzalez
  *

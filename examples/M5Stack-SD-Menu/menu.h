@@ -31,17 +31,22 @@
 #if defined( ARDUINO_M5Stack_Core_ESP32 )
   #warning M5STACK CLASSIC DETECTED !!
   #define PLATFORM_NAME "M5Stack"
+  #define DEFAULT_REGISTRY_BOARD "m5stack"
 #elif defined( ARDUINO_M5STACK_FIRE )
   #warning M5STACK FIRE DETECTED !!
   #define PLATFORM_NAME "M5Stack"
+  #define DEFAULT_REGISTRY_BOARD "m5stack"
 #elif defined( ARDUINO_ODROID_ESP32 )
   #warning ODROID DETECTED !!
   #define PLATFORM_NAME "Odroid-GO"
+  #define DEFAULT_REGISTRY_BOARD "odroid"
 #elif defined ( ARDUINO_ESP32_DEV ) 
   #warning WROVER DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
 #else
   #warning NOTHING DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "lambda"
   #define PLATFORM_NAME "LAMBDA"
 #endif
 
@@ -224,7 +229,7 @@ uint8_t getLowestQRVersionFromString( String text, uint8_t ecc ) {
   };
   for( uint8_t i=0; i<3; i++ ) {
     if( len <= QRMaxLenByECCLevel[ecc][i] ) {
-      return i+1;
+      return i+2;
     }
   }
   // there's no point in doing higher with M5Stack's display
@@ -237,7 +242,7 @@ void qrRender( String text, float sizeinpixels ) {
   // Create the QR code
   QRCode qrcode;
 
-  uint8_t ecc = 0; // QR on TFT can do without ECC
+  uint8_t ecc = 0; // QR on TFT can do with minimal ECC
   uint8_t version = getLowestQRVersionFromString( text, ecc );
   uint8_t qrcodeData[qrcode_getBufferSize( version )];
   qrcode_initText( &qrcode, qrcodeData, version, ecc, text.c_str() );
