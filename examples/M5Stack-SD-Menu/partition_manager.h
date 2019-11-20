@@ -91,6 +91,23 @@ bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* 
     return true;
 }
 
+void copyPartition() {
+  const esp_partition_t *running = esp_ota_get_running_partition();
+  const esp_partition_t *nextupdate = esp_ota_get_next_update_partition(NULL);
+  const char* menubinfilename PROGMEM {MENU_BIN} ;
+  size_t sksize = ESP.getSketchSize();
+  bool flgSD = M5_FS.begin( TFCARD_CS_PIN, SPI, 40000000 );
+  File dst;
+  if (flgSD) {
+    dst = (M5_FS.open(menubinfilename, FILE_WRITE ));
+    tft.drawString("Overwriting " MENU_BIN, 160, 38, 2);
+  }
+  if (copyPartition( flgSD ? &dst : NULL, nextupdate, running, sksize)) {
+    tft.drawString("Done", 160, 52, 2);
+  }
+  if (flgSD) dst.close();
+}
+
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
 void checkMenuStickyPartition() {
   const esp_partition_t *running = esp_ota_get_running_partition();
@@ -99,14 +116,14 @@ void checkMenuStickyPartition() {
   tft.setTextDatum(MC_DATUM);
   tft.setCursor(0,0);
   if (!nextupdate) {
-    tft.setTextFont(4);
+    // tft.setTextFont(4);
     tft.print("! WARNING !\r\nNo OTA partition.\r\nCan't use SD-Updater.");
     delay(3000);
   } else if (running && running->label[3] == '0' && nextupdate->label[3] == '1') {
     tft.drawString("TobozoLauncher on app0", 160, 10, 2);
     size_t sksize = ESP.getSketchSize();
     if (!comparePartition(running, nextupdate, sksize)) {
-      bool flgSD = M5_FS.begin( TFCARD_CS_PIN, SPI, 40000000);
+      bool flgSD = M5_FS.begin( TFCARD_CS_PIN, SPI, 40000000 );
       tft.drawString("Synchronizing 'app1' partition", 160, 24, 2);
       File dst;
       if (flgSD) {

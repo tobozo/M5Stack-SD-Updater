@@ -22,6 +22,10 @@
 #define MENU_BTN_BACK "BACK"
 #define MENU_BTN_PAGE F(">>")
 #define MENU_BTN_NEXT F(">")
+#define MENU_BTN_WFT "UUH?"
+#define MENU_BTN_YES "YES"
+#define MENU_BTN_NO "NO"
+#define MENU_BTN_CANCEL "CANCEL"
 
 #ifdef TFT_SDA_READ
   #define MENU_SCREENSHOT "SNAP"
@@ -54,14 +58,15 @@
 #define DOWNLOADER_MODAL_BODY_ERRORS_OCCURED "  %d errors occured during the download\n\n  %d files were verified\n\n  %d files were updated\n\n  %d files were created\n\n\n\n  " PLATFORM_NAME " will reboot in 10s"
 #define DOWNLOADER_MODAL_REBOOT "REBOOT"
 #define DOWNLOADER_MODAL_RESTART "RESTART"
-#define DOWNLOADER_MODAL_WTF "UUH?"
+
 #define DOWNLOADER_MODAL_RETRY "RETRY"
 #define DOWNLOADER_MODAL_CHANGE "CHANGE"
-#define DOWNLOADER_MODAL_CANCELED "OPERATION CANCELED"
+#define MENU_BTN_CANCELED "OPERATION CANCELED"
 
-#define DOWNLOADER_MODAL_YES "YES"
-#define DOWNLOADER_MODAL_NO "NO"
-#define DOWNLOADER_MODAL_CANCEL "CANCEL"
+
+
+
+
 
 #define OVERALL_PROGRESS_TITLE "Overall progress: "
 #define WGET_SKIPPING " [Checksum OK]"

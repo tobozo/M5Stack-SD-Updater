@@ -87,14 +87,6 @@ void setup() {
   //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
   UISetup(); // UI init and check if a SD exists 
 
-  if( digitalRead( BUTTON_A_PIN ) == 0 ) {
-    cleanDir( SD_CERT_PATH );
-    cleanDir( appRegistryFolder.c_str() );
-    Serial.println( GOTOSLEEP_MESSAGE );
-    M5.setWakeupButton( BUTTON_B_PIN );
-    M5.powerOFF();
-  }
-
   doFSChecks(); // replicate on SD and app1 partition, scan data folder, load registry
   doFSInventory(); // enumerate apps and render menu
 }

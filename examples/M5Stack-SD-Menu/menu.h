@@ -310,7 +310,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
           break; // don't make M5Stack list explode
         }
       } else {
-        if( String( file.name() ).endsWith(".tmp") ) {
+        if( String( file.name() ).endsWith(".tmp") || String( file.name() ).endsWith(".pcap") ) {
           fs.remove( file.name() );
           log_d( "%s %s", DEBUG_CLEANED, file.name() );
         } else {
@@ -498,8 +498,14 @@ void menuInfo() {
 
 void checkMenuTimeStamp() {
   File menu = M5_FS.open( MENU_BIN );
-  time_t lastWrite = menu.getLastWrite();
-  menu.close();
+  time_t lastWrite;
+  if( menu ) {
+    lastWrite = menu.getLastWrite();
+    menu.close();
+  } else {
+    lastWrite = __TIME_UNIX__;
+  }
+
   // setting a pseudo realistic internal clock time when no NTP sync occured,
   // and before writing to the SD Card gives unacurate but better timestamps
   // than the default [1980-01-01 00:00:00]
@@ -537,12 +543,12 @@ void checkMenuTimeStamp() {
 
 
 void downloaderMenu() {
-  int resp =  modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, DOWNLOADER_MODAL_CANCEL );
+  int resp = modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, MENU_BTN_CANCEL );
   // choose between updating the JSON or changing the default channel
   switch( resp ) {
 
     case HID_SELECT:
-      resp = modalConfirm( "chanpick", CHANNEL_CHOOSER, CHANNEL_CHOOSER_PROMPT, CHANNEL_CHOOSER_TEXT, DOWNLOADER_MODAL_CHANGE, DOWNLOADER_MODAL_CANCEL, MENU_BTN_BACK );
+      resp = modalConfirm( "chanpick", CHANNEL_CHOOSER, CHANNEL_CHOOSER_PROMPT, CHANNEL_CHOOSER_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_CANCEL, MENU_BTN_BACK );
       switch( resp ) {
 
         case HID_SELECT:
@@ -562,7 +568,7 @@ void downloaderMenu() {
     break;
 
     case HID_PAGE_DOWN:
-      resp = modalConfirm( "chanupd", CHANNEL_DOWNLOADER, CHANNEL_DOWNLOADER_PROMPT, CHANNEL_DOWNLOADER_TEXT, MENU_BTN_UPDATE, DOWNLOADER_MODAL_CANCEL, MENU_BTN_BACK );
+      resp = modalConfirm( "chanupd", CHANNEL_DOWNLOADER, CHANNEL_DOWNLOADER_PROMPT, CHANNEL_DOWNLOADER_TEXT, MENU_BTN_UPDATE, MENU_BTN_CANCEL, MENU_BTN_BACK );
       switch( resp ) {
         case HID_SELECT:
           // TODO: WiFi connect, wget file and save to SD
@@ -664,6 +670,56 @@ void UISetup() {
     }
   }
   tft.setTextDatum(TL_DATUM);
+
+  unsigned long longPush = 10000;
+  unsigned long shortPush = 5000;
+
+  if( digitalRead( BUTTON_A_PIN ) == 0 ) {
+    unsigned long pushStart = millis();
+    unsigned long pushDuration = 0;
+    drawAppMenu(); // render the menu
+
+    tft.setTextColor( WHITE, M5MENU_GREY );
+    tft.setTextDatum(MC_DATUM);
+    char remainingStr[32];
+    while( digitalRead( BUTTON_A_PIN ) == 0 ) {
+      pushDuration = millis() - pushStart;
+      if( pushDuration > longPush ) break;
+      if( pushDuration > shortPush ) {
+        tft.setTextColor( WHITE, RED );
+        tft.drawString( "FULL RESET", 160, 100, 2 );
+        sprintf( remainingStr, "%.2f", (float)(longPush-pushDuration)/1000 );
+      } else {
+        tft.drawString( "TLS RESET", 160, 100, 2 );
+        sprintf( remainingStr, "%.2f", (float)(shortPush-pushDuration)/1000 );
+      }
+      tft.drawString( remainingStr, 160, 120, 2 );
+      delay(100);
+    }
+    tft.setTextDatum(TL_DATUM);
+
+    Serial.printf("Push duration : %d\n", pushDuration );
+    if( pushDuration > shortPush ) {
+      // Short push at boot = cleanup /cert/ and /.registry/ folders
+      cleanDir( SD_CERT_PATH );
+      cleanDir( appRegistryFolder.c_str() );
+    }
+    if( pushDuration > longPush ) {
+      int resp = modalConfirm( "cleanup", "DELETE APPS", "CAUTION! This will remove all apps and assets.", "    Obliviate?",  "DELETE", "CANCEL", "NOES!" );
+      if( resp == HID_SELECT ) {
+        checkMenuTimeStamp(); // set the time before cleaning up the folder
+        cleanDir( "/" );
+        cleanDir( "/jpg/" );
+        cleanDir( "/json/" );
+        drawAppMenu(); // render the menu
+        copyPartition(); // restore the menu.bin file
+      }
+    }
+    Serial.println( GOTOSLEEP_MESSAGE );
+    M5.setWakeupButton( BUTTON_B_PIN );
+    M5.powerOFF();
+  }
+
 }
 
 
