@@ -68,35 +68,112 @@
 #include "gitTagVersion.h"
 #include <esp_partition.h>
 extern "C" {
-#include "esp_ota_ops.h"
-#include "esp_image_format.h"
+  #include "esp_ota_ops.h"
+  #include "esp_image_format.h"
 }
-#include <M5Stack.h>
-#include <Update.h>
-#include <Preferences.h>
+
+// #define SD_ENABLE_SPIFFS_COPY // enable SD <=> SPIFFS copy functions, from outside this library
+
+// board selection helpers:
+//   #if defined( ARDUINO_ESP32_DEV )
+//   #if defined( ARDUINO_ODROID_ESP32 )
+//   #if defined( ARDUINO_M5Stack_Core_ESP32 )
+//   #if defined( ARDUINO_M5STACK_FIRE )
+//   #if defined( ARDUINO_M5Stick_C )
+
+#define SDUPDATER_SD_FS 0
+#define SDUPDATER_SD_MMC_FS 1
+#define SDUPDATER_SPIFFS_FS 2
+
 #ifndef MENU_BIN
-#define MENU_BIN "/menu.bin"
+  #define MENU_BIN "/menu.bin"
+#endif
+#ifndef DATA_DIR
+  #define DATA_DIR "/data"
 #endif
 
-#ifdef M5STACK
+#if defined( ARDUINO_ODROID_ESP32 ) // Odroid-GO
+  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+#elif defined( ARDUINO_M5Stack_Core_ESP32 ) // M5Stack Classic
+  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+#elif defined( ARDUINO_M5STACK_FIRE ) // M5Stack Fire
+  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+#elif defined( ARDUINO_M5Stick_C ) // M5StickC
+  #include <M5StickC.h> // load M5StickC-core
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
+#elif defined( ARDUINO_ESP32_DEV ) // ESP32 Wrover Kit
+  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core  
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
+#else
+  // your custom board setup
+  #pragma message ("SD Updater is using an unknown (custom?) setup, and expecting a 'TFT_eSPI tft;' instance in your sketch")
+  #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
+  #include <FS.h>
+  #include <TFT_eSPI.h>
+  extern TFT_eSPI tft; // make sure 'tft' exists outside this library
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS // bind to SD_MMC
+#endif
+
+
+#if SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
+  #define SDUPDATER_FS SD
+  #include <SD.h>
+#endif
+#if SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
+  #define SDUPDATER_FS SD_MMC
+  #include <SD_MMC.h>
+#endif
+#if SD_UPDATER_FS_TYPE==SDUPDATER_SPIFFS_FS
+  #define SDUPDATER_FS SPIFFS
+  #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
+  #include <SPIFFS.h>
+#endif
+
+
+
+#include <Update.h>
+#include <Preferences.h>
+
 // backwards compat
 #define M5SDMenuProgress SDMenuProgress
-#endif
 
 class SDUpdater {
   public:
-    void updateFromFS( fs::FS &fs, String fileName = MENU_BIN );
+    void updateFromFS( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN );
     static void SDMenuProgress( int state, int size );
     void displayUpdateUI( String label );
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
+    static const int BACKUP_SD_TO_SPIFFS = 1;
+    static const int BACKUP_SPIFFS_TO_SD = 2;
+    SDUpdater( const String SPIFFS2SDFolder="" );
+    String SKETCH_NAME = "";
+    bool enableSPIFFS = false;
+    bool SPIFFS_MOUNTED = false;
+    #if defined( SD_ENABLE_SPIFFS_COPY )
+      void copyFile( String sourceName, int dir );
+      void copyFile( String sourceName, fs::FS &sourceFS, int dir );
+      void copyFile( fs::File &sourceFile, int dir );
+      void copyFile( String sourceName, fs::FS &sourceFS, String destName, fs::FS &destinationFS );
+      void copyFile( fs::File &sourceFile, String destName, fs::FS &destinationFS );
+      void copyDir( int direction );
+      void copyDir( const char * dirname, uint8_t levels, int direction );
+      void copyDir(fs::FS &sourceFS, const char * dirname, uint8_t levels, int direction );
+      void makePathToFile( String destName, fs::FS destinationFS );
+      String gnu_basename( String path );
+      bool SPIFFSFormat();
+      bool SPIFFSisEmpty();
+    #endif
   private:
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
 };
 
 /* don't break older versions of the M5Stack SD Updater */
-static void updateFromFS( fs::FS &fs, String fileName = MENU_BIN ) {
+static void updateFromFS( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
   SDUpdater sdUpdater;
   sdUpdater.updateFromFS( fs, fileName );
 }
