@@ -49,12 +49,13 @@ static int SD_UI_Progress;
   #undef PROGRESS_WIDTH
   #undef PROGRESS_HEIGHT
   #undef tft_setBrightness
-  #define TITLE_POS_Y 0
+  #define TITLE_POS_Y 5
   #define PERCENT_POS_Y 45
   #define PROGRESS_WIDTH 30
   #define PROGRESS_HEIGHT 20
   #define SD_PLATFORM_NAME "M5StickC"
-  #define tft_setBrightness(x)
+  #define tft_setBrightness(x)   M5.Axp.ScreenBreath(7+x/12); tft.setRotation(3);
+
 #else
   #if defined( ARDUINO_ODROID_ESP32 )
     //#pragma message ("Odroid-GO board detected")
