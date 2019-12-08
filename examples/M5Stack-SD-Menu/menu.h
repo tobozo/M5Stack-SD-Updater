@@ -40,7 +40,7 @@
   #warning ODROID DETECTED !!
   #define PLATFORM_NAME "Odroid-GO"
   #define DEFAULT_REGISTRY_BOARD "odroid"
-#elif defined ( ARDUINO_ESP32_DEV ) 
+#elif defined ( ARDUINO_ESP32_DEV )
   #warning WROVER DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
@@ -65,7 +65,11 @@
 #else
   #define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
 #endif
-#define M5_FS SD
+#ifdef SDUPDATER_FS
+  #define M5_FS SDUPDATER_FS
+#else
+  #define M5_FS SD
+#endif
 //#define M5_FS SD_MMC
 #include <M5StackSAM.h>      // https://github.com/tobozo/M5StackSAM/ (forked from https://github.com/tomsuch/M5StackSAM)
 #include <ArduinoJson.h>     // https://github.com/bblanchon/ArduinoJson/
@@ -630,21 +634,6 @@ void UISetup() {
   Serial.printf( M5_SAM_MENU_SETTINGS, M5Menu.listPagination, M5SAM_LIST_MAX_COUNT);
   Serial.printf("Has PSRam: %s\n", psramInit() ? "true" : "false");
 
-  #ifdef TFT_SDA_READ
-    uint16_t value_in = TFT_BLUE;
-    Serial.print("Test readPixel(), expected:");
-    Serial.print( value_in, HEX );
-    tft.fillRect(10,10,50,50, TFT_BLUE);       //  <----- Test color
-    uint16_t value_out = tft.readPixel(30,30);
-    Serial.print(", got:");
-    Serial.println(value_out, HEX);  // <----- Try to read color
-    if( value_in == value_out && psramInit() ) {
-      readPixelSuccess = true;
-      screenShotInit(); // allocate some psRam
-    }
-    tft.clear();
-  #endif
-
   heapState();
 
   tft.setBrightness(100);
@@ -655,7 +644,7 @@ void UISetup() {
 
   bool toggle = true;
 
-  while( !M5_FS.begin( TFCARD_CS_PIN ) ) {
+  while( !M5_FS.begin( /*TFCARD_CS_PIN*/ ) ) {
     // TODO: make a more fancy animation
     toggle = !toggle;
     tft.setTextColor( toggle ? BLACK : WHITE );
@@ -674,15 +663,15 @@ void UISetup() {
   unsigned long longPush = 10000;
   unsigned long shortPush = 5000;
 
-  if( digitalRead( BUTTON_A_PIN ) == 0 ) {
+  if( M5.BtnA.isPressed() ) {
     unsigned long pushStart = millis();
     unsigned long pushDuration = 0;
     drawAppMenu(); // render the menu
-
+    M5.update();
     tft.setTextColor( WHITE, M5MENU_GREY );
     tft.setTextDatum(MC_DATUM);
     char remainingStr[32];
-    while( digitalRead( BUTTON_A_PIN ) == 0 ) {
+    while( M5.BtnA.isPressed() ) {
       pushDuration = millis() - pushStart;
       if( pushDuration > longPush ) break;
       if( pushDuration > shortPush ) {
@@ -695,6 +684,7 @@ void UISetup() {
       }
       tft.drawString( remainingStr, 160, 120, 2 );
       delay(100);
+      M5.update();
     }
     tft.setTextDatum(TL_DATUM);
 
@@ -774,7 +764,7 @@ void doFSInventory() {
   #ifdef TFT_SDA_READ
     /*
     // capture
-    screenShot( "menu" );
+    screenShot.snap( "menu" );
     */
   #endif
   lastcheck = millis(); // reset the timer
@@ -796,7 +786,7 @@ void HIDMenuObserve() {
   switch( hidState ) {
     #ifdef TFT_SDA_READ
       case HID_SCREENSHOT:
-        screenShot( "screenshot" );
+        M5.ScreenShot.snap( "screenshot" );
       break;
     #endif
     case HID_DOWN:

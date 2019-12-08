@@ -387,7 +387,7 @@ int modalConfirm( const char* modalName, const char* question, const char* title
     hidState = getControls();
     #ifdef TFT_SDA_READ
       if( hidState == HID_SCREENSHOT ) {
-        screenShot( modalName );
+        M5.ScreenShot.snap( modalName );
         hidState = HID_INERT;
       }
     #endif
