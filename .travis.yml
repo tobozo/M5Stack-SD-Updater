@@ -59,6 +59,7 @@ before_install:
   # Install the library from the repository
   - install_library
   - install_library "M5Stack"
+  - set_script_verbosity 2
   - install_package "esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
 
 
