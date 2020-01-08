@@ -63,6 +63,7 @@ before_install:
   - install_library "M5Stack"
   - set_script_verbosity 1
   - ls ${TRAVIS_BUILD_DIR} -la
+  - ls ${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/ -la
   - pwd
   #- install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
   - install_package 'esp32:esp32' 'https://dl.espressif.com/dl/package_esp32_index.json'
