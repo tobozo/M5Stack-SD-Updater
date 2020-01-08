@@ -72,7 +72,7 @@ before_install:
   #- install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
   - /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "boardsmanager.additional.urls=https://dl.espressif.com/dl/package_esp32_index.json" --save-prefs   &>/dev/null
   - /home/travis/arduino-ide/arduino-1.8.10/arduino --install-boards esp32:esp32 &>/dev/null
-  - /home/travis/arduino-ide/arduino-1.8.10/arduino --board $BOARD --save-prefs &>/dev/null
+  #- /home/travis/arduino-ide/arduino-1.8.10/arduino --board $BOARD --save-prefs &>/dev/null
   #- install_package 'esp32:esp32' 'https://dl.espressif.com/dl/package_esp32_index.json'
   - echo "BOARD INSTALLED"
   - pip install pyserial
