@@ -62,6 +62,8 @@ before_install:
   - install_library
   - install_library "M5Stack"
   - set_script_verbosity 1
+  - ls ${TRAVIS_BUILD_DIR} -la
+  - pwd
   #- install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
   - install_package 'esp32:esp32' 'https://dl.espressif.com/dl/package_esp32_index.json'
   - pip install pyserial
@@ -70,8 +72,6 @@ before_install:
 script:
   # Compile all example sketches included with the library
   # build_sketch arguments: sketch name, fqbn, allow failure, IDE version/list/range
-  - ls ${TRAVIS_BUILD_DIR} -la
-  - pwd
   - build_sketch "${TRAVIS_BUILD_DIR}/M5Stack-SD-Updater/examples/M5Stack-SD-Menu/M5Stack-SD-Menu.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "oldest" "newest"
 
 
