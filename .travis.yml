@@ -54,7 +54,7 @@ before_install:
   - set_sketchbook_folder "$SKETCHBOOK_FOLDER"
 
   # The EEPROM v2.0 library, which is required by the examples, was added in Arduino IDE 1.6.2, but that version doesn't play nicely with other versions so I'm testing with 1.6.3 and newer
-  - install_ide '("1.6.5-r5" "1.6.9" "1.6.13" "1.8.9" "newest")'
+  - install_ide '("1.8.9" "newest")'
 
   # Install the library from the repository
   - install_library
