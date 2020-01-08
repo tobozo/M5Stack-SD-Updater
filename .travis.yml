@@ -47,7 +47,8 @@ before_install:
   # 0 (minimum/default) - 2 (maximum) verbosity
   #- set_script_verbosity 2
   # Turn on verbose output during compilation
-  #- set_verbose_output_during_compilation "true"
+  - set_script_verbosity 1
+  - set_verbose_output_during_compilation "true"
 
   # Check for library issues that don't affect compilation
   - set_library_testing "true"
@@ -56,17 +57,21 @@ before_install:
   - set_sketchbook_folder "$SKETCHBOOK_FOLDER"
 
   # The EEPROM v2.0 library, which is required by the examples, was added in Arduino IDE 1.6.2, but that version doesn't play nicely with other versions so I'm testing with 1.6.3 and newer
-  - install_ide '("1.8.9" "newest")'
+  - install_ide '("1.8.0" "1.8.9" "newest")'
 
   # Install the library from the repository
   - install_library
   - install_library "M5Stack"
-  - set_script_verbosity 1
+  - install_library "ArduinoJSON"
+
   - ls ${TRAVIS_BUILD_DIR} -la
   - ls ${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/ -la
+  - ls $SKETCHBOOK_FOLDER -la
+  - ls $SKETCHBOOK_FOLDER/libraries -la
   - pwd
   #- install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
   - install_package 'esp32:esp32' 'https://dl.espressif.com/dl/package_esp32_index.json'
+  - echo "BOARD INSTALLED"
   - pip install pyserial
 
 
