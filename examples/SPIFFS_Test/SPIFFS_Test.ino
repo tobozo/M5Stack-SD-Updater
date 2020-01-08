@@ -3,11 +3,11 @@
 #include <M5StackUpdater.h>
 
 void setup() {
-  
+
   M5.begin();
   Wire.begin();
   SDUpdater sdUpdater("MY_SDApp.bin"); // declaring app name enables SPIFFS auto-backup to SD
-  
+
   if(digitalRead(BUTTON_A_PIN) == 0) {
     Serial.println("Will Load menu binary");
     sdUpdater.updateFromFS(SD); // will also backup the SPIFFS
@@ -58,7 +58,7 @@ void setup() {
   M5.Lcd.println();
   M5.Lcd.println("Please reset to increment");
 
-  
+
 }
 
 void loop() {

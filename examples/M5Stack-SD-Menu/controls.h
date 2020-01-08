@@ -20,7 +20,7 @@ enum HIDSignal {
 #define LONG_DELAY_BEFORE_REPEAT 1000 // ms, delay before slow repeat enables
 unsigned long fastRepeatDelay = FAST_REPEAT_DELAY;
 unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
-#ifdef ARDUINO_ODROID_ESP32
+#if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
   bool JOY_Y_pressed = false;
   bool JOY_X_pressed = false;
 #endif
@@ -41,7 +41,7 @@ HIDSignal getControls() {
     }
   }
 
-#ifdef ARDUINO_ODROID_ESP32
+#if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
 
   if( M5.JOY_Y.pressedFor( fastRepeatDelay ) ) {
     uint8_t updown = M5.JOY_Y.isAxisPressed();
@@ -114,10 +114,5 @@ HIDSignal getControls() {
 
   return HID_INERT;
 }
-
-
-//#include "ScreenShot.h"
-//ScreenShotService screenShot( &M5.Lcd, M5_FS );
-
 
 #endif

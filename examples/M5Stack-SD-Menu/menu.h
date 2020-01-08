@@ -28,51 +28,53 @@
  * 
  */
 
-#if defined( ARDUINO_M5Stack_Core_ESP32 )
-  #warning M5STACK CLASSIC DETECTED !!
-  #define PLATFORM_NAME "M5Stack"
-  #define DEFAULT_REGISTRY_BOARD "m5stack"
-#elif defined( ARDUINO_M5STACK_FIRE )
-  #warning M5STACK FIRE DETECTED !!
-  #define PLATFORM_NAME "M5Stack"
-  #define DEFAULT_REGISTRY_BOARD "m5stack"
-#elif defined( ARDUINO_ODROID_ESP32 )
-  #warning ODROID DETECTED !!
-  #define PLATFORM_NAME "Odroid-GO"
-  #define DEFAULT_REGISTRY_BOARD "odroid"
-#elif defined ( ARDUINO_ESP32_DEV )
-  #warning WROVER DETECTED !!
-  #define DEFAULT_REGISTRY_BOARD "esp32"
-  #define PLATFORM_NAME "ESP32"
+#if defined(_CHIMERA_CORE_)
+  // auto-select board
+  #if defined( ARDUINO_M5Stack_Core_ESP32 )
+    #warning M5STACK CLASSIC DETECTED !!
+    #define PLATFORM_NAME "M5Stack"
+    #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #elif defined( ARDUINO_M5STACK_FIRE )
+    #warning M5STACK FIRE DETECTED !!
+    #define PLATFORM_NAME "M5Stack"
+    #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #elif defined( ARDUINO_ODROID_ESP32 )
+    #warning ODROID DETECTED !!
+    #define PLATFORM_NAME "Odroid-GO"
+    #define DEFAULT_REGISTRY_BOARD "odroid"
+  #elif defined ( ARDUINO_ESP32_DEV )
+    #warning WROVER DETECTED !!
+    #define DEFAULT_REGISTRY_BOARD "esp32"
+    #define PLATFORM_NAME "ESP32"
+  #else
+    #warning NOTHING DETECTED !!
+    #define DEFAULT_REGISTRY_BOARD "lambda"
+    #define PLATFORM_NAME "LAMBDA"
+  #endif
+  // auto-select SD source
+  #define M5_FS SDUPDATER_FS
+
 #else
-  #warning NOTHING DETECTED !!
-  #define DEFAULT_REGISTRY_BOARD "lambda"
-  #define PLATFORM_NAME "LAMBDA"
+
+  // until M5Stack clean up their flags
+  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  #define PLATFORM_NAME "M5Stack"
+  #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #define M5_FS SD
+
 #endif
 
 #include <sys/time.h>
 #include "compile_time.h"
 #include "SPIFFS.h"
-#include <M5Stack.h>         // https://github.com/m5stack/M5Stack/
-#ifdef M5_LIB_VERSION
-  #include "utility/qrcode.h" // if M5Stack version >= 0.1.8 : qrCode from M5Stack
-#else 
-  #include "qrcode.h" // if M5Stack version <= 0.1.6 : qrCode from https://github.com/ricmoo/qrcode
-#endif
+
+#include <M5Stack.h> // https://github.com/m5stack/M5Stack/ or https://github.com/tobozo/ESP32-Chimera-Core
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
-#ifdef ARDUINO_ODROID_ESP32
-  M5Display tft;
-#else
-  #define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
-#endif
-#ifdef SDUPDATER_FS
-  #define M5_FS SDUPDATER_FS
-#else
-  #define M5_FS SD
-#endif
-//#define M5_FS SD_MMC
-#include <M5StackSAM.h>      // https://github.com/tobozo/M5StackSAM/ (forked from https://github.com/tomsuch/M5StackSAM)
+#define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
+
+#include "SAM.h" // altered version of https://github.com/tomsuch/M5StackSAM, maintained at https://github.com/tobozo/M5StackSAM/
 #include <ArduinoJson.h>     // https://github.com/bblanchon/ArduinoJson/
+#include "utility/qrcode.h" // from M5Stack Core
 #include "i18n.h"            // language file
 #include "assets.h"          // some artwork for the UI
 #include "controls.h"        // keypad / joypad / keyboard controls
@@ -133,7 +135,7 @@ void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
           scrollOffset = 0;
   uint8_t csize = 0, 
           lastcsize = 0;
-  
+
   scrollPointer-=1;
   if( scrollPointer<-textWidth ) {
     scrollPointer = 0;
@@ -297,14 +299,6 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
             tft.progressBar( 110, 112, 100, 20, progressRatio);
             tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
             tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
-            #ifdef TFT_SDA_READ
-            /*
-            if( fileInfo[appsCount].shortName() == "BetaLauncher" ) {
-              // capture
-              screenShot( "listdir" );
-            }
-            */
-            #endif
           }
         }
         appsCount++;
@@ -408,7 +402,7 @@ void drawM5Menu( bool renderButtons = false ) {
   sprintf(paginationStr, paginationTpl, PageID+1, Pages);
   M5Menu.setListCaption( paginationStr );
   if( renderButtons ) {
-    #if defined(ARDUINO_ODROID_ESP32) && defined(TFT_SDA_READ)
+    #if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
       M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_SCREENSHOT, MENU_BTN_PAGE, MENU_BTN_NEXT );
     #else
       M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
@@ -539,10 +533,10 @@ void checkMenuTimeStamp() {
 
   struct tm now;
   getLocalTime(&now,0);
-  
+
   Serial.printf("[Hobo style] Clock set to %s source (%s): ", timeStatus.c_str(), timeSource.c_str());
   Serial.println(&now,"%B %d %Y %H:%M:%S (%A)");
-  
+
 }
 
 
@@ -717,17 +711,17 @@ void doFSChecks() {
   tft.setTextColor( WHITE );
   tft.setTextSize( 1 );
   tft.clear();
-  
+
   // TODO: check menu.bin datetime and set
   checkMenuTimeStamp();
   checkMenuStickyPartition();
-  
+
   tft.fillRect(110, 112, 100, 20,0);
   tft.progressBar( 110, 112, 100, 20, 10);
-  
+
   scanDataFolder(); // do SD / SPIFFS health checks
   Registry = registryInit(); // load registry profile
-  
+
   if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
     if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) { // rename for hoisting in the list
       M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
@@ -739,7 +733,7 @@ void doFSChecks() {
   } else { // cleanup old legacy file if necessary
     if( M5_FS.exists(DOWNLOADER_BIN_VIRTUAL) ) {
       M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
-    }    
+    }
   }
 }
 
@@ -761,12 +755,6 @@ void doFSInventory() {
   aSortFiles(); // bubble sort alphabetically
   buildM5Menu();
   drawM5Menu( true ); // render the menu
-  #ifdef TFT_SDA_READ
-    /*
-    // capture
-    screenShot.snap( "menu" );
-    */
-  #endif
   lastcheck = millis(); // reset the timer
   lastpush = millis(); // reset the timer
   heapState();
@@ -784,7 +772,7 @@ void HIDMenuObserve() {
     tft.setBrightness( brightness );
   }
   switch( hidState ) {
-    #ifdef TFT_SDA_READ
+    #ifdef _CHIMERA_CORE_
       case HID_SCREENSHOT:
         M5.ScreenShot.snap( "screenshot" );
       break;

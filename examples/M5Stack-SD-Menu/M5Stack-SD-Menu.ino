@@ -81,9 +81,11 @@
 
 
 void setup() {
-
-  //Serial.begin( 115200 ); // M5.begin() starts the Serial
-  M5.begin(true, true, true, false, true); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
+  #if defined(_CHIMERA_CORE_)
+    M5.begin(true, true, true, false, true); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
+  #else
+    M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
+  #endif
   //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
   UISetup(); // UI init and check if a SD exists 
 

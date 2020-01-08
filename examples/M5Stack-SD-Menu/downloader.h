@@ -385,7 +385,7 @@ int modalConfirm( const char* modalName, const char* question, const char* title
     delay( 100 );
     M5.update();
     hidState = getControls();
-    #ifdef TFT_SDA_READ
+    #ifdef _CHIMERA_CORE_
       if( hidState == HID_SCREENSHOT ) {
         M5.ScreenShot.snap( modalName );
         hidState = HID_INERT;
@@ -464,7 +464,7 @@ void drawSDUpdaterChannel() {
 
 void drawAppMenu() {
   M5Menu.windowClr();
-  #if defined(ARDUINO_ODROID_ESP32) && defined(TFT_SDA_READ)
+  #if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
     M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "", "");
   #else
     M5Menu.drawAppMenu( APP_DOWNLOADER_MENUTITLE, "", "", "");
