@@ -59,7 +59,7 @@ before_install:
   # Install the library from the repository
   - install_library
   - install_library M5Stack
-  - install_package esp32 # esp32:esp32:m5stack-core-esp32
+  - install_package esp32:esp32 # esp32:esp32:m5stack-core-esp32
 
 
 script:
