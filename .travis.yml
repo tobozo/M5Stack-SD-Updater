@@ -3,6 +3,8 @@
 # Although sudo is not required by arduino-ci-script, I've experienced that setting "sudo: false" can cause the Travis CI build time to significantly increase for some reason so this setting is left as "sudo: required"
 sudo: required
 
+language: python
+python: 3.6
 
 env:
   global:
@@ -60,13 +62,15 @@ before_install:
   - install_library
   - install_library "M5Stack"
   - set_script_verbosity 2
-  - install_package "esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
+  #- install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
+  - install_package 'esp32:esp32' 'https://dl.espressif.com/dl/package_esp32_index.json'
+  - pip install pyserial
 
 
 script:
   # Compile all example sketches included with the library
   # build_sketch arguments: sketch name, fqbn, allow failure, IDE version/list/range
-  - build_sketch "${SKETCHBOOK_FOLDER}/libraries/M5Stack-SD-Updater/examples/M5Stack-SD-Menu/" "esp32:esp32:m5stack-core-esp32" "false" "oldest" "newest"
+  - build_sketch "${SKETCHBOOK_FOLDER}/libraries/M5Stack-SD-Updater/examples/M5Stack-SD-Menu/" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "oldest" "newest"
 
 
 after_script:
