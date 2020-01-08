@@ -54,7 +54,7 @@ static int SD_UI_Progress;
   #define PROGRESS_WIDTH 30
   #define PROGRESS_HEIGHT 20
   #define SD_PLATFORM_NAME "M5StickC"
-  #define tft_setBrightness(x)   M5.Axp.ScreenBreath(7+x/12); tft.setRotation(3);
+  #define tft_setBrightness(x) M5.Axp.ScreenBreath(7+x/12); tft.setRotation(3);
 
 #else
   #if defined( ARDUINO_ODROID_ESP32 )
@@ -86,67 +86,86 @@ SDUpdater::SDUpdater( const String SPIFFS2SDFolder ) {
   }
 }
 
+#ifdef USE_DISPLAY
+  void SDUpdater::displayUpdateUI( String label ) {
+    tft.begin();
+    tft_setBrightness( 100 );
+    tft.fillScreen( TFT_BLACK );
+    tft.setTextColor( TFT_WHITE );
+    tft.setTextFont( 0 );
+    tft.setTextSize( 2 );
+    // attemtp to center the text
+    int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
+    if ( xpos < 0 ) {
+      // try with smaller size
+      tft.setTextSize(1);
+      xpos = ( tft.width() / 2 ) - ( tft.textWidth( label ) / 2 );
+      if( xpos < 0 ) {
+        // give up
+        xpos = 0 ;
+      }
+    }
+    tft.setCursor( xpos, TITLE_POS_Y );
+    tft.print( label );
+    tft.drawRect( PROGRESS_WIDTH, PROGRESS_HEIGHT, 102, 20, TFT_WHITE );
+    SD_UI_Progress = -1;
+  }
 
-void SDUpdater::displayUpdateUI( String label ) {
-  tft.begin();
-  tft_setBrightness( 100 );
-  tft.fillScreen( TFT_BLACK );
-  tft.setTextColor( TFT_WHITE );
-  tft.setTextFont( 0 );
-  tft.setTextSize( 2 );
-  // attemtp to center the text
-  int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
-  if ( xpos < 0 ) {
-    // try with smaller size
-    tft.setTextSize(1);
-    xpos = ( tft.width() / 2 ) - ( tft.textWidth( label ) / 2 );
-    if( xpos < 0 ) {
-      // give up
-      xpos = 0 ;
+  void SDUpdater::SDMenuProgress( int state, int size ) {
+    int percent = ( state * 100 ) / size;
+    if( percent == SD_UI_Progress ) {
+      // don't render twice the same value
+      return;
+    }
+    //Serial.printf("percent = %d\n", percent); // this is spammy
+    SD_UI_Progress = percent;
+    uint16_t x      = tft.getCursorX();
+    uint16_t y      = tft.getCursorY();
+    int textfont    = tft.textfont;
+    int textsize    = tft.textsize;
+    int textcolor   = tft.textcolor;
+    int textbgcolor = tft.textbgcolor;
+    if ( percent >= 0 && percent < 101 ) {
+      tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, percent, 18, TFT_GREEN );
+      tft.fillRect( PROGRESS_WIDTH+1+percent, PROGRESS_HEIGHT+1, 100-percent, 18, TFT_BLACK );
+      Serial.print( "." );
+    } else {
+      tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, 100, 18, TFT_BLACK );
+      Serial.println();
+    }
+    String percentStr = String( percent ) + "% ";
+    tft.setTextFont( 0 ); // Select font 0 which is the Adafruit font
+    tft.setTextSize( 1 ); // smallish size but some filenames are very long
+    tft.setTextColor( TFT_WHITE, TFT_BLACK );
+    int16_t xpos = ( tft.width() / 2 ) - ( tft.textWidth( percentStr ) / 2 );
+    if ( xpos < 0 ) xpos = 0 ;
+    tft.setCursor( xpos, PERCENT_POS_Y );
+    tft.print( percentStr ); // trailing space is important
+    tft.setCursor( x, y );
+    tft.setTextFont( textfont ); // Select font 0 which is the Adafruit font
+    tft.setTextSize( textsize );
+    tft.setTextColor( textcolor, textbgcolor );
+  }
+#else
+  void SDUpdater::displayUpdateUI( String label ) {
+
+  }
+
+  void SDUpdater::SDMenuProgress( int state, int size ) {
+    int percent = ( state * 100 ) / size;
+    if( percent == SD_UI_Progress ) {
+      // don't render twice the same value
+      return;
+    }
+    //Serial.printf("percent = %d\n", percent); // this is spammy
+    SD_UI_Progress = percent;
+    if ( percent >= 0 && percent < 101 ) {
+      Serial.print( "." );
+    } else {
+      Serial.println();
     }
   }
-  tft.setCursor( xpos, TITLE_POS_Y );
-  tft.print( label );
-  tft.drawRect( PROGRESS_WIDTH, PROGRESS_HEIGHT, 102, 20, TFT_WHITE );
-  SD_UI_Progress = -1;
-}
-
-
-void SDUpdater::SDMenuProgress( int state, int size ) {
-  int percent = ( state * 100 ) / size;
-  if( percent == SD_UI_Progress ) {
-    // don't render twice the same value
-    return;
-  }
-  //Serial.printf("percent = %d\n", percent); // this is spammy
-  SD_UI_Progress = percent;
-  uint16_t x      = tft.getCursorX();
-  uint16_t y      = tft.getCursorY();
-  int textfont    = tft.textfont;
-  int textsize    = tft.textsize;
-  int textcolor   = tft.textcolor;
-  int textbgcolor = tft.textbgcolor;
-  if ( percent >= 0 && percent < 101 ) {
-    tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, percent, 18, TFT_GREEN );
-    tft.fillRect( PROGRESS_WIDTH+1+percent, PROGRESS_HEIGHT+1, 100-percent, 18, TFT_BLACK );
-    Serial.print( "." );
-  } else {
-    tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, 100, 18, TFT_BLACK );
-    Serial.println();
-  }
-  String percentStr = String( percent ) + "% ";
-  tft.setTextFont( 0 ); // Select font 0 which is the Adafruit font
-  tft.setTextSize( 1 ); // smallish size but some filenames are very long
-  tft.setTextColor( TFT_WHITE, TFT_BLACK );
-  int16_t xpos = ( tft.width() / 2 ) - ( tft.textWidth( percentStr ) / 2 );
-  if ( xpos < 0 ) xpos = 0 ;
-  tft.setCursor( xpos, PERCENT_POS_Y );
-  tft.print( percentStr ); // trailing space is important
-  tft.setCursor( x, y );
-  tft.setTextFont( textfont ); // Select font 0 which is the Adafruit font
-  tft.setTextSize( textsize );
-  tft.setTextColor( textcolor, textbgcolor );
-}
+#endif
 
 
 esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition ) {
