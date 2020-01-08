@@ -47,8 +47,8 @@ before_install:
   # 0 (minimum/default) - 2 (maximum) verbosity
   #- set_script_verbosity 2
   # Turn on verbose output during compilation
-  - set_script_verbosity 1
-  - set_verbose_output_during_compilation "true"
+  #- set_script_verbosity 1
+  #- set_verbose_output_during_compilation "true"
 
   # Check for library issues that don't affect compilation
   - set_library_testing "true"
