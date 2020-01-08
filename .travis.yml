@@ -62,7 +62,7 @@ before_install:
   # Install the library from the repository
   - install_library
   - install_library "M5Stack"
-  - install_library "ArduinoJSON"
+  - install_library 'https://github.com/bblanchon/ArduinoJson' # "ArduinoJSON"
 
   - ls ${TRAVIS_BUILD_DIR} -la
   - ls ${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/ -la
