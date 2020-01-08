@@ -96,7 +96,7 @@ void copyPartition() {
   const esp_partition_t *nextupdate = esp_ota_get_next_update_partition(NULL);
   const char* menubinfilename PROGMEM {MENU_BIN} ;
   size_t sksize = ESP.getSketchSize();
-  bool flgSD = M5_FS.begin( TFCARD_CS_PIN, SPI, 40000000 );
+  bool flgSD = M5_FS.begin( /*TFCARD_CS_PIN, SPI, 40000000*/ );
   File dst;
   if (flgSD) {
     dst = (M5_FS.open(menubinfilename, FILE_WRITE ));
@@ -123,7 +123,7 @@ void checkMenuStickyPartition() {
     tft.drawString("TobozoLauncher on app0", 160, 10, 2);
     size_t sksize = ESP.getSketchSize();
     if (!comparePartition(running, nextupdate, sksize)) {
-      bool flgSD = M5_FS.begin( TFCARD_CS_PIN, SPI, 40000000 );
+      bool flgSD = M5_FS.begin( /*TFCARD_CS_PIN, SPI, 40000000*/ );
       tft.drawString("Synchronizing 'app1' partition", 160, 24, 2);
       File dst;
       if (flgSD) {

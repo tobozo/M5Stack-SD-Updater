@@ -44,7 +44,7 @@ bool migrateSPIFFS = false;
 const uint8_t extensionsCount = 6; // change this if you add / remove an extension
 String allowedExtensions[extensionsCount] = {
     // do NOT remove jpg and json or the menu will crash !!!
-    "jpg", "json", "mod", "mp3", "cert"
+    "jpg", "bmp", "json", "mod", "mp3", "cert"
 };
 
 const String appDataFolder = "/data"; // if an app needs spiffs data, it's stored here
