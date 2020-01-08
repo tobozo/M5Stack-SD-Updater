@@ -98,3 +98,9 @@ url = https://gist.github.com/shioken/e90b9fa3b43d8b067adde77a75768efd
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_LovyanToyBox"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_LovyanToyBox
 	url = https://github.com/lovyan03/M5Stack_LovyanToyBox
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/Frogger_M5Stack"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/Frogger_M5Stack
+	url = https://github.com/pappani/Frogger_M5Stack
+[submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Test_tools"]
+	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Test_tools
+	url = https://github.com/mongonta0716/M5Stack_Test_tools

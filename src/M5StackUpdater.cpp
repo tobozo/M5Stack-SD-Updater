@@ -31,15 +31,67 @@
 #include "M5StackUpdater.h"
 
 static int SD_UI_Progress;
-#ifdef M5STACK
-#define tft M5.Lcd // syntax sugar, forward compat with other displays
+#if defined(M5STACK) || defined(_M5STICKC_H_)
+#define tft M5.Lcd // {M5StickC,M5Stack,ESP32-Chimera}-Core syntax sugar, forward compat with other displays
 #endif
+
+
+#define TITLE_POS_Y 10
+#define PERCENT_POS_Y 155
+#define PROGRESS_WIDTH 110
+#define PROGRESS_HEIGHT 130
+#define tft_setBrightness(x) tft.setBrightness( x )
+
+#if defined( ARDUINO_M5Stick_C )
+  //#pragma message ("M5StickC board detected")
+  #undef TITLE_POS_Y
+  #undef PERCENT_POS_Y
+  #undef PROGRESS_WIDTH
+  #undef PROGRESS_HEIGHT
+  #undef tft_setBrightness
+  #define TITLE_POS_Y 5
+  #define PERCENT_POS_Y 45
+  #define PROGRESS_WIDTH 30
+  #define PROGRESS_HEIGHT 20
+  #define SD_PLATFORM_NAME "M5StickC"
+  #define tft_setBrightness(x)   M5.Axp.ScreenBreath(7+x/12); tft.setRotation(3);
+
+#else
+  #if defined( ARDUINO_ODROID_ESP32 )
+    //#pragma message ("Odroid-GO board detected")
+    #define SD_PLATFORM_NAME "Odroid-GO"
+  #elif defined( ARDUINO_M5Stack_Core_ESP32 )
+    //#pragma message ("M5Stack Classic board detected")
+    #define SD_PLATFORM_NAME "M5Stack"
+  #elif defined( ARDUINO_M5STACK_FIRE )
+    //#pragma message ("M5Stack Fire board detected")
+    #define SD_PLATFORM_NAME "M5Stack-Fire"
+  #elif defined( ARDUINO_ESP32_DEV )
+    //#pragma message ("WROVER KIT board detected")
+    #define SD_PLATFORM_NAME "Wrover-Kit"
+  #else
+    //#pragma message ("Custom ESP32 board detected")
+    // put your custom UI settings here
+    #define SD_PLATFORM_NAME "ESP32"
+    #undef tft_setBrightness
+    #define tft_setBrightness(x)
+  #endif
+#endif
+
+// enable SPIFFS persistence by backuping/restoring to/from the SD
+SDUpdater::SDUpdater( const String SPIFFS2SDFolder ) {
+  if( SPIFFS2SDFolder!="" ) {
+    SKETCH_NAME = SPIFFS2SDFolder;
+    enableSPIFFS = true;
+  }
+}
+
 
 void SDUpdater::displayUpdateUI( String label ) {
   tft.begin();
-  tft.setBrightness( 100 );
-  tft.fillScreen( BLACK );
-  tft.setTextColor( WHITE );
+  tft_setBrightness( 100 );
+  tft.fillScreen( TFT_BLACK );
+  tft.setTextColor( TFT_WHITE );
   tft.setTextFont( 0 );
   tft.setTextSize( 2 );
   // attemtp to center the text
@@ -53,9 +105,9 @@ void SDUpdater::displayUpdateUI( String label ) {
       xpos = 0 ;
     }
   }
-  tft.setCursor( xpos, 10 );
+  tft.setCursor( xpos, TITLE_POS_Y );
   tft.print( label );
-  tft.drawRect( 110, 130, 102, 20, WHITE );
+  tft.drawRect( PROGRESS_WIDTH, PROGRESS_HEIGHT, 102, 20, TFT_WHITE );
   SD_UI_Progress = -1;
 }
 
@@ -74,22 +126,21 @@ void SDUpdater::SDMenuProgress( int state, int size ) {
   int textsize    = tft.textsize;
   int textcolor   = tft.textcolor;
   int textbgcolor = tft.textbgcolor;
-
   if ( percent >= 0 && percent < 101 ) {
-    tft.fillRect( 111, 131, percent, 18, GREEN );
-    tft.fillRect( 111+percent, 131, 100-percent, 18, BLACK );
+    tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, percent, 18, TFT_GREEN );
+    tft.fillRect( PROGRESS_WIDTH+1+percent, PROGRESS_HEIGHT+1, 100-percent, 18, TFT_BLACK );
     Serial.print( "." );
   } else {
-    tft.fillRect( 111, 131, 100, 18, BLACK );
+    tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, 100, 18, TFT_BLACK );
     Serial.println();
   }
   String percentStr = String( percent ) + "% ";
   tft.setTextFont( 0 ); // Select font 0 which is the Adafruit font
   tft.setTextSize( 1 ); // smallish size but some filenames are very long
-  tft.setTextColor( WHITE, BLACK );
+  tft.setTextColor( TFT_WHITE, TFT_BLACK );
   int16_t xpos = ( tft.width() / 2 ) - ( tft.textWidth( percentStr ) / 2 );
   if ( xpos < 0 ) xpos = 0 ;
-  tft.setCursor( xpos, 155 );
+  tft.setCursor( xpos, PERCENT_POS_Y );
   tft.print( percentStr ); // trailing space is important
   tft.setCursor( x, y );
   tft.setTextFont( textfont ); // Select font 0 which is the Adafruit font
@@ -209,13 +260,58 @@ void SDUpdater::tryRollback( String fileName ) {
 // check given FS for valid menu.bin and perform update if available
 void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
   #ifdef M5_SD_UPDATER_VERSION
-    Serial.printf( "[M5Stack-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
+    Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
   #endif
   #ifdef M5_LIB_VERSION
-    Serial.printf( "[M5Stack-SD-Updater] M5Stack Core version: %s\n", (char*)M5_LIB_VERSION );
+    Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] M5Stack Core version: %s\n", (char*)M5_LIB_VERSION );
   #endif
-  Serial.printf( "[M5Stack-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
-  Serial.printf( "[M5Stack-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
+  Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
+  
+  #ifdef _SPIFFS_H_
+    //#pragma message ("SPIFFS Support detected")
+    log_i(" Checking for SPIFFS Support");
+    if( &fs == &SPIFFS ) {
+      if( !SPIFFS.begin() ){
+        log_e( "SPIFFS MOUNT FAILED, ABORTING!!" );
+        return;
+      } else {
+        log_i( "SPIFFS Successfully mounted");
+        SPIFFS_MOUNTED = true;
+      }
+    }
+    #ifdef SD_ENABLE_SPIFFS_COPY
+      if( enableSPIFFS ) {
+        // firs backup SPIFFS to the SD
+        copyDir( BACKUP_SPIFFS_TO_SD );
+      }
+    #endif
+  #endif
+  #if SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
+    //#pragma message ("SD Support detected")
+    log_i(" Checking for SD Support");
+    if( &fs == &SD ) {
+      if( !SD.begin() ){
+        log_e( "SD MOUNT FAILED, ABORTING!!" );
+        return;
+      } else {
+        log_i( "SD Successfully mounted");
+      }
+    }
+  #endif
+  #if SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
+    //#pragma message ("SD_MMC Support detected")
+    log_i(" Checking for SD_MMC Support");
+    if( &fs == &SD_MMC ) {
+      if( !SD_MMC.begin() ){
+        log_e( "SD_MMC MOUNT FAILED, ABORTING!!" );
+        return;
+      } else {
+        log_i( "SD_MMC Successfully mounted");
+      }
+    }
+  #endif
+
+  Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
   // try rollback first, it's faster!
   if( strcmp( MENU_BIN, fileName.c_str() ) == 0 ) {
     tryRollback( fileName );
@@ -258,4 +354,259 @@ static void SDUpdater::getFactoryPartition() {
 }
 
 */
+
+#if defined( SD_ENABLE_SPIFFS_COPY )
+
+
+String SDUpdater::gnu_basename( String path ) {
+  char *base = strrchr(path.c_str(), '/');
+  return base ? String( base+1) : path;
+}
+
+
+void SDUpdater::copyFile( String sourceName, int dir ) {
+  switch( dir ) {
+    case BACKUP_SD_TO_SPIFFS:
+      copyFile( sourceName, SDUPDATER_FS, dir );
+    break;
+    case BACKUP_SPIFFS_TO_SD:
+      copyFile( sourceName, SPIFFS, dir );
+    break;
+  }
+}
+
+
+void SDUpdater::copyFile( String sourceName, fs::FS &sourceFS, int dir ) {
+  File sourceFile = sourceFS.open( sourceName );
+  if (! sourceFile ) {
+    log_e("Unable to open source file for reading : %s", sourceName );
+    return;
+  }
+  copyFile( sourceFile, dir );
+  sourceFile.close();
+}
+
+
+void SDUpdater::copyFile( fs::File &sourceFile, int dir ) {
+  String destName;
+  String SDAppDataDir = String(DATA_DIR) + "/" + String( SKETCH_NAME );
+  switch( dir ) {
+    case BACKUP_SD_TO_SPIFFS:
+      destName = sourceFile.name();
+      destName.replace( SDAppDataDir, "" );
+      log_i("BACKUP_SD_TO_SPIFFS source: %s, dest: %s", sourceFile.name(), destName.c_str() );
+      if (SPIFFS.totalBytes() - SPIFFS.usedBytes() < sourceFile.size() ) {
+        log_e("not enough space left to copy %s\n", sourceFile.name() );
+        return;
+      }
+      copyFile( sourceFile, destName, SPIFFS );
+    break;
+    case BACKUP_SPIFFS_TO_SD:
+      destName = SDAppDataDir + String( sourceFile.name() );
+      log_i("BACKUP_SPIFFS_TO_SD source: %s, dest: %s", sourceFile.name(), destName.c_str() );
+      copyFile( sourceFile, destName, SD );
+    break;
+  }
+}
+
+
+void SDUpdater::copyFile( String sourceName, fs::FS &sourceFS, String destName, fs::FS &destinationFS ) {
+  File sourceFile = sourceFS.open( sourceName );
+  if (! sourceFile ) {
+    log_e("Unable to open source file for reading : %s", sourceName );
+    return;
+  }
+  copyFile( sourceFile, destName, destinationFS );
+  sourceFile.close();
+}
+
+
+
+#define BUFFER_SIZE 512
+
+void SDUpdater::copyFile( fs::File &sourceFile, String destName, fs::FS &destinationFS ) {
+  String sourceName = sourceFile.name();
+  //displayUpdateUI( String( "MOVINGFILE_MESSAGE" ) + sourceName );
+  size_t fileSize = sourceFile.size();
+
+  String basename = gnu_basename( destName );
+  String basepath = destName.substring( 0, destName.length()-(basename.length()+1) );
+  if( !destinationFS.exists( basepath ) ) {
+    log_i("destination path %s does not exist, will create", basepath.c_str() );
+    makePathToFile( destName, destinationFS );
+  }
+  
+  File destFile = destinationFS.open( destName, FILE_WRITE );
+  if( !destFile ){ // for some reason this test is useless
+    log_e( "Unable to open destination file for writing : %s", destName ) ;
+    return;
+  } else {
+    log_i("Attempting to copy %s to %s", sourceName.c_str(), destName.c_str() );
+    
+    size_t bufferPos = 0;
+    static uint8_t buf[BUFFER_SIZE];
+    
+    while (1) {
+      if (bufferPos + BUFFER_SIZE >= fileSize) {
+        // finalize buffer
+        if (sourceFile.read(buf, fileSize - bufferPos) == -1) {
+          break;
+        }
+        if (destFile.write(buf, fileSize - bufferPos) == -1) {
+          break;
+        }
+        break;
+      }
+      bufferPos += BUFFER_SIZE;
+      if (sourceFile.read(buf, BUFFER_SIZE) == -1) {
+        break;
+      }
+      if (destFile.write(buf, BUFFER_SIZE) == -1) {
+        break;
+      }
+      delay(1);
+    }
+    
+    
+    destFile.close();
+    log_i( "File copy done :-)" );
+  }
+}
+
+
+void SDUpdater::copyDir( int direction ) {
+  String SDAppDataDir;
+
+  if( !SPIFFS_MOUNTED ) {
+    if( !SPIFFS.begin() ){
+      log_e( "SPIFFS MOUNT FAILED, ABORTING!!" );
+      return;
+    } else {
+      log_i( "SPIFFS Successfully mounted");
+      SPIFFS_MOUNTED = true;
+    }
+  }
+  
+  switch( direction ) {
+    case BACKUP_SD_TO_SPIFFS:
+      SDAppDataDir = String(DATA_DIR) + "/" + String( SKETCH_NAME );
+      copyDir( SDAppDataDir.c_str(), 4, direction );
+    break;
+    case BACKUP_SPIFFS_TO_SD:
+      copyDir( "/", 4, direction );
+    break;
+  }
+}
+
+
+void SDUpdater::copyDir( const char * dirname, uint8_t levels, int direction ) {
+  switch( direction ) {
+    case BACKUP_SD_TO_SPIFFS:
+      copyDir( SDUPDATER_FS, dirname, levels, direction );
+    break;
+    case BACKUP_SPIFFS_TO_SD:
+      copyDir( SPIFFS, dirname, levels, direction );
+    break;
+  }  
+}
+
+
+void SDUpdater::copyDir(fs::FS &sourceFS, const char * dirname, uint8_t levels, int direction ) {
+    log_i("Listing directory: %s\n", dirname);
+
+    File root = sourceFS.open(dirname);
+    if(!root){
+        log_e("Failed to open %s directory", dirname);
+        return;
+    }
+    if(!root.isDirectory()){
+        log_e("%s is not a directory", dirname);
+        return;
+    }
+
+    File sourceFile = root.openNextFile();
+    while(sourceFile){
+        if(sourceFile.isDirectory()){
+            log_i("  DIR : %s", sourceFile.name());
+            if(levels){
+                copyDir(sourceFS, sourceFile.name(), levels -1, direction );
+            }
+        } else {
+            // TODO : copy file
+            log_i("  FILE: %32s - %8d bytes", sourceFile.name(), sourceFile.size());
+            copyFile( sourceFile, direction );
+        }
+        sourceFile = root.openNextFile();
+    }
+}
+
+
+void SDUpdater::makePathToFile( String destName, fs::FS destinationFS ) {
+  String basename = gnu_basename( destName );
+  String basepath = destName.substring( 0, destName.length()-(basename.length()+1) );
+  if( basename == "/" || basename=="") {
+    log_w("root dir or empty dir creation denied");
+    return;
+  }
+  if( basename == destName ) {
+    log_w("basename is equal to destName : %s", basename.c_str() );
+    return;
+  }
+  if( !destinationFS.exists( basepath.c_str() ) ) {
+    log_i("going recursive before creating %s folder", basepath.c_str());
+    makePathToFile( basepath, destinationFS );
+    log_w("creating %s folder after recursion", basepath.c_str());
+    destinationFS.mkdir( basepath.c_str() );
+    if( destinationFS.exists( basepath ) ) {
+       // creation success
+       log_i("folder creation success!");
+     } else {
+       log_i("folder creation failed!");
+     }
+  } else {
+    log_i("destination path %s exists", basepath.c_str() );
+  }
+}
+
+
+bool SDUpdater::SPIFFSFormat() {
+  if( !SPIFFS.begin( true ) ){
+    log_e( "SPIFFS Formatting FAILED!!" );
+    return false;
+  } else {
+    SPIFFS.format();
+    log_i( "SPIFFS Successfully formatted");
+    SPIFFS_MOUNTED = true;
+    return true;
+  }
+}
+
+
+bool SDUpdater::SPIFFSisEmpty() {
+  if( !SPIFFS_MOUNTED ) {
+    if( !SPIFFS.begin() ) {
+      log_e( "SPIFFS MOUNT FAILED, ABORTING!!" );
+      return true;
+    } else {
+      log_i( "SPIFFS Successfully mounted");
+      SPIFFS_MOUNTED = true;
+    }
+  }
+  const char* dirname = "/";
+  File root = SPIFFS.open(dirname);
+  if(!root){
+      log_e("Failed to open %s directory", dirname);
+      return true;
+  }
+  if(!root.isDirectory()){
+      log_e("%s is not a directory", dirname);
+      return true;
+  }
+  File sourceFile = root.openNextFile();
+  return sourceFile ? false : true;
+}
+
+
+#endif
+
 #undef tft
