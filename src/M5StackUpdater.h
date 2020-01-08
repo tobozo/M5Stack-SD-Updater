@@ -92,46 +92,51 @@ extern "C" {
   #define DATA_DIR "/data"
 #endif
 
+#define USE_DISPLAY
+
 #if defined( ARDUINO_ODROID_ESP32 ) // Odroid-GO
-  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5Stack_Core_ESP32 ) // M5Stack Classic
-  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5STACK_FIRE ) // M5Stack Fire
-  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5Stick_C ) // M5StickC
-  #include <M5StickC.h> // load M5StickC-core
   #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
 #elif defined( ARDUINO_ESP32_DEV ) // ESP32 Wrover Kit
-  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core  
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
 #else
-  // your custom board setup
-  #pragma message ("SD Updater is using an unknown (custom?) setup, and expecting a 'TFT_eSPI tft;' instance in your sketch")
+  #warning "No valid display detected, enabling headless mode"
+  #undef USE_DISPLAY // headless setup, progress will be rendered in Serial
   #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS // default behaviour = use SD
+/*
+  // or your custom board setup
   #include <FS.h>
   #include <TFT_eSPI.h>
   extern TFT_eSPI tft; // make sure 'tft' exists outside this library
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS // bind to SD_MMC
+
+*/
+#endif
+
+#ifdef USE_DISPLAY
+  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
 #endif
 
 
 #if SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
   #define SDUPDATER_FS SD
   #include <SD.h>
-#endif
-#if SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
+#elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
   #define SDUPDATER_FS SD_MMC
   #include <SD_MMC.h>
-#endif
-#if SD_UPDATER_FS_TYPE==SDUPDATER_SPIFFS_FS
+#elif SD_UPDATER_FS_TYPE==SDUPDATER_SPIFFS_FS
   #define SDUPDATER_FS SPIFFS
   #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
   #include <SPIFFS.h>
+#else
+  #error "Invalid FS type selected, must be one of: SDUPDATER_SD_FS, SDUPDATER_SD_MMC_FS, SDUPDATER_SPIFFS_FS"
 #endif
-
 
 
 #include <Update.h>
