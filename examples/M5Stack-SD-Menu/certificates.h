@@ -9,8 +9,8 @@
     awk '{print "\"" $0 "\\n\"\\"}' >> $ssl_host.txt && \
     echo $suffix >> $ssl_host.txt &&
     cat $ssl_host.txt
-    
- 
+
+
 Certificate chain
  0 s:/businessCategory=Private Organization/jurisdictionC=US/jurisdictionST=Delaware/serialNumber=5157550/C=US/ST=California/L=San Francisco/O=GitHub, Inc./CN=github.com
    i:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert SHA2 Extended Validation Server CA
@@ -96,9 +96,9 @@ const char* github_ca =\
 
 
 /*
-  
-  openssl s_client -showcerts -connect phpsecu.re:443 </dev/null 
-  
+
+  openssl s_client -showcerts -connect phpsecu.re:443 </dev/null
+
 Certificate chain
  0 s:/CN=phpsecure.info
    i:/C=US/O=Let's Encrypt/CN=Let's Encrypt Authority X3

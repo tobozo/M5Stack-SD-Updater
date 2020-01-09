@@ -67,7 +67,7 @@ For your own lazyness, you can use @micutil's awesome [M5Burner](https://github.
 [![https://github.com/micutil/M5Burner_Mic/releases](https://raw.githubusercontent.com/micutil/M5Burner_Mic/master/images/m5burnermic128.png)](https://github.com/micutil/M5Burner_Mic/releases)
 
 
-... or customize your own menu and make the installation manually : 
+... or customize your own menu and make the installation manually :
 
 
 **1) Open both sketches from the "examples/M5Stack-SD-Update" menu.**
@@ -81,7 +81,7 @@ For your own lazyness, you can use @micutil's awesome [M5Burner](https://github.
 **3) Compile the "M5Stack-SD-Menu.ino" example.** <br />
 This sketch is the menu app. It must be (a) compiled and saved to the root directory of a micro SD card for persistence and (b) flashed onto the M5Stack.
 
-(a) In the Arduino IDE, go to Sketch / Export compiled binary , and compile the file. Rename the file "menu.bin" and copy it to the micro SD card. (b) Next, flash "menu.bin" to the M5Stack. 
+(a) In the Arduino IDE, go to Sketch / Export compiled binary , and compile the file. Rename the file "menu.bin" and copy it to the micro SD card. (b) Next, flash "menu.bin" to the M5Stack.
 
  Note that you won't need to (a) copy it if you previously extracted the SD-Content folder on the SD card.
 
@@ -96,11 +96,11 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
   For an existing M5 app, find the line:
 
       #include <M5Stack.h>
-      
+
   And add this:
-      
+
       #include "M5StackUpdater.h"
-      
+
   In your setup() function, find the following statements:
 
       M5.begin();
@@ -119,15 +119,15 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
 
 
 
- 
+
   Export the compiled binary ( on the Arduino IDE menu go to:  Sketch / Export Compiled Binary ).
-  
+
   (Optional) Rename the file to remove unnecessary additions to the name. The filename will be saved as "filename.ino.esp32.bin". Edit the name so it reads "filename.bin". This is purely for display purposes. The file will work without this change.
-  
+
   Use one of following methods to get the app on the M5Stack:
 
   - Manually copy it to the sd card
-  
+
   - Existing installations (menu.bin already copied and loaded on the M5Stack): clear the content of the [examples/M5Stack-SD-Menu/data](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/data) folder, copy the compiled binary there and use the [ESP32 Sketch Data Uploader](https://github.com/me-no-dev/arduino-esp32fs-plugin) utility (available from the Tools menu in the Arduino IDE).
 
 <br />
@@ -135,22 +135,22 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
 
 📚 USAGE:
 ---------
-When an app is loaded in memory, booting the M5Stack with the BTN_A pushed will flash back the menu.bin into memory. 
+When an app is loaded in memory, booting the M5Stack with the BTN_A pushed will flash back the menu.bin into memory.
 
-When the menu is loaded in memory, it will list all available apps on the sdcard and load them on demand. 
+When the menu is loaded in memory, it will list all available apps on the sdcard and load them on demand.
 
 Booting the M5Stack with the BTN_A pushed will power it off.
 
 The [ESP32 Sketch Data Uploader](https://github.com/me-no-dev/arduino-esp32fs-plugin) can be used to send .bin, jpg, json, mod and mp3 files onto the M5Stack. The menu.bin will take care of dumping them on the SD Card.
 
 Some artwork/credits can be added for every uploaded binary, the menu will scan for these file types:
-  
+
   - .bin compiled application binary
-    
+
   - .jpg image/icon (max 200x100)
-    
-  - .json file with dimensions descriptions: 
-  
+
+  - .json file with dimensions descriptions:
+
   `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://short.url","credits":"** http://very.very.long.url ~~"}`
 
 If no info is provided, it will be pulled from the app's repository public information.
@@ -207,7 +207,7 @@ Solution 2: in your library manager, downgrade the M5Stack-SD-Menu to an earlier
 Solution 3: upgrade your M5Stack core version to 0.1.8
 
 Compilation `#pragma` warnings/errors in the Arduino IDE can be solved by setting the debug level to `default` in the Arduino preferences window.
-See [#3](https://github.com/tobozo/M5Stack-SD-Updater/issues/3) 
+See [#3](https://github.com/tobozo/M5Stack-SD-Updater/issues/3)
 
 vMicro: currently can't compile at all, see [#5](https://github.com/tobozo/M5Stack-SD-Updater/issues/5). Looking for a solution that works with both vMicro and Arduino IDE.
 
@@ -219,14 +219,14 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 
 <br />
 
-#️⃣  REFERENCES: 
+#️⃣  REFERENCES:
 --------------
 <br />
 
 |              |                          |                                              |
 | ------------ |:------------------------ | :------------------------------------------- |
 | :clapper:   | Video demonstration      | https://youtu.be/myQfeYxyc3o                 |
-| :clapper:   | [Video demo of Pacman + sound](https://youtu.be/36fgNCecoEg) | [Source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP) | 
+| :clapper:   | [Video demo of Pacman + sound](https://youtu.be/36fgNCecoEg) | [Source](https://github.com/tobozo/M5Stack-Pacman-JoyPSP) |
 | :clapper:   | [Video demo of NyanCat](https://youtu.be/Zxh2mtWwfaE) |  [Source](https://github.com/tobozo/M5Stack-NyanCat)  |
 | 🎓        | [Macsbug's article on M5Stack SD-Updater](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) | [🇯🇵](https://macsbug.wordpress.com/2018/03/12/m5stack-sd-updater/) [🇬🇧](https://translate.google.com/translate?hl=en&sl=ja&tl=en&u=https%3A%2F%2Fmacsbug.wordpress.com%2F2018%2F03%2F12%2Fm5stack-sd-updater%2F) (google translate)|
 
@@ -247,4 +247,4 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 | 👍     | @PartsandCircuits   | PartsandCircuits | https://github.com/PartsandCircuits          |
 | 👍     | @lovyan03           | らびやん           | https://github.com/lovyan03                  |
 | 👍     | @matsumo            | Matsumo          | https://github.com/matsumo                   |
- 
+
