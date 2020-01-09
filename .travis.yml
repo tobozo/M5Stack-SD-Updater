@@ -29,10 +29,6 @@ before_install:
   # Check for files that don't end in a newline (https://stackoverflow.com/a/25686825)
   - find . -path './.git' -prune -or -type f -print0 | xargs -0 -L1 bash -c 'if test "$(grep --files-with-matches --binary-files=without-match --max-count=1 --regexp='.*' "$0")" && test "$(tail --bytes=1 "$0")"; then echo "No new line at end of $0."; false; fi'
 
-  # Check for typos
-  - pip install codespell
-  - codespell --skip="${TRAVIS_BUILD_DIR}/.git" --ignore-words="${TRAVIS_BUILD_DIR}/etc/codespell-ignore-words-list.txt" "${TRAVIS_BUILD_DIR}"
-
   - git clone https://github.com/per1234/arduino-ci-script.git "${HOME}/scripts/arduino-ci-script"
   - cd "${HOME}/scripts/arduino-ci-script"
   # Get new tags from the remote
