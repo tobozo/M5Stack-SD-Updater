@@ -1,4 +1,3 @@
-
 #include <M5Stack.h>
 #include <M5StackUpdater.h>
 
@@ -23,7 +22,7 @@ void setup() {
 
   const char* filename = "/spiffs.tmp";
 
-  M5.Lcd.setTextSize( 2 );  
+  M5.Lcd.setTextSize( 2 );
   M5.Lcd.println("SPIFFS FileReadWriteTest");
   M5.Lcd.println();
   SPIFFS.begin();

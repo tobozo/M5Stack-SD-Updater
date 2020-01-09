@@ -11,7 +11,7 @@
  * The macro is based on __TIME__ and __DATE__, which are assumed to be formatted "HH:MM:SS" and
  * "MMM DD YYYY", respectively. The actual value can be calculated by the C compiler at compile time
  * as all inputs are literals. MAKE SURE TO ENABLE OPTIMISATION!
- */ 
+ */
 
 
 #ifndef COMPILE_TIME_H_

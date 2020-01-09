@@ -39,7 +39,7 @@ if [ -f $outfile ]; then
     echo "Compiling Beta $inofile"
     arduino --preserve-temp-files --verbose-build --verify $inofile &>/dev/null
     find /tmp/arduino* -name \*.partitions.bin -exec rm {} \; #
-    find /tmp/arduino* -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; # 
+    find /tmp/arduino* -name \*.bin -exec mv {} $M5_SD_BUILD_DIR/BetaLauncher.bin \; #
     if [ -f $M5_SD_BUILD_DIR/BetaLauncher.bin ]; then
       # fine
       echo "SUCCESS: compiled BetaLauncher.bin from $inofile"

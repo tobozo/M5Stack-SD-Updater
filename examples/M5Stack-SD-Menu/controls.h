@@ -63,7 +63,7 @@ HIDSignal getControls() {
       JOY_Y_pressed = false;
     }
   }
-  
+
   if( M5.JOY_X.pressedFor( fastRepeatDelay ) ) {
     uint8_t leftright = M5.JOY_X.isAxisPressed();
     if( JOY_X_pressed == false || M5.JOY_X.pressedFor( beforeRepeatDelay ) ) {
@@ -86,10 +86,10 @@ HIDSignal getControls() {
   }
 
   bool a = M5.BtnMenu.wasPressed() || M5.BtnA.wasPressed(); // acts as "BntA" on M5Stack, leftmost button, alias of "(A)" gameboy button
-  bool b = M5.BtnSelect.wasPressed() || M5.BtnB.wasPressed(); // acts as "BntB" on M5Stack, middle button, alias of "(B)" gameboy button  
+  bool b = M5.BtnSelect.wasPressed() || M5.BtnB.wasPressed(); // acts as "BntB" on M5Stack, middle button, alias of "(B)" gameboy button
   bool c = M5.BtnStart.wasPressed(); // acts as "BntC" on M5Stack, rightmost button, no alias
   bool d = M5.BtnVolume.wasPressed();
-  
+
   if( d ) return HID_SCREENSHOT;
   if( b ) return HID_PAGE_DOWN;
   if( c ) return HID_DOWN;
@@ -110,7 +110,7 @@ HIDSignal getControls() {
 
 #endif
 
-  HIDSignal padValue = HID_INERT;
+  //HIDSignal padValue = HID_INERT;
 
   return HID_INERT;
 }

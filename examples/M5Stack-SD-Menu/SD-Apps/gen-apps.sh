@@ -198,6 +198,5 @@ done
 ls $M5_SD_BUILD_DIR/jpg -la;
 ls $M5_SD_BUILD_DIR/json -la;
 
-# egrep -R M5StackUpdater $SDAPP_FOLDER/* 
+# egrep -R M5StackUpdater $SDAPP_FOLDER/*
 # egrep -R updateFromFS $SDAPP_FOLDER/*
-

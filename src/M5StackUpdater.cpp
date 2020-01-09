@@ -233,7 +233,7 @@ void SDUpdater::tryRollback( String fileName ) {
   preferences.getBytes( "digest", image_digest, 32 );
   preferences.end();
   Serial.println( "Trying rollback" );
-  
+
   if( menuSize == 0 ) {
     Serial.println( "Failed to get expected menu size from NVS ram, can't check if rollback is worth a try..." );
     return;
@@ -242,12 +242,12 @@ void SDUpdater::tryRollback( String fileName ) {
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
   esp_image_metadata_t sketchMeta = getSketchMeta( update_partition );
   uint32_t nuSize = sketchMeta.image_len;
-  
+
   if( nuSize != menuSize ) {
     Serial.printf( "Cancelling rollback as flash sizes differ, update / current : %d / %d\n",  nuSize, menuSize );
     return;
   }
-  
+
   Serial.println( "Sizes match! Checking digest..." );
   bool match = true;
   for( uint8_t i=0; i<32; i++ ) {
@@ -285,7 +285,7 @@ void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
     Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] M5Stack Core version: %s\n", (char*)M5_LIB_VERSION );
   #endif
   Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
-  
+
   #ifdef _SPIFFS_H_
     //#pragma message ("SPIFFS Support detected")
     log_i(" Checking for SPIFFS Support");
@@ -454,17 +454,17 @@ void SDUpdater::copyFile( fs::File &sourceFile, String destName, fs::FS &destina
     log_i("destination path %s does not exist, will create", basepath.c_str() );
     makePathToFile( destName, destinationFS );
   }
-  
+
   File destFile = destinationFS.open( destName, FILE_WRITE );
   if( !destFile ){ // for some reason this test is useless
     log_e( "Unable to open destination file for writing : %s", destName ) ;
     return;
   } else {
     log_i("Attempting to copy %s to %s", sourceName.c_str(), destName.c_str() );
-    
+
     size_t bufferPos = 0;
     static uint8_t buf[BUFFER_SIZE];
-    
+
     while (1) {
       if (bufferPos + BUFFER_SIZE >= fileSize) {
         // finalize buffer
@@ -485,8 +485,8 @@ void SDUpdater::copyFile( fs::File &sourceFile, String destName, fs::FS &destina
       }
       delay(1);
     }
-    
-    
+
+
     destFile.close();
     log_i( "File copy done :-)" );
   }
@@ -505,7 +505,7 @@ void SDUpdater::copyDir( int direction ) {
       SPIFFS_MOUNTED = true;
     }
   }
-  
+
   switch( direction ) {
     case BACKUP_SD_TO_SPIFFS:
       SDAppDataDir = String(DATA_DIR) + "/" + String( SKETCH_NAME );
@@ -526,7 +526,7 @@ void SDUpdater::copyDir( const char * dirname, uint8_t levels, int direction ) {
     case BACKUP_SPIFFS_TO_SD:
       copyDir( SPIFFS, dirname, levels, direction );
     break;
-  }  
+  }
 }
 
 

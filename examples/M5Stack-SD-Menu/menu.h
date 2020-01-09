@@ -1,31 +1,31 @@
 /*
- * 
+ *
  * M5Stack SD Menu
  * Project Page: https://github.com/tobozo/M5Stack-SD-Updater
- * 
+ *
  * Copyright 2019 tobozo http://github.com/tobozo
  *
- * Permission is hereby granted, free of charge, to any person 
- * obtaining a copy of this software and associated documentation 
- * files ("M5Stack SD Updater"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sublicense, and/or 
- * sell copies of the Software, and to permit persons to whom the 
- * Software is furnished to do so, subject to the following 
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files ("M5Stack SD Updater"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
- * The above copyright notice and this permission notice shall be 
+ *
+ * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 
 #if defined(_CHIMERA_CORE_)
@@ -83,7 +83,7 @@
 #include "partition_manager.h"
 
 #define MAX_BRIGHTNESS 100
-const unsigned long MS_BEFORE_SLEEP = 600000; // 600000 = 10mn 
+const unsigned long MS_BEFORE_SLEEP = 600000; // 600000 = 10mn
 uint8_t brightness = MAX_BRIGHTNESS;
 
 uint16_t appsCount = 0; // how many binary files
@@ -119,7 +119,7 @@ void qrRender( String text, float sizeinpixels );
 
 void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
   if( scrollText=="" ) return;
-  tft.setTextSize( 2 ); // setup text size before it's measured  
+  tft.setTextSize( 2 ); // setup text size before it's measured
   if( !scrollText.endsWith( " " )) {
     scrollText += " "; // append a space since scrolling text *will* repeat
   }
@@ -133,7 +133,7 @@ void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
           vpos = 0,
           voffset = 0,
           scrollOffset = 0;
-  uint8_t csize = 0, 
+  uint8_t csize = 0,
           lastcsize = 0;
 
   scrollPointer-=1;
@@ -207,7 +207,7 @@ void renderMeta( JSONMeta &jsonMeta ) {
   tft.setCursor( 10, 70 );
   tft.print( String( fileInfo[MenuID].fileSize ) + String( FILESIZE_UNITS ) );
   tft.setCursor( 10, 50 );
-  
+
   if( jsonMeta.authorName!="" && jsonMeta.projectURL!="" ) { // both values provided
     tft.print( AUTHOR_PREFIX );
     tft.print( jsonMeta.authorName );
@@ -227,7 +227,7 @@ uint8_t getLowestQRVersionFromString( String text, uint8_t ecc ) {
   if(ecc>3) return 4; // fail fast
   uint16_t len = text.length();
   uint8_t QRMaxLenByECCLevel[4][3] = {
-    // https://www.qrcode.com/en/about/version.html  
+    // https://www.qrcode.com/en/about/version.html
     { 41, 77, 127 }, // L
     { 34, 63, 101 }, // M
     { 27, 48, 77 },  // Q
@@ -259,7 +259,7 @@ void qrRender( String text, float sizeinpixels ) {
   uint8_t yOffset =  ( tft.height() - ( lineLength ) ) / 2;
 
   tft.fillRect( xOffset-5, yOffset-5, lineLength+10, lineLength+10, WHITE );
-  
+
   for ( uint8_t y = 0; y < qrcode.size; y++ ) {
     // Each horizontal module
     for ( uint8_t x = 0; x < qrcode.size; x++ ) {
@@ -336,8 +336,8 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
 }
 
 
-/* 
- *  bubble sort filenames 
+/*
+ *  bubble sort filenames
  *  '32' is based on SD Card filename limitations
  */
 void aSortFiles( uint8_t depth_level=32 ) {
@@ -622,7 +622,7 @@ void UISetup() {
   M5Menu.listCaptionDatum = TR_DATUM; // initially TC_DATUM=top centered, TL_DATUM=top left (default), top/right/bottom/left
   M5Menu.listCaptionXPos = tft.width()-10; // initially M5.Lcd.width()/2, text cursor position-x for list caption
   M5Menu.listCaptionYPos = 42; // initially 45, text cursor position-x for list caption
-  
+
   Serial.println( WELCOME_MESSAGE );
   Serial.println( INIT_MESSAGE );
   Serial.printf( M5_SAM_MENU_SETTINGS, M5Menu.listPagination, M5SAM_LIST_MAX_COUNT);
@@ -682,7 +682,7 @@ void UISetup() {
     }
     tft.setTextDatum(TL_DATUM);
 
-    Serial.printf("Push duration : %d\n", pushDuration );
+    Serial.printf("Push duration : %d\n", (int)pushDuration );
     if( pushDuration > shortPush ) {
       // Short push at boot = cleanup /cert/ and /.registry/ folders
       cleanDir( SD_CERT_PATH );
@@ -767,7 +767,7 @@ void HIDMenuObserve() {
 
   if( hidState!=HID_INERT && brightness != MAX_BRIGHTNESS ) {
     // some activity occured, restore brightness
-    Serial.println(".. !!! Waking up !!"); 
+    Serial.println(".. !!! Waking up !!");
     brightness = MAX_BRIGHTNESS;
     tft.setBrightness( brightness );
   }

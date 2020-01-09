@@ -31,9 +31,9 @@ if [[ "$IDE_VERSION" != "" ]]; then
   mkdir -p $M5_SD_BUILD_DIR
 
 else
-  
+
   echo "NO IDE VERSION !!"
   sleep 5
-  exit 1  
+  exit 1
 
 fi

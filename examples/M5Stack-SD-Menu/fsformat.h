@@ -1,43 +1,43 @@
 /*
- * 
+ *
  * M5Stack SD Menu
  * Project Page: https://github.com/tobozo/M5Stack-SD-Updater
- * 
+ *
  * Copyright 2019 tobozo http://github.com/tobozo
  *
- * Permission is hereby granted, free of charge, to any person 
- * obtaining a copy of this software and associated documentation 
- * files ("M5Stack SD Updater"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sublicense, and/or 
- * sell copies of the Software, and to permit persons to whom the 
- * Software is furnished to do so, subject to the following 
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files ("M5Stack SD Updater"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
- * The above copyright notice and this permission notice shall be 
+ *
+ * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 
 
 extern SDUpdater sdUpdater; // used for menu progress
 
 
-/* 
- *  
- * /!\ When set to true, files with those extensions 
+/*
+ *
+ * /!\ When set to true, files with those extensions
  * will be transferred to the SD Card if found on SPIFFS.
  * Directory is automatically created.
- * 
+ *
  */
 bool migrateSPIFFS = false;
 
@@ -214,7 +214,7 @@ void getFileInfo( FileInfo &fileInfo, fs::FS &fs, File &file, const char* binext
 }
 
 
-/* 
+/*
  *  Scan SPIFFS for binaries and move them onto the SD Card
  *  TODO: create an app manager for the SD Card
  */
@@ -256,7 +256,7 @@ void scanDataFolder() {
         // move allowed file types to their own folders
         for( uint8_t i=0; i<extensionsCount; i++)  {
           String ext = "." + allowedExtensions[i];
-          if( fileName.endsWith( ext ) ) {  
+          if( fileName.endsWith( ext ) ) {
             destName = "/" + allowedExtensions[i] + fileName;
           }
         }
@@ -270,7 +270,7 @@ void scanDataFolder() {
             static uint8_t buf[512];
             size_t packets = 0;
             log_i( "%s%s", DEBUG_FILECOPY, fileName.c_str() );
-            
+
             while( file.read( buf, 512) ) {
               destFile.write( buf, 512 );
               packets++;
