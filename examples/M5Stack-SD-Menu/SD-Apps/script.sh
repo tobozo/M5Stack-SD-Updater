@@ -44,13 +44,3 @@ else
 
   source $SDAPP_FOLDER/gen-apps.sh
 fi
-
-
-
-
-
-
-
-
-
-

@@ -16,4 +16,3 @@ fi
 
 echo "Installing extra libraries"
 source $SDAPP_FOLDER/get-deps.sh
-
