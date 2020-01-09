@@ -11,8 +11,11 @@ env:
 
 before_install:
 
-  - rm -Rf examples/M5Stack-SD-Menu/SD-Apps/
-  - rm -Rf examples/M5Stack-SD-Menu/SD-Content/
+  # TODO: undo 
+  #- rm -Rf examples/M5Stack-SD-Menu/SD-Apps/
+  #- rm -Rf examples/M5Stack-SD-Menu/SD-Content/
+  # remove submodules, we don't want those to be actually tested for compliance
+  - git submodule status | rm -Rf `cut -d ' ' -f 3`
 
   - git clone https://github.com/per1234/arduino-ci-script.git "${HOME}/scripts/arduino-ci-script"
   - cd "${HOME}/scripts/arduino-ci-script"
