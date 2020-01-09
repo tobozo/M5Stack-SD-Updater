@@ -1,31 +1,31 @@
 /*
- * 
+ *
  * M5Stack SD Menu
  * Project Page: https://github.com/tobozo/M5Stack-SD-Updater
- * 
+ *
  * Copyright 2019 tobozo http://github.com/tobozo
  *
- * Permission is hereby granted, free of charge, to any person 
- * obtaining a copy of this software and associated documentation 
- * files ("M5Stack SD Updater"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sublicense, and/or 
- * sell copies of the Software, and to permit persons to whom the 
- * Software is furnished to do so, subject to the following 
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files ("M5Stack SD Updater"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
- * The above copyright notice and this permission notice shall be 
+ *
+ * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 
 #define MBEDTLS_ERROR_C
@@ -146,9 +146,9 @@ URLParts parseURL( const char* url ) {
 
 
 String heapState() {
-  log_i("\nRAM SIZE:\t%.2f KB\nFREE RAM:\t%.2f KB\nMAX ALLOC:\t%.2f KB", 
-    ESP.getHeapSize() / 1024.0, 
-    ESP.getFreeHeap() / 1024.0, 
+  log_i("\nRAM SIZE:\t%.2f KB\nFREE RAM:\t%.2f KB\nMAX ALLOC:\t%.2f KB",
+    ESP.getHeapSize() / 1024.0,
+    ESP.getFreeHeap() / 1024.0,
     ESP.getMaxAllocHeap() / 1024.0
   );
   return "";
@@ -195,7 +195,7 @@ void registrySave( AppRegistry registry, String appRegistryLocalFile = "" ) {
   unstableChannelJson["cert_path"]    = registry.unstableChannel.api_cert_path;
   unstableChannelJson["updater_path"] = registry.unstableChannel.updater_path;
   unstableChannelJson["endpoint"]     = registry.unstableChannel.catalog_endpoint;
-  
+
   jsonRegistryBuffer["name"]                 = registry.name;
   jsonRegistryBuffer["description"]          = registry.description;
   jsonRegistryBuffer["url"]                  = registry.url;
@@ -223,7 +223,7 @@ void registryFetch( AppRegistry registry, String appRegistryLocalFile = "" ) {
   URLParts urlParts = parseURL( registry.url );
 
   init_tls_or_die( urlParts.host );
-  
+
   if( appRegistryLocalFile == "" ) {
     appRegistryLocalFile = appRegistryFolder + "/" + appRegistryDefaultName;
   } else {
@@ -258,7 +258,7 @@ AppRegistry registryInit( String appRegistryLocalFile = "" ) {
     appRegistryLocalFile = appRegistryFolder + "/" + appRegistryDefaultName;
   }
   log_i("Opening channel file: %s", appRegistryLocalFile.c_str());
-  
+
   if( !M5_FS.exists( appRegistryLocalFile ) ) {
     // create file
     log_i("Registry file %s does not exist, creating from firmware defaults", appRegistryLocalFile.c_str() );
@@ -376,7 +376,7 @@ int modalConfirm( const char* modalName, const char* question, const char* title
   tft.drawCentreString( title, 160, 50, 1 );
   tft.setCursor( 0, 72 );
   tft.print( body );
-  
+
   tft.drawJpg(caution_jpg, caution_jpg_len, 224, 136, 64, 46 );
   HIDSignal hidState = HID_INERT;
 
@@ -424,25 +424,25 @@ void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float siz
       barColors[2] = GREEN;
       barColors[3] = GREEN;
     break;
-    case 4:  
+    case 4:
       barColors[0] = GREEN;
       barColors[1] = GREEN;
       barColors[2] = GREEN;
     break;
-    case 3:  
+    case 3:
       barColors[0] = YELLOW;
       barColors[1] = YELLOW;
       barColors[2] = YELLOW;
     break;
-    case 2:  
+    case 2:
       barColors[0] = YELLOW;
       barColors[1] = YELLOW;
     break;
-    case 1:  
+    case 1:
       barColors[0] = RED;
     break;
     default:
-    case 0:  
+    case 0:
       barColors[0] = RED; // want: RAINBOW
     break;
   }
@@ -518,7 +518,7 @@ void cleanDir( const char* dir) {
     M5_FS.remove( file.name() );
     file = root.openNextFile();
   }
-  
+
   //drawAppMenu();
 }
 
@@ -707,7 +707,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
   } else {
     log_d( "[%s:INFO] Synconnect to %s [%d]", sender, urlParts.url.c_str(), ESP.getFreeHeap() );
   }
-  
+
   http.setConnectTimeout( 10000 ); // 10s timeout = 10000
   if( urlParts.protocol == "https" ) {
     log_d( "[%s:INFO] Synconnect protocol is %s [%d]", sender, urlParts.protocol.c_str(), ESP.getFreeHeap() );
@@ -914,12 +914,12 @@ bool getApp( String appURL ) {
   }
 
   renderDownloadIcon( M5MENU_GREY );
-  
+
   DynamicJsonDocument jsonAppBuffer( 4096 );
   DeserializationError error = deserializeJson(jsonAppBuffer, http.getString() );
 
   getAppRouter.dismiss( client, false );
-  
+
   if (error) {
     downloadererrors++;
     jsonerrors++;
@@ -1055,7 +1055,7 @@ bool syncAppRegistry( String BASE_URL ) {
   DeserializationError error = deserializeJson(jsonAppBuffer, http.getString());
 
   syncAppRouter.dismiss( client, false );
-  
+
   if (error) {
     downloadererrors++;
     log_e("\n%s\n", "JSON Parsing failed!");

@@ -4,7 +4,7 @@ M5SAM::M5SAM()
 //  : menuList(NULL),
 //    menuIDX(0),
 //    subMenuIDX(0),
-//    menuCount(0)  
+//    menuCount(0)
 {
 
   _keyboardIRQRcvd = LOW;
@@ -42,7 +42,7 @@ void M5SAM::addList(String inStr){
   if(list_count>0){
     if(list_count > listPagination){
       list_lastpagelines = list_count % listPagination;
-      if(list_lastpagelines>0){
+      if(list_lastpagelines>0) {
         list_pages = (list_count - list_lastpagelines) / listPagination;
         list_pages++;
       }else{
@@ -111,13 +111,13 @@ void M5SAM::showList(){
           for(byte i = 0;i<list_lastpagelines;i++){
             labelid = i+(list_page*listPagination);
             drawListItem(labelid,i);
-          }            
+          }
         }else{
           list_lines = list_count;
           for(byte i = 0;i<list_count;i++){
             labelid = i+(list_page*listPagination);
             drawListItem(labelid,i);
-          }                          
+          }
         }
       }
     }else{
@@ -125,8 +125,8 @@ void M5SAM::showList(){
         for(byte i = 0;i<listPagination;i++){
             labelid = i+(list_page*listPagination);
             drawListItem(labelid,i);
-        }          
-    }  
+        }
+    }
 }
 
 void M5SAM::up(){
@@ -171,7 +171,7 @@ void M5SAM::addMenuItem(byte levelID, const char *menu_title,const char *btnA_ti
 }
 
 void M5SAM::show(){
-  drawMenu(menuList[levelIDX][menuIDX].title, menuList[levelIDX][menuIDX].btnAtitle, menuList[levelIDX][menuIDX].btnBtitle, menuList[levelIDX][menuIDX].btnCtitle, menucolor, windowcolor, menutextcolor);  
+  drawMenu(menuList[levelIDX][menuIDX].title, menuList[levelIDX][menuIDX].btnAtitle, menuList[levelIDX][menuIDX].btnBtitle, menuList[levelIDX][menuIDX].btnCtitle, menucolor, windowcolor, menutextcolor);
 }
 
 void M5SAM::windowClr(){
@@ -193,7 +193,7 @@ void M5SAM::drawAppMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, St
 void M5SAM::setColorSchema(unsigned int inmenucolor, unsigned int inwindowcolor, unsigned int intextcolor){
   menucolor = inmenucolor;
   windowcolor = inwindowcolor;
-  menutextcolor = intextcolor;  
+  menutextcolor = intextcolor;
 }
 
 String M5SAM::keyboardGetString(){
@@ -209,7 +209,7 @@ String M5SAM::keyboardGetString(){
       }else if(_keyboardChar == 0x0D){
         tmp_klock = LOW;
       }else{
-        tmp_str = tmp_str + char(_keyboardChar);      
+        tmp_str = tmp_str + char(_keyboardChar);
       }
       M5.Lcd.fillRoundRect(0,M5.Lcd.height()-28,M5.Lcd.width(),28,3,windowcolor);
       M5.Lcd.drawString(">"+tmp_str,5,M5.Lcd.height()-28+6,2);
@@ -229,7 +229,7 @@ void M5SAM::keyboardEnable(){
   while(!digitalRead(5)){
     Wire.requestFrom(0x08,1,true);
     Wire.read();
-  } 
+  }
 }
 
 void M5SAM::keyboardDisable(){
@@ -300,9 +300,9 @@ void M5SAM::drawMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, Strin
   for( byte i=0; i<BUTTONS_COUNT; i++ ) {
     M5.Lcd.fillRoundRect(buttonsXOffset[i],M5.Lcd.height()-BUTTON_HEIGHT,BUTTON_WIDTH,BUTTON_HEIGHT,3,inmenucolor);
   }
-  M5.Lcd.fillRoundRect(0,0,M5.Lcd.width(),BUTTON_HEIGHT,3,inmenucolor);  
-  M5.Lcd.fillRoundRect(0,32,M5.Lcd.width(),M5.Lcd.height()-32-32,3,inwindowcolor);  
-    
+  M5.Lcd.fillRoundRect(0,0,M5.Lcd.width(),BUTTON_HEIGHT,3,inmenucolor);
+  M5.Lcd.fillRoundRect(0,32,M5.Lcd.width(),M5.Lcd.height()-32-32,3,inwindowcolor);
+
   M5.Lcd.setTextColor(intxtcolor);
   M5.Lcd.drawCentreString(inmenuttl,M5.Lcd.width()/2,6,2);
   for( byte i=0; i<BUTTONS_COUNT; i++ ) {

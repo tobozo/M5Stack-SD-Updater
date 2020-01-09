@@ -64,7 +64,7 @@ class M5SAM {
     uint8_t listCaptionDatum = TC_DATUM; // initially TC_DATUM=top centered, TL_DATUM=top left (default), top/right/bottom/left
     uint16_t listCaptionXPos = 160; // initially M5.Lcd.width()/2, text cursor position-x for list caption
     uint16_t listCaptionYPos = 45; // initially 45, text cursor position-x for list caption
-           
+
   private:
     String listCaption;
     void drawListItem(byte inIDX, byte postIDX);
@@ -82,7 +82,7 @@ class M5SAM {
       char btnAtitle[M5SAM_BTN_TITLE_MAX_SIZE + 1];
       char btnBtitle[M5SAM_BTN_TITLE_MAX_SIZE + 1];
       char btnCtitle[M5SAM_BTN_TITLE_MAX_SIZE + 1];
-      signed char gotoLevel; 
+      signed char gotoLevel;
       void (*function)();
     };
     String list_labels[M5SAM_LIST_MAX_COUNT];
@@ -92,7 +92,7 @@ class M5SAM {
     byte list_page;
     byte list_idx;
     byte list_lines;
-    
+
     MenuCommandCallback *menuList[M5SAM_MAX_SUBMENUS];
     byte menuIDX;
     byte levelIDX;
