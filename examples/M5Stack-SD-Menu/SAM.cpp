@@ -311,4 +311,3 @@ void M5SAM::drawMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, Strin
     }
   }
 }
-

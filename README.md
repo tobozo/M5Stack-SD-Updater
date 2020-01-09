@@ -247,4 +247,3 @@ Not defined yet, but looking at how fast this [library landed in platform.io](ht
 | 👍     | @PartsandCircuits   | PartsandCircuits | https://github.com/PartsandCircuits          |
 | 👍     | @lovyan03           | らびやん           | https://github.com/lovyan03                  |
 | 👍     | @matsumo            | Matsumo          | https://github.com/matsumo                   |
-
