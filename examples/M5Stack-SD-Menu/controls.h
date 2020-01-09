@@ -110,7 +110,7 @@ HIDSignal getControls() {
 
 #endif
 
-  HIDSignal padValue = HID_INERT;
+  //HIDSignal padValue = HID_INERT;
 
   return HID_INERT;
 }

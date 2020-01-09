@@ -369,7 +369,6 @@ AppRegistry registryInit( String appRegistryLocalFile = "" ) {
 
 
 int modalConfirm( const char* modalName, const char* question, const char* title, const char* body, const char* labelA=MENU_BTN_YES, const char* labelB=MENU_BTN_NO, const char* labelC=MENU_BTN_CANCEL ) {
-  bool response = false;
   tft.clear();
   M5Menu.drawAppMenu( question, labelA, labelB, labelC);
   tft.setTextSize( 1 );
@@ -677,7 +676,7 @@ const char* getWalletCert( String host ) {
 
 
 const char* fetchCert( String host, bool checkWallet = true, bool checkFS = true ) {
-  const char* nullcert = NULL;
+  //const char* nullcert = NULL;
   if( checkWallet ) {
     const char* walletCert = getWalletCert( host );
     if( walletCert != NULL ) {
@@ -762,7 +761,7 @@ bool wget( const char* bin_url, const char* outputFile ) {
   Serial.printf("#> wget %s --output-document=%s ", bin_url, outputFile );
   renderDownloadIcon( GREEN );
   WiFiClientSecure *client = new WiFiClientSecure;
-  int httpCode;
+  //int httpCode;
 
   HTTPRouter wgetRouter;
   URLParts urlParts = parseURL( bin_url );
@@ -950,9 +949,9 @@ bool getApp( String appURL ) {
     // TODO: properly verify/sanitize this + error handling
     filePath            = root["apps"][0]["json_meta"]["assets"][i]["path"].as<String>();
     fileName            = root["apps"][0]["json_meta"]["assets"][i]["name"].as<String>();
-    uint32_t remoteTime = root["apps"][0]["json_meta"]["assets"][i]["created_at"].as<uint32_t>();
+    //uint32_t remoteTime = root["apps"][0]["json_meta"]["assets"][i]["created_at"].as<uint32_t>();
     sha_sum             = root["apps"][0]["json_meta"]["assets"][i]["sha256_sum"].as<String>();
-    size_t appSize      = root["apps"][0]["json_meta"]["assets"][i]["size"].as<size_t>();
+    //size_t appSize      = root["apps"][0]["json_meta"]["assets"][i]["size"].as<size_t>();
     finalName = filePath + fileName;
     tempFileName = finalName + String(".tmp");
     tft.setCursor(10, 54+i*10);

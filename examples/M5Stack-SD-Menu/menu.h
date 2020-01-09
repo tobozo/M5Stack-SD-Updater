@@ -682,7 +682,7 @@ void UISetup() {
     }
     tft.setTextDatum(TL_DATUM);
 
-    Serial.printf("Push duration : %d\n", pushDuration );
+    Serial.printf("Push duration : %d\n", (int)pushDuration );
     if( pushDuration > shortPush ) {
       // Short push at boot = cleanup /cert/ and /.registry/ folders
       cleanDir( SD_CERT_PATH );
