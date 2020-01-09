@@ -2,7 +2,7 @@
 
 
 cd $PWD
-  
+
 #if ! [[ $TRAVIS_TAG ]]; then
 #  git config --global user.email "travis@travis-ci.org"
 #  git config --global user.name "Travis CI"
@@ -13,7 +13,7 @@ cd $PWD
 pwd
 
 cd $TRAVIS_BUILD_DIR
-export git_version_last="$(git describe --abbrev=0 --tags --always)" 
+export git_version_last="$(git describe --abbrev=0 --tags --always)"
 export git_version_next="v$(echo $git_version_last | awk -F . '{ printf "%d.%d.%d", $1,$2,$3 + 1}')"
 #cd ..
 echo $TRAVIS_BRANCH | grep "unstable" && export prerelease=true || export prerelease=false
@@ -42,7 +42,7 @@ else
   exit 1
 fi
 
-cd $M5_SD_BUILD_DIR 
+cd $M5_SD_BUILD_DIR
 zip -r $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP ./
 if [ -f $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP ]; then
   echo "Successfully created $TRAVIS_BUILD_DIR/$ARCHIVE_ZIP :-)";

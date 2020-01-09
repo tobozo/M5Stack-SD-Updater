@@ -3,7 +3,7 @@
 function movebin {
  find /tmp -name \*.partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
  #find /tmp -name \*.ino.elf -exec rename 's/.ino.elf/.ino.bin/' {} \; # sometimes arduino produces ELF, sometimes it's BIN
- find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; # 
+ find /tmp -name \*.ino.bin -exec rename 's/.ino.bin/.bin/' {} \; #
  find /tmp -name \*.bin -exec rename 's/(_for)?(_|-)?(m5)_?(stack)?(-|_)?//ig' {} \; #
  export DIRTY_BIN_FILE=`basename $( find /tmp -name \*.bin )`
  export BIN_FILE="${DIRTY_BIN_FILE^}"
