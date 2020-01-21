@@ -105,5 +105,3 @@ if( !preg_match("/200/", $http_response_header[0]) ) {
   echo json_encode([ 'headers' => $http_response_header, 'response_body' => $response ]);
   exit(0);
 }
-
-

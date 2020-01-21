@@ -275,12 +275,12 @@ function get_remote_app {
   sourceFilesResp=`echo "$jsonCode" | jq -r .repo.source.ino`
   expectedOutFileName=`echo "$jsonCode" | jq -r .repo.source.bin_name`
   SDCardAppNameSpace=`echo "$jsonCode" | jq -r .repo.source.sd_namespace`
-  
+
   platform=`echo "$jsonCode" | jq -r .repo.source.platform`
   pre_hook=`echo "$jsonCode" | jq -r '.repo.source | .["pre-hook"]'`
   post_hook=`echo "$jsonCode" | jq -r '.repo.source | .["post-hook"]'`
   app_name=`echo "$jsonCode" | jq -r .repo.name`
-  
+
   # collect bundle types
   for row in $(echo "${jsonCode}" | jq -r .repo.type[]); do
     echo "Found available bundle format: ${row}"
@@ -414,9 +414,9 @@ function get_remote_app {
 
   zip -r $zipFileName ./*
   rm $M5_SD_BUILD_DIR/*.bin
-  
+
   if [[ "$needs_firmware" != "0" ]]; then
-  
+
     case $APP_BOARD in
       m5stack)
         echo "[INFO] Project needs M5Burner zip file too"
@@ -439,13 +439,13 @@ function get_remote_app {
           exit 1
         fi
         cd $M5_BURNER_DIR
-        
+
         # git clone https://github.com/othercrashoverride/odroid-go-firmware.git -b factory
         # cd odroid-go-firmware/tools/mkfw
         # make
         # chmod +x mkfw
-        
-       
+
+
         # git clone https://github.com/lstux/OdroidGO/
         # chmod +x OdroidGO/ino2fw/mkfw-build.sh OdroidGO/ino2fw/ino2fw.sh
         $WORK_SPACE/tools/mkfw-build.sh
@@ -458,12 +458,12 @@ function get_remote_app {
         # cp $M5_SD_BUILD_DIR/$expectedOutFileName firmware.bin
         echo "[INFO] sending command: $WORK_SPACE/tools/ino2fw.sh -t $IMGFILE -l $SDCardAppNameSpace -d \"${repo_desc}\" $M5_BURNER_DIR/$expectedOutFileName"
         $WORK_SPACE/tools/ino2fw.sh -t $IMGFILE -l $SDCardAppNameSpace -d "${repo_desc}" $M5_BURNER_DIR/$expectedOutFileName
-        
+
         pwd
         ls -la
 
         cd $M5_BURNER_DIR
-        # cp $M5_BURNER_DIR/$expectedOutFileName 
+        # cp $M5_BURNER_DIR/$expectedOutFileName
         echo "$M5_BURNER_DIR :"
         ls $M5_BURNER_DIR -la
 
@@ -472,7 +472,7 @@ function get_remote_app {
         cp $zipFileName $M5_SD_BUILD_DIR/
 
         #ls -la
-        
+
         #cp $zipFileName $M5_SD_BUILD_DIR/
         #    ino2fw.sh [options] {sketch_dir|sketch_file.ino}
         #      Create a .fw file for Odroid-Go from arduino sketch
@@ -483,8 +483,8 @@ function get_remote_app {
         #      -d description : set application description
         #      -v             : increase verbosity level
         #      -h             : display help message
-        
-        
+
+
 
         #ffmpeg -i $IMGFILE -f rawvideo -pix_fmt rgb565 tile.raw
         #cp $M5_SD_BUILD_DIR/$expectedOutFileName firmware.bin
@@ -492,7 +492,7 @@ function get_remote_app {
         #filesize=$(stat -c%s "$M5_BURNER_DIR/$expectedOutFileName")
         #blocks=$(($filesize/64))
         #normsize=$(((1+$blocks)*64))
-        #echo "[INFO] will mkfw '$expectedOutFileName' with hardkernel's tool"        
+        #echo "[INFO] will mkfw '$expectedOutFileName' with hardkernel's tool"
         #echo "[TODO] ./mkfw ${SDCardAppNameSpace} tile.raw 0 16 $normsize ${SDCardAppNameSpace} $M5_BURNER_DIR/$expectedOutFileName"
         ## ./mkfw test tile.raw 0 16 1048576 app $expectedOutFileName
         #dbg "./mkfw ${SDCardAppNameSpace} tile.raw 0 16 $normsize ${SDCardAppNameSpace} $expectedOutFileName"
@@ -502,7 +502,7 @@ function get_remote_app {
         #zip -r $zipFileName $expectedOutFileName
         #cp $zipFileName $M5_SD_BUILD_DIR/
         echo "[INFO] OdroidFW zip file created: $zipFileName"
- 
+
       ;;
       *)
         echo "[ERROR] bad APP_BOARD value: $APP_BOARD"
@@ -511,7 +511,7 @@ function get_remote_app {
     esac
 
   fi
-  
+
   cd $M5_SD_BUILD_DIR
 
 }
@@ -612,9 +612,9 @@ function install_arduino {
     mv $platform ~/arduino-ide
     rm $platform-linux64.tar.xz
     # export PATH=$PATH:~/arduino-ide
-    
+
     releaseAddr=`sed "s/\/tag\//\/download\//g"<<<$(curl -s -D - https://github.com/espressif/arduino-esp32/releases/latest/ -o /dev/null | grep  -oP 'Location: \K.*(?=\r)')/package_esp32_index.json`
-    
+
     echo "[OK] Successfully unpacked $platform-linux64.tar.xz and added ~/arduino-ide to PATH"
     arduino --pref "compiler.warning_level=none" --save-prefs   &>/dev/null
     arduino --pref "build.warn_data_percentage=75" --save-prefs   &>/dev/null
@@ -703,9 +703,9 @@ function newmovebin {
     binpath=$1
   fi
   echo "[INFO] Searching $binpath"
-  
+
   if [[ "$needs_firmware" != "0" ]]; then  # if [[ "$M5_BURNER_DIR" != "" ]]; then
-  
+
     case $APP_BOARD in
       m5stack)
         echo "[INFO] Building M5Burner firmware package"
@@ -718,7 +718,7 @@ function newmovebin {
       odroid)
         echo "[INFO] Building Odroid-Go FW package"
         find $binpath -name \*.bin -exec cp {} $M5_BURNER_DIR/$expectedOutFileName \; #<-- you need that backslash before and space after the semicolon
-        # TODO: 
+        # TODO:
         # git clone https://github.com/othercrashoverride/odroid-go-firmware.git -b factory
         # cd odroid-go-firmware/tools/mkfw
         # make
@@ -728,8 +728,8 @@ function newmovebin {
         exit 1
       ;;
     esac
- 
-  else 
+
+  else
     find $binpath -name \*partitions.bin -exec rm {} \; #<-- you need that backslash before and space after the semicolon
   fi
 
@@ -838,7 +838,7 @@ function newpopulatemeta {
     convert temp -resize 120x120 -type TrueColor $AVATARFILE
     identify $AVATARFILE
     rm temp
-   
+
   fi
   if [ ! -f $IMGFILE ]; then
     mkdir -p $M5_SD_BUILD_DIR/jpg
@@ -897,4 +897,3 @@ function populatemeta {
   fi
   echo "***** Populating successful"
 }
-

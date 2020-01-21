@@ -104,7 +104,7 @@ readarray -t msgArray <<<"$relNotesRaw"
 arrLen=${#msgArray[@]}
 
 #process annotated tags only
-if [ $arrLen > 3 ] && [ "${msgArray[0]:0:3}" == "tag" ]; then 
+if [ $arrLen > 3 ] && [ "${msgArray[0]:0:3}" == "tag" ]; then
   ind=3
   while [ $ind -lt $arrLen ]; do
     if [ $ind -eq 3 ]; then
@@ -151,7 +151,7 @@ if [ -s "$commitFile" ]; then
   rm -f $commitFile
 fi
 
-# Check possibly existing release for current tag 
+# Check possibly existing release for current tag
 echo
 echo "Processing GitHub release record for $varTagName:"
 echo "-------------------------------------------------"
@@ -219,7 +219,7 @@ else
 
   #echo "DEBUG: curl --data \"${curlData}\" https://api.github.com/repos/${varRepoSlug}/releases?access_token=$varAccessToken | jq -r '.id'"
   releaseId=$(curl --data "$curlData" https://api.github.com/repos/$varRepoSlug/releases?access_token=$varAccessToken | jq -r '.id')
-  if [ $? -ne 0 ]; then echo "FAILED: $? => aborting"; exit 1; fi  
+  if [ $? -ne 0 ]; then echo "FAILED: $? => aborting"; exit 1; fi
 
   echo " - $varTagName release record successfully created (id $releaseId)"
 fi
@@ -276,14 +276,14 @@ if [ ! -z $varAssets ]; then
     echo " - ${filename}:"
     base_name=$(basename $filename)
     json_action="binary-added"
-    
-    if [[ `echo $base_name | grep M5Burner` != '' ]]; then 
+
+    if [[ `echo $base_name | grep M5Burner` != '' ]]; then
       json_action="firmware-added"
     fi
-    if [[ `echo $base_name | grep OdroidFW` != '' ]]; then 
+    if [[ `echo $base_name | grep OdroidFW` != '' ]]; then
       json_action="firmware-added"
     fi
-    
+
     gen_json_hook /tmp/payload.json
     jsonCode=`cat /tmp/payload.json`
     rm /tmp/payload.json
@@ -299,4 +299,3 @@ if [ ! -z $varAssets ]; then
 
   done
 fi
-
