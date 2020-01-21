@@ -2,6 +2,15 @@
 
 /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16
 sleep 3
+
+echo "[DEBUG] WORK_DIR=$WORK_DIR"
+echo "[DEBUG] WORK_SPACE=$WORK_SPACE"
+echo "[DEBUG] repo_branch=$REPO_BRANCH"
+echo "[DEBUG] M5_SD_BUILD_DIR=$M5_SD_BUILD_DIR"
+echo "[DEBUG] M5_BURNER_DIR=$M5_BURNER_DIR"
+echo "[DEBUG] APPLICATION_FOLDER=$APPLICATION_FOLDER"
+echo "[DEBUG] SKETCHBOOK_FOLDER=$SKETCHBOOK_FOLDER"
+
 export DISPLAY=:1.0
 export PATH=$PATH:~/arduino-ide
 export logDir=$WORK_DIR/artifacts
