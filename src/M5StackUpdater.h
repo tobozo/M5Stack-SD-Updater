@@ -120,7 +120,11 @@ extern "C" {
 #endif
 
 #ifdef USE_DISPLAY
-  #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
+  #if defined( ARDUINO_M5Stick_C )
+    #include <M5StickC.h> // load {M5StickC}-core
+  #else
+    #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
+  #endif
 #endif
 
 
@@ -178,7 +182,7 @@ class SDUpdater {
 };
 
 /* don't break older versions of the M5Stack SD Updater */
-static void updateFromFS( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
+__attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
   SDUpdater sdUpdater;
   sdUpdater.updateFromFS( fs, fileName );
 }
