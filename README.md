@@ -29,8 +29,8 @@
 
 <br />
 
-🏭 PREREQUISITES:
------------------
+🏭 M5Stack-SD-Menu EXAMPLE SKETCH PREREQUISITES:
+------------------------------------------------
 <br />
 
 **Micro SD Card (TF Card)** - formatted using FAT32. Max size 32 Gb.
@@ -44,24 +44,13 @@
 - M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
 
 - ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
-- M5StackSAM: [https://github.com/tobozo/M5StackSAM/](https://github.com/tobozo/M5StackSAM/) (modified version until patch is merged)
-
-<br />
-
-**If your version of [M5Stack is (0.1.7)](https://github.com/m5stack/M5Stack/releases/tag/0.1.7) or major you are set and can move on.**
-
-<br />
-
-**If your version of M5Stack is 0.1.6 or minor, you need to install this additional library:**
-
-- QRCode: [https://github.com/ricmoo/qrcode](https://github.com/ricmoo/qrcode) available in the Arduino Library Manager
-
+- ~~M5StackSAM: [https://github.com/tobozo/M5StackSAM/](https://github.com/tobozo/M5StackSAM/) (modified version until patch is merged)~~ (custom version now bundled with the launcher)
 
 <br />
 
 
-🍱 UNPACKING
-------------
+🍱 UNPACKING THE BINARIES
+-------------------------
 
 For your own lazyness, you can use @micutil's awesome [M5Burner](https://github.com/micutil/M5Burner_Mic) and skip the next steps.
 
@@ -168,6 +157,7 @@ If no info is provided, it will be pulled from the app's repository public infor
 🚫 LIMITATIONS:
 ---------------
 - SD Library limits file names (including path) to 32 chars, M5StackSAM has a slightly higher limit.
+- Short file names may be treated as 8.3 (e.g 2048.bin becomes 2048.BIN).
 - FAT specifications prevent having more than 512 files on the SD Card, but this menu is limited to 256 Items anyway.
 - Long file names will eventually get covered by the jpg image, better stay under 8 chars (not including the extension).
 
