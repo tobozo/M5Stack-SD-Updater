@@ -29,6 +29,7 @@ before_install:
   # Check for files that don't end in a newline (https://stackoverflow.com/a/25686825)
   - find . -path './.git' -prune -or -type f -print0 | xargs -0 -L1 bash -c 'if test "$(grep --files-with-matches --binary-files=without-match --max-count=1 --regexp='.*' "$0")" && test "$(tail --bytes=1 "$0")"; then echo "No new line at end of $0."; false; fi'
 
+  - git submodule update --init examples/m5stickc_tiny_menu/
   - git clone https://github.com/per1234/arduino-ci-script.git "${HOME}/scripts/arduino-ci-script"
   - cd "${HOME}/scripts/arduino-ci-script"
   # Get new tags from the remote
@@ -51,6 +52,7 @@ before_install:
   # Install the library from the repository
   - install_library
   - install_library "M5Stack"
+  - install_library "M5StickC"
   - install_library 'https://github.com/bblanchon/ArduinoJson.git' # "ArduinoJSON"
 
   - ls ${TRAVIS_BUILD_DIR} -la
@@ -70,7 +72,9 @@ script:
   # Compile all example sketches included with the library
   # build_sketch arguments: sketch name, fqbn, allow failure, IDE version/list/range
   - check_library_manager_compliance "$TRAVIS_BUILD_DIR"
+  - set_ide_preference "compiler.warning_level=auto"
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/M5Stack-SD-Menu.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/m5stickc_tiny_menu/m5stickc_tiny_menu.ino" "esp32:esp32:m5stick-c" "false" "newest"
 
 after_script:
   # Commit a report of the job results to the CI-reports repository

@@ -119,12 +119,6 @@ SDUpdater::SDUpdater( const String SPIFFS2SDFolder ) {
     }
     //Serial.printf("percent = %d\n", percent); // this is spammy
     SD_UI_Progress = percent;
-    uint16_t x      = tft.getCursorX();
-    uint16_t y      = tft.getCursorY();
-    int textfont    = tft.textfont;
-    int textsize    = tft.textsize;
-    int textcolor   = tft.textcolor;
-    int textbgcolor = tft.textbgcolor;
     if ( percent >= 0 && percent < 101 ) {
       tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, percent, 18, TFT_GREEN );
       tft.fillRect( PROGRESS_WIDTH+1+percent, PROGRESS_HEIGHT+1, 100-percent, 18, TFT_BLACK );
@@ -133,18 +127,8 @@ SDUpdater::SDUpdater( const String SPIFFS2SDFolder ) {
       tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, 100, 18, TFT_BLACK );
       Serial.println();
     }
-    String percentStr = String( percent ) + "% ";
-    tft.setTextFont( 0 ); // Select font 0 which is the Adafruit font
-    tft.setTextSize( 1 ); // smallish size but some filenames are very long
-    tft.setTextColor( TFT_WHITE, TFT_BLACK );
-    int16_t xpos = ( tft.width() / 2 ) - ( tft.textWidth( percentStr ) / 2 );
-    if ( xpos < 0 ) xpos = 0 ;
-    tft.setCursor( xpos, PERCENT_POS_Y );
-    tft.print( percentStr ); // trailing space is important
-    tft.setCursor( x, y );
-    tft.setTextFont( textfont ); // Select font 0 which is the Adafruit font
-    tft.setTextSize( textsize );
-    tft.setTextColor( textcolor, textbgcolor );
+    String percentStr = " " + String( percent ) + "% ";
+    tft.drawCentreString( percentStr , tft.width() >> 1, PERCENT_POS_Y, 0); // trailing space is important
   }
 #else
   void SDUpdater::displayUpdateUI( String label ) {
