@@ -52,6 +52,7 @@ before_install:
   # Install the library from the repository
   - install_library
   - install_library "M5Stack"
+  - install_library "M5StickC"
   - install_library 'https://github.com/bblanchon/ArduinoJson.git' # "ArduinoJSON"
 
   - ls ${TRAVIS_BUILD_DIR} -la
