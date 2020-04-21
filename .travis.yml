@@ -72,7 +72,7 @@ script:
   # build_sketch arguments: sketch name, fqbn, allow failure, IDE version/list/range
   - check_library_manager_compliance "$TRAVIS_BUILD_DIR"
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/M5Stack-SD-Menu.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "newest"
-  - build_sketch "${TRAVIS_BUILD_DIR}/examples/m5stickc_tiny_menu/m5stickc_tiny_menu.ino" "esp32:esp32:m5stick-c:FlashFreq=80,UploadSpeed=921600" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/m5stickc_tiny_menu/m5stickc_tiny_menu.ino" "esp32:esp32:m5stick-c:UploadSpeed=921600" "false" "newest"
 
 after_script:
   # Commit a report of the job results to the CI-reports repository
