@@ -91,7 +91,7 @@ SDUpdater::SDUpdater( const String SPIFFS2SDFolder ) {
     tft.begin();
     tft_setBrightness( 100 );
     tft.fillScreen( TFT_BLACK );
-    tft.setTextColor( TFT_WHITE );
+    tft.setTextColor( TFT_WHITE, TFT_BLACK );
     tft.setTextFont( 0 );
     tft.setTextSize( 2 );
     // attemtp to center the text
