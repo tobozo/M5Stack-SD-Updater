@@ -30,7 +30,6 @@
 
 #include "M5StackUpdater.h"
 
-static int SD_UI_Progress;
 #if defined(M5STACK) || defined(_M5STICKC_H_)
 #define tft M5.Lcd // {M5StickC,M5Stack,ESP32-Chimera}-Core syntax sugar, forward compat with other displays
 #endif
@@ -66,6 +65,9 @@ static int SD_UI_Progress;
   #elif defined( ARDUINO_M5STACK_FIRE )
     //#pragma message ("M5Stack Fire board detected")
     #define SD_PLATFORM_NAME "M5Stack-Fire"
+  #elif defined( ARDUINO_M5STACK_Core2 )
+    //#pragma message ("M5Stack Core2 board detected")
+    #define SD_PLATFORM_NAME "M5StackCore2"
   #elif defined( ARDUINO_ESP32_DEV )
     //#pragma message ("WROVER KIT board detected")
     #define SD_PLATFORM_NAME "Wrover-Kit"
@@ -85,72 +87,6 @@ SDUpdater::SDUpdater( const String SPIFFS2SDFolder ) {
     enableSPIFFS = true;
   }
 }
-
-#ifdef USE_DISPLAY
-  void SDUpdater::displayUpdateUI( String label ) {
-    tft.begin();
-    tft_setBrightness( 100 );
-    tft.fillScreen( TFT_BLACK );
-    tft.setTextColor( TFT_WHITE, TFT_BLACK );
-    tft.setTextFont( 0 );
-    tft.setTextSize( 2 );
-    // attemtp to center the text
-    int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
-    if ( xpos < 0 ) {
-      // try with smaller size
-      tft.setTextSize(1);
-      xpos = ( tft.width() / 2 ) - ( tft.textWidth( label ) / 2 );
-      if( xpos < 0 ) {
-        // give up
-        xpos = 0 ;
-      }
-    }
-    tft.setCursor( xpos, TITLE_POS_Y );
-    tft.print( label );
-    tft.drawRect( PROGRESS_WIDTH, PROGRESS_HEIGHT, 102, 20, TFT_WHITE );
-    SD_UI_Progress = -1;
-  }
-
-  void SDUpdater::SDMenuProgress( int state, int size ) {
-    int percent = ( state * 100 ) / size;
-    if( percent == SD_UI_Progress ) {
-      // don't render twice the same value
-      return;
-    }
-    //Serial.printf("percent = %d\n", percent); // this is spammy
-    SD_UI_Progress = percent;
-    if ( percent >= 0 && percent < 101 ) {
-      tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, percent, 18, TFT_GREEN );
-      tft.fillRect( PROGRESS_WIDTH+1+percent, PROGRESS_HEIGHT+1, 100-percent, 18, TFT_BLACK );
-      Serial.print( "." );
-    } else {
-      tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, 100, 18, TFT_BLACK );
-      Serial.println();
-    }
-    String percentStr = " " + String( percent ) + "% ";
-    tft.drawCentreString( percentStr , tft.width() >> 1, PERCENT_POS_Y, 0); // trailing space is important
-  }
-#else
-  void SDUpdater::displayUpdateUI( String label ) {
-
-  }
-
-  void SDUpdater::SDMenuProgress( int state, int size ) {
-    int percent = ( state * 100 ) / size;
-    if( percent == SD_UI_Progress ) {
-      // don't render twice the same value
-      return;
-    }
-    //Serial.printf("percent = %d\n", percent); // this is spammy
-    SD_UI_Progress = percent;
-    if ( percent >= 0 && percent < 101 ) {
-      Serial.print( "." );
-    } else {
-      Serial.println();
-    }
-  }
-#endif
-
 
 esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition ) {
   esp_image_metadata_t data;
@@ -261,7 +197,7 @@ void SDUpdater::tryRollback( String fileName ) {
 }
 
 // check given FS for valid menu.bin and perform update if available
-void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
+void SDUpdater::updateFromFS( fs::FS &fs, const String& fileName ) {
   #ifdef M5_SD_UPDATER_VERSION
     Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
   #endif

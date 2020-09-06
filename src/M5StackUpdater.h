@@ -79,6 +79,7 @@ extern "C" {
 //   #if defined( ARDUINO_ODROID_ESP32 )
 //   #if defined( ARDUINO_M5Stack_Core_ESP32 )
 //   #if defined( ARDUINO_M5STACK_FIRE )
+//   #if defined( ARDUINO_M5STACK_Core2 )
 //   #if defined( ARDUINO_M5Stick_C )
 
 #define SDUPDATER_SD_FS 0
@@ -100,6 +101,8 @@ extern "C" {
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5STACK_FIRE ) // M5Stack Fire
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5Stick_C ) // M5StickC
   #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
 #elif defined( ARDUINO_ESP32_DEV ) // ESP32 Wrover Kit
@@ -120,11 +123,15 @@ extern "C" {
 #endif
 
 #ifdef USE_DISPLAY
+ #if !defined( _M5STACK_H_ ) && !defined( _M5STICKC_H_ ) && !defined( _M5Core2_H_ )
   #if defined( ARDUINO_M5Stick_C )
     #include <M5StickC.h> // load {M5StickC}-core
+  #elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
+    #include <M5Core2.h> // load {M5Core2}-core
   #else
     #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
   #endif
+ #endif
 #endif
 
 
@@ -151,9 +158,7 @@ extern "C" {
 
 class SDUpdater {
   public:
-    void updateFromFS( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN );
-    static void SDMenuProgress( int state, int size );
-    void displayUpdateUI( String label );
+    void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN );
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
     static const int BACKUP_SD_TO_SPIFFS = 1;
@@ -176,15 +181,103 @@ class SDUpdater {
       bool SPIFFSFormat();
       bool SPIFFSisEmpty();
     #endif
+
+    static void SDMenuProgress( int state, int size )
+    {
+      static int SD_UI_Progress;
+      int percent = ( state * 100 ) / size;
+      if( percent == SD_UI_Progress ) {
+        // don't render twice the same value
+        return;
+      }
+      //Serial.printf("percent = %d\n", percent); // this is spammy
+      SD_UI_Progress = percent;
+#if defined USE_DISPLAY
+      auto &tft = M5.Lcd;
+      int progress_w = 102;
+      int progress_h = 20;
+      int progress_x = (tft.width() - progress_w) >> 1;
+      int progress_y = (tft.height()- progress_h) >> 1;
+      if ( percent >= 0 && percent < 101 ) {
+        tft.fillRect( progress_x+1, progress_y+1, percent, 18, TFT_GREEN );
+        tft.fillRect( progress_x+1+percent, progress_y+1, 100-percent, 18, TFT_BLACK );
+        Serial.print( "." );
+      } else {
+        tft.fillRect( progress_x+1, progress_y+1, 100, 18, TFT_BLACK );
+        Serial.println();
+      }
+#else
+      if ( percent >= 0 && percent < 101 ) {
+        Serial.print( "." );
+      } else {
+        Serial.println();
+      }
+#endif
+      String percentStr = " " + String( percent ) + "% ";
+      tft.drawCentreString( percentStr , tft.width() >> 1, progress_y+progress_h+5, 0); // trailing space is important
+    };
+
+    static void displayUpdateUI( const String& label )
+    {
+#if defined USE_DISPLAY
+      auto &tft = M5.Lcd;
+      tft.fillScreen( TFT_BLACK );
+      tft.setTextColor( TFT_WHITE, TFT_BLACK );
+      tft.setTextFont( 0 );
+      tft.setTextSize( 2 );
+      // attemtp to center the text
+      int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
+      if ( xpos < 0 ) {
+        // try with smaller size
+        tft.setTextSize(1);
+        xpos = ( tft.width() / 2 ) - ( tft.textWidth( label ) / 2 );
+        if( xpos < 0 ) {
+          // give up
+          xpos = 0 ;
+        }
+      }
+
+      int progress_w = 102;
+      int progress_h = 20;
+      int progress_x = (tft.width() - progress_w) >> 1;
+      int progress_y = (tft.height()- progress_h) >> 1;
+      tft.setCursor( xpos, progress_y - 20 );
+      tft.print( label );
+      tft.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
+#endif
+    };
+
   private:
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
 };
 
 /* don't break older versions of the M5Stack SD Updater */
-__attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
+__attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN )
+{
   SDUpdater sdUpdater;
+#if defined USE_DISPLAY
+  auto &tft = M5.Lcd;
+  if (tft.width() < tft.height()) tft.setRotation(tft.getRotation() ^ 1);
+#endif
   sdUpdater.updateFromFS( fs, fileName );
 }
+
+#if defined USE_DISPLAY
+__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
+  auto &tft = M5.Lcd;
+  tft.setCursor(0,0);
+  tft.print("SDUpdater\npress BtnA");
+  tft.setCursor(0,0);
+  delay(500);
+  M5.update();
+  if (M5.BtnA.isPressed()) {
+    Serial.println("Will Load menu binary");
+    updateFromFS( fs, fileName );
+    ESP.restart();
+  }
+  tft.clear();
+}
+#endif
 
 #endif
