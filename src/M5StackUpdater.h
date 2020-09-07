@@ -124,6 +124,7 @@ extern "C" {
 
 #ifdef USE_DISPLAY
  #if !defined( _M5STACK_H_ ) && !defined( _M5STICKC_H_ ) && !defined( _M5Core2_H_ )
+  #undef USE_DISPLAY
   #if defined( ARDUINO_M5Stick_C )
     #include <M5StickC.h> // load {M5StickC}-core
   #elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
@@ -182,7 +183,7 @@ class SDUpdater {
       bool SPIFFSisEmpty();
     #endif
 
-    static void SDMenuProgress( int state, int size )
+    void (*SDMenuProgress)( int state, int size ) = []( int state, int size )
     {
       static int SD_UI_Progress;
       int percent = ( state * 100 ) / size;
@@ -206,6 +207,8 @@ class SDUpdater {
         tft.fillRect( progress_x+1, progress_y+1, 100, 18, TFT_BLACK );
         Serial.println();
       }
+      String percentStr = " " + String( percent ) + "% ";
+      tft.drawCentreString( percentStr , tft.width() >> 1, progress_y+progress_h+5, 0); // trailing space is important
 #else
       if ( percent >= 0 && percent < 101 ) {
         Serial.print( "." );
@@ -213,39 +216,9 @@ class SDUpdater {
         Serial.println();
       }
 #endif
-      String percentStr = " " + String( percent ) + "% ";
-      tft.drawCentreString( percentStr , tft.width() >> 1, progress_y+progress_h+5, 0); // trailing space is important
     };
 
-    static void displayUpdateUI( const String& label )
-    {
-#if defined USE_DISPLAY
-      auto &tft = M5.Lcd;
-      tft.fillScreen( TFT_BLACK );
-      tft.setTextColor( TFT_WHITE, TFT_BLACK );
-      tft.setTextFont( 0 );
-      tft.setTextSize( 2 );
-      // attemtp to center the text
-      int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
-      if ( xpos < 0 ) {
-        // try with smaller size
-        tft.setTextSize(1);
-        xpos = ( tft.width() / 2 ) - ( tft.textWidth( label ) / 2 );
-        if( xpos < 0 ) {
-          // give up
-          xpos = 0 ;
-        }
-      }
-
-      int progress_w = 102;
-      int progress_h = 20;
-      int progress_x = (tft.width() - progress_w) >> 1;
-      int progress_y = (tft.height()- progress_h) >> 1;
-      tft.setCursor( xpos, progress_y - 20 );
-      tft.print( label );
-      tft.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
-#endif
-    };
+    void (*displayUpdateUI)( const String& label ) = []( const String& label ){};
 
   private:
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
@@ -259,6 +232,60 @@ __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, con
 #if defined USE_DISPLAY
   auto &tft = M5.Lcd;
   if (tft.width() < tft.height()) tft.setRotation(tft.getRotation() ^ 1);
+  sdUpdater.displayUpdateUI = []( const String& label )
+  {
+    auto &tft = M5.Lcd;
+    tft.fillScreen( TFT_BLACK );
+    tft.setTextColor( TFT_WHITE, TFT_BLACK );
+    tft.setTextFont( 0 );
+    tft.setTextSize( 2 );
+    // attemtp to center the text
+    int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
+    if ( xpos < 0 ) {
+      // try with smaller size
+      tft.setTextSize(1);
+      xpos = ( tft.width() / 2 ) - ( tft.textWidth( label ) / 2 );
+      if( xpos < 0 ) {
+        // give up
+        xpos = 0 ;
+      }
+    }
+
+    int progress_w = 102;
+    int progress_h = 20;
+    int progress_x = (tft.width() - progress_w) >> 1;
+    int progress_y = (tft.height()- progress_h) >> 1;
+    tft.setCursor( xpos, progress_y - 20 );
+    tft.print( label );
+    tft.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
+  };
+
+  sdUpdater.SDMenuProgress = []( int state, int size )
+  {
+    static int SD_UI_Progress;
+    int percent = ( state * 100 ) / size;
+    if( percent == SD_UI_Progress ) {
+      // don't render twice the same value
+      return;
+    }
+    //Serial.printf("percent = %d\n", percent); // this is spammy
+    SD_UI_Progress = percent;
+    auto &tft = M5.Lcd;
+    int progress_w = 102;
+    int progress_h = 20;
+    int progress_x = (tft.width() - progress_w) >> 1;
+    int progress_y = (tft.height()- progress_h) >> 1;
+    if ( percent >= 0 && percent < 101 ) {
+      tft.fillRect( progress_x+1, progress_y+1, percent, 18, TFT_GREEN );
+      tft.fillRect( progress_x+1+percent, progress_y+1, 100-percent, 18, TFT_BLACK );
+      Serial.print( "." );
+    } else {
+      tft.fillRect( progress_x+1, progress_y+1, 100, 18, TFT_BLACK );
+      Serial.println();
+    }
+    String percentStr = " " + String( percent ) + "% ";
+    tft.drawCentreString( percentStr , tft.width() >> 1, progress_y+progress_h+5, 0); // trailing space is important
+  };
 #endif
   sdUpdater.updateFromFS( fs, fileName );
 }
@@ -276,7 +303,7 @@ __attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, S
     updateFromFS( fs, fileName );
     ESP.restart();
   }
-  tft.clear();
+  tft.fillScreen(TFT_BLACK);
 }
 #endif
 
