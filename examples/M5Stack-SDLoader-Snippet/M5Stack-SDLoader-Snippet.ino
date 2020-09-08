@@ -40,20 +40,29 @@
  *
  */
 
-#include <M5Stack.h>
-#include "M5StackUpdater.h"
+#if defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
+  #include <M5Stack.h>
+  // #include <ESP32-Chimera-Core.h>
+#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
+  #include <M5Core2.h>
+#elif defined( ARDUINO_M5Stick_C ) // M5StickC
+  #include <M5StickC.h>
+#else
+  #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
+#endif
+
+#include <M5StackUpdater.h>
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("Welcome to the SD-Update example!");
-  Serial.print("M5Stack initializing...");
+
   M5.begin();
-  Wire.begin();
-  if(digitalRead(BUTTON_A_PIN) == 0) {
-    Serial.println("Will Load menu binary");
-    updateFromFS(SD);
-    ESP.restart();
-  }
+
+  Serial.println("Welcome to the SD-Updater minimal example!");
+  Serial.println("Now checking if a button was pushed during boot ...");
+
+  checkSDUpdater();
+
+  Serial.println("Nope, will run the sketch normally");
 
 }
 

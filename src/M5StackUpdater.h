@@ -108,8 +108,8 @@ extern "C" {
 #elif defined( ARDUINO_ESP32_DEV ) // ESP32 Wrover Kit
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
 #else
-  #warning "No valid display detected, enabling headless mode"
-  #undef USE_DISPLAY // headless setup, progress will be rendered in Serial
+  #warning "No valid display detected, will use LGFX autodetect with default SD support"
+  //#undef USE_DISPLAY // headless setup, progress will be rendered in Serial
   #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS // default behaviour = use SD
 /*
@@ -122,9 +122,10 @@ extern "C" {
 */
 #endif
 
+/*
 #ifdef USE_DISPLAY
  #if !defined( _M5STACK_H_ ) && !defined( _M5STICKC_H_ ) && !defined( _M5Core2_H_ )
-  #undef USE_DISPLAY
+  //#undef USE_DISPLAY
   #if defined( ARDUINO_M5Stick_C )
     #include <M5StickC.h> // load {M5StickC}-core
   #elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
@@ -134,9 +135,20 @@ extern "C" {
   #endif
  #endif
 #endif
+*/
+#if defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
+  #include <M5Stack.h>
+#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
+  #include <M5Core2.h>
+#elif defined( ARDUINO_M5Stick_C ) // M5StickC
+  #include <M5StickC.h>
+#else
+  #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
+#endif
 
-
-#if SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
+#if defined( M5STACK_SD )
+  #define SDUPDATER_FS M5STACK_SD
+#elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
   #define SDUPDATER_FS SD
   #include <SD.h>
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
@@ -162,13 +174,15 @@ class SDUpdater {
     void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN );
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
-    static const int BACKUP_SD_TO_SPIFFS = 1;
-    static const int BACKUP_SPIFFS_TO_SD = 2;
     SDUpdater( const String SPIFFS2SDFolder="" );
     String SKETCH_NAME = "";
     bool enableSPIFFS = false;
     bool SPIFFS_MOUNTED = false;
     #if defined( SD_ENABLE_SPIFFS_COPY )
+
+      static const int BACKUP_SD_TO_SPIFFS = 1;
+      static const int BACKUP_SPIFFS_TO_SD = 2;
+
       void copyFile( String sourceName, int dir );
       void copyFile( String sourceName, fs::FS &sourceFS, int dir );
       void copyFile( fs::File &sourceFile, int dir );
@@ -290,21 +304,33 @@ __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, con
   sdUpdater.updateFromFS( fs, fileName );
 }
 
-#if defined USE_DISPLAY
 __attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
-  auto &tft = M5.Lcd;
-  tft.setCursor(0,0);
-  tft.print("SDUpdater\npress BtnA");
-  tft.setCursor(0,0);
-  delay(500);
-  M5.update();
-  if (M5.BtnA.isPressed()) {
-    Serial.println("Will Load menu binary");
-    updateFromFS( fs, fileName );
-    ESP.restart();
-  }
-  tft.fillScreen(TFT_BLACK);
+  #if defined USE_DISPLAY
+    //#warning "BLAH"
+    auto &tft = M5.Lcd;
+    tft.setCursor(0,0);
+    tft.print("SDUpdater\npress BtnA");
+    tft.setCursor(0,0);
+    delay(500);
+    M5.update();
+    if (M5.BtnA.isPressed()) {
+      Serial.println("Will Load menu binary");
+      updateFromFS( fs, fileName );
+      ESP.restart();
+    }
+    tft.fillScreen(TFT_BLACK);
+  #else
+    // no display support, but still sd-updatable !!
+    #if defined BUTTON_A_PIN
+      if(digitalRead(BUTTON_A_PIN) == 0) {
+        updateFromFS( fs, fileName );
+      }
+    #else
+      //#warning "No valid HID trigger defined for checkSDUpdater(), will use software calls to updateFromFS() instead"
+      Serial.print("No valid HID trigger defined for checkSDUpdater(), will use software calls to updateFromFS() instead");
+    #endif
+  #endif
 }
-#endif
+
 
 #endif
