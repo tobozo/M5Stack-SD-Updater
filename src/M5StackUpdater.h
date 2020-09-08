@@ -311,13 +311,15 @@ __attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, S
     tft.setCursor(0,0);
     tft.print("SDUpdater\npress BtnA");
     tft.setCursor(0,0);
-    delay(500);
-    M5.update();
-    if (M5.BtnA.isPressed()) {
-      Serial.println("Will Load menu binary");
-      updateFromFS( fs, fileName );
-      ESP.restart();
-    }
+    auto msec = millis();
+    do {
+      M5.update();
+      if (M5.BtnA.isPressed()) {
+        Serial.println("Will Load menu binary");
+        updateFromFS( fs, fileName );
+        ESP.restart();
+      }
+    } while (millis() - msec < 512);
     tft.fillScreen(TFT_BLACK);
   #else
     // no display support, but still sd-updatable !!

@@ -29,7 +29,7 @@
  */
 
 #include "M5StackUpdater.h"
-
+/*
 #if defined(M5STACK) || defined(_M5STICKC_H_)
 #define tft M5.Lcd // {M5StickC,M5Stack,ESP32-Chimera}-Core syntax sugar, forward compat with other displays
 #endif
@@ -40,8 +40,9 @@
 #define PROGRESS_WIDTH 110
 #define PROGRESS_HEIGHT 130
 #define tft_setBrightness(x) tft.setBrightness( x )
-
+*/
 #if defined( ARDUINO_M5Stick_C )
+/*
   //#pragma message ("M5StickC board detected")
   #undef TITLE_POS_Y
   #undef PERCENT_POS_Y
@@ -52,9 +53,11 @@
   #define PERCENT_POS_Y 45
   #define PROGRESS_WIDTH 30
   #define PROGRESS_HEIGHT 20
+*/
   #define SD_PLATFORM_NAME "M5StickC"
+/*
   #define tft_setBrightness(x) M5.Axp.ScreenBreath(7+x/12); tft.setRotation(3);
-
+*/
 #else
   #if defined( ARDUINO_ODROID_ESP32 )
     //#pragma message ("Odroid-GO board detected")
@@ -75,8 +78,10 @@
     //#pragma message ("Custom ESP32 board detected")
     // put your custom UI settings here
     #define SD_PLATFORM_NAME "ESP32"
+/*
     #undef tft_setBrightness
     #define tft_setBrightness(x)
+*/
   #endif
 #endif
 
@@ -548,4 +553,4 @@ bool SDUpdater::SPIFFSisEmpty() {
 
 #endif
 
-#undef tft
+//#undef tft
