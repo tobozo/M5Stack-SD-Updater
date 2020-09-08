@@ -68,13 +68,34 @@
 #include "compile_time.h"
 #include "SPIFFS.h"
 
-#include <M5Stack.h> // https://github.com/m5stack/M5Stack/ or https://github.com/tobozo/ESP32-Chimera-Core
+#if defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
+  #include <M5Stack.h> // https://github.com/m5stack/M5Stack/ or https://github.com/tobozo/ESP32-Chimera-Core
+  // #include <ESP32-Chimera-Core.h>
+#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
+  #include <M5Core2.h>
+#elif defined( ARDUINO_M5Stick_C ) // M5StickC
+  #include <M5StickC.h>
+#else
+  #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
+#endif
+
+
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 #define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
 
+#ifdef _LGFX_QRCODE_H_
+  #define qrcode_getBufferSize lgfx_qrcode_getBufferSize
+  #define qrcode_initText lgfx_qrcode_initText
+  #define qrcode_initBytes lgfx_qrcode_initBytes
+  #define qrcode_getModule lgfx_qrcode_getModule
+#else
+  #ifndef _QRCODE_H_
+    #include "utility/qrcode.h" // from M5Stack Core
+  #endif
+#endif
+
 #include "SAM.h" // altered version of https://github.com/tomsuch/M5StackSAM, maintained at https://github.com/tobozo/M5StackSAM/
 #include <ArduinoJson.h>     // https://github.com/bblanchon/ArduinoJson/
-#include "utility/qrcode.h" // from M5Stack Core
 #include "i18n.h"            // language file
 #include "assets.h"          // some artwork for the UI
 #include "controls.h"        // keypad / joypad / keyboard controls
@@ -648,14 +669,26 @@ void UISetup() {
     // go to sleep after a minute, no need to hammer the SD Card reader
     if( lastcheck + 60000 < millis() ) {
       Serial.println( GOTOSLEEP_MESSAGE );
-      M5.setWakeupButton( BUTTON_B_PIN );
-      M5.powerOFF();
+      #ifdef ARDUINO_M5STACK_Core2
+        M5.Axp.DeepSleep();
+      #else
+        M5.setWakeupButton( BUTTON_B_PIN );
+        M5.powerOFF();
+      #endif
     }
   }
   tft.setTextDatum(TL_DATUM);
 
   unsigned long longPush = 10000;
   unsigned long shortPush = 5000;
+
+  #ifdef ARDUINO_M5STACK_Core2
+    tft.setCursor(0,0);
+    tft.print("SDUpdater\npress BtnA");
+    tft.setCursor(0,0);
+    delay(500);
+    M5.update();
+  #endif
 
   if( M5.BtnA.isPressed() ) {
     unsigned long pushStart = millis();
@@ -700,8 +733,13 @@ void UISetup() {
       }
     }
     Serial.println( GOTOSLEEP_MESSAGE );
-    M5.setWakeupButton( BUTTON_B_PIN );
-    M5.powerOFF();
+    #ifdef ARDUINO_M5STACK_Core2
+      M5.Axp.DeepSleep();
+    #else
+      M5.setWakeupButton( BUTTON_B_PIN );
+      M5.powerOFF();
+    #endif
+
   }
 
 }
@@ -846,7 +884,11 @@ void sleepTimer() {
       return;
     }
     Serial.println( GOTOSLEEP_MESSAGE );
-    M5.setWakeupButton( BUTTON_B_PIN );
-    M5.powerOFF();
+    #ifdef ARDUINO_M5STACK_Core2
+      M5.Axp.DeepSleep();
+    #else
+      M5.setWakeupButton( BUTTON_B_PIN );
+      M5.powerOFF();
+    #endif
   }
 }
