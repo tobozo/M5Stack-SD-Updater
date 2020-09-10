@@ -71,6 +71,7 @@ extern "C" {
   #include "esp_ota_ops.h"
   #include "esp_image_format.h"
 }
+#include <FS.h>
 
 // #define SD_ENABLE_SPIFFS_COPY // enable SD <=> SPIFFS copy functions, from outside this library
 
@@ -93,7 +94,14 @@ extern "C" {
   #define DATA_DIR "/data"
 #endif
 
-#define USE_DISPLAY
+//#define USE_DISPLAY // comment this out to enable headless mode
+
+static void updateFromFS( fs::FS &fs, const String& fileName );
+
+#include "M5StackUpdaterHeadless.h"
+#ifdef USE_DISPLAY
+  #include "M5StackUpdaterUI.h"
+#endif
 
 #if defined( ARDUINO_ODROID_ESP32 ) // Odroid-GO
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
@@ -122,30 +130,6 @@ extern "C" {
 */
 #endif
 
-/*
-#ifdef USE_DISPLAY
- #if !defined( _M5STACK_H_ ) && !defined( _M5STICKC_H_ ) && !defined( _M5Core2_H_ )
-  //#undef USE_DISPLAY
-  #if defined( ARDUINO_M5Stick_C )
-    #include <M5StickC.h> // load {M5StickC}-core
-  #elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
-    #include <M5Core2.h> // load {M5Core2}-core
-  #else
-    #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
-  #endif
- #endif
-#endif
-*/
-#if defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
-  #include <M5Stack.h>
-#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
-  #include <M5Core2.h>
-#elif defined( ARDUINO_M5Stick_C ) // M5StickC
-  #include <M5StickC.h>
-#else
-  #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
-#endif
-
 #if defined( M5STACK_SD )
   #define SDUPDATER_FS M5STACK_SD
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
@@ -169,15 +153,23 @@ extern "C" {
 // backwards compat
 #define M5SDMenuProgress SDMenuProgress
 
-class SDUpdater {
+#if defined USE_DISPLAY
+  #define SDUpdater SDUpdater_Display
+#else
+  #define SDUpdater SDUpdater_Headless
+#endif
+
+
+class SDUpdater_Base {
   public:
     void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN );
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
-    SDUpdater( const String SPIFFS2SDFolder="" );
+    SDUpdater_Base( const String SPIFFS2SDFolder="" );
     String SKETCH_NAME = "";
     bool enableSPIFFS = false;
     bool SPIFFS_MOUNTED = false;
+
     #if defined( SD_ENABLE_SPIFFS_COPY )
 
       static const int BACKUP_SD_TO_SPIFFS = 1;
@@ -197,142 +189,60 @@ class SDUpdater {
       bool SPIFFSisEmpty();
     #endif
 
-    void (*SDMenuProgress)( int state, int size ) = []( int state, int size )
-    {
-      static int SD_UI_Progress;
-      int percent = ( state * 100 ) / size;
-      if( percent == SD_UI_Progress ) {
-        // don't render twice the same value
-        return;
-      }
-      //Serial.printf("percent = %d\n", percent); // this is spammy
-      SD_UI_Progress = percent;
-#if defined USE_DISPLAY
-      auto &tft = M5.Lcd;
-      int progress_w = 102;
-      int progress_h = 20;
-      int progress_x = (tft.width() - progress_w) >> 1;
-      int progress_y = (tft.height()- progress_h) >> 1;
-      if ( percent >= 0 && percent < 101 ) {
-        tft.fillRect( progress_x+1, progress_y+1, percent, 18, TFT_GREEN );
-        tft.fillRect( progress_x+1+percent, progress_y+1, 100-percent, 18, TFT_BLACK );
-        Serial.print( "." );
-      } else {
-        tft.fillRect( progress_x+1, progress_y+1, 100, 18, TFT_BLACK );
-        Serial.println();
-      }
-      String percentStr = " " + String( percent ) + "% ";
-      tft.drawCentreString( percentStr , tft.width() >> 1, progress_y+progress_h+5, 0); // trailing space is important
-#else
-      if ( percent >= 0 && percent < 101 ) {
-        Serial.print( "." );
-      } else {
-        Serial.println();
-      }
-#endif
-    };
-
-    void (*displayUpdateUI)( const String& label ) = []( const String& label ){};
+    bool (*assertStartUpdate)( unsigned long scanDelay );
+    void (*displayUpdateUI)( const String& label );
+    void (*SDMenuProgress)( int state, int size );
 
   private:
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
 };
 
+
+#if defined USE_DISPLAY
+class SDUpdater_Display : public SDUpdater_Base {
+  public:
+
+    SDUpdater_Display( const String SPIFFS2SDFolder="" ) : SDUpdater_Base( SPIFFS2SDFolder ) {
+      SDMenuProgress    = SDMenuProgressUI;
+      displayUpdateUI   = DisplayUpdateUI;
+      assertStartUpdate = assertStartUpdateFromButton;
+    };
+
+};
+#endif
+
+
+class SDUpdater_Headless : public SDUpdater_Base {
+  public:
+
+    SDUpdater_Headless( const String SPIFFS2SDFolder="" ) : SDUpdater_Base( SPIFFS2SDFolder ) {
+      SDMenuProgress  = SDMenuProgressHeadless;
+      displayUpdateUI = DisplayUpdateHeadless;
+      assertStartUpdate = assertStartUpdateFromSerial;
+    };
+
+};
+
+
+
 /* don't break older versions of the M5Stack SD Updater */
 __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN )
 {
   SDUpdater sdUpdater;
-#if defined USE_DISPLAY
-  auto &tft = M5.Lcd;
-  if (tft.width() < tft.height()) tft.setRotation(tft.getRotation() ^ 1);
-  sdUpdater.displayUpdateUI = []( const String& label )
-  {
-    auto &tft = M5.Lcd;
-    tft.fillScreen( TFT_BLACK );
-    tft.setTextColor( TFT_WHITE, TFT_BLACK );
-    tft.setTextFont( 0 );
-    tft.setTextSize( 2 );
-    // attemtp to center the text
-    int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
-    if ( xpos < 0 ) {
-      // try with smaller size
-      tft.setTextSize(1);
-      xpos = ( tft.width() / 2 ) - ( tft.textWidth( label ) / 2 );
-      if( xpos < 0 ) {
-        // give up
-        xpos = 0 ;
-      }
-    }
-
-    int progress_w = 102;
-    int progress_h = 20;
-    int progress_x = (tft.width() - progress_w) >> 1;
-    int progress_y = (tft.height()- progress_h) >> 1;
-    tft.setCursor( xpos, progress_y - 20 );
-    tft.print( label );
-    tft.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
-  };
-
-  sdUpdater.SDMenuProgress = []( int state, int size )
-  {
-    static int SD_UI_Progress;
-    int percent = ( state * 100 ) / size;
-    if( percent == SD_UI_Progress ) {
-      // don't render twice the same value
-      return;
-    }
-    //Serial.printf("percent = %d\n", percent); // this is spammy
-    SD_UI_Progress = percent;
-    auto &tft = M5.Lcd;
-    int progress_w = 102;
-    int progress_h = 20;
-    int progress_x = (tft.width() - progress_w) >> 1;
-    int progress_y = (tft.height()- progress_h) >> 1;
-    if ( percent >= 0 && percent < 101 ) {
-      tft.fillRect( progress_x+1, progress_y+1, percent, 18, TFT_GREEN );
-      tft.fillRect( progress_x+1+percent, progress_y+1, 100-percent, 18, TFT_BLACK );
-      Serial.print( "." );
-    } else {
-      tft.fillRect( progress_x+1, progress_y+1, 100, 18, TFT_BLACK );
-      Serial.println();
-    }
-    String percentStr = " " + String( percent ) + "% ";
-    tft.drawCentreString( percentStr , tft.width() >> 1, progress_y+progress_h+5, 0); // trailing space is important
-  };
-#endif
   sdUpdater.updateFromFS( fs, fileName );
 }
 
 __attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
   #if defined USE_DISPLAY
-    //#warning "BLAH"
-    auto &tft = M5.Lcd;
-    tft.setCursor(0,0);
-    tft.print("SDUpdater\npress BtnA");
-    tft.setCursor(0,0);
-    auto msec = millis();
-    do {
-      M5.update();
-      if (M5.BtnA.isPressed()) {
-        Serial.println("Will Load menu binary");
-        updateFromFS( fs, fileName );
-        ESP.restart();
-      }
-    } while (millis() - msec < 512);
-    tft.fillScreen(TFT_BLACK);
+    checkSDUpdaterUI( fs, fileName );
   #else
-    // no display support, but still sd-updatable !!
-    #if defined BUTTON_A_PIN
-      if(digitalRead(BUTTON_A_PIN) == 0) {
-        updateFromFS( fs, fileName );
-      }
-    #else
-      //#warning "No valid HID trigger defined for checkSDUpdater(), will use software calls to updateFromFS() instead"
-      Serial.print("No valid HID trigger defined for checkSDUpdater(), will use software calls to updateFromFS() instead");
-    #endif
+    checkSDUpdaterHeadless( fs, fileName, 5000 ); // wait 5000ms for serial update order
   #endif
 }
+
+
+
 
 
 #endif
