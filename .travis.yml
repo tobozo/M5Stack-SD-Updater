@@ -53,7 +53,7 @@ before_install:
   - install_library
   - install_library "M5Stack"
   - install_library "M5StickC"
-  - install_library "M5Core2"
+  - install_library "https://github.com/lovyan03/M5Core2" # "M5Core2" << Official repo slacking on the PR's :-(
   - install_library 'https://github.com/bblanchon/ArduinoJson.git' # "ArduinoJSON"
 
   - ls ${TRAVIS_BUILD_DIR} -la
