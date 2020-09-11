@@ -90,18 +90,13 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
 
       #include "M5StackUpdater.h"
 
-  In your setup() function, find the following statements:
+  In your setup() function, find the following statement:
 
       M5.begin();
-      Wire.begin();
-
-  And add this after 'Wire.begin();':
-
-      if(digitalRead(BUTTON_A_PIN) == 0) {
-        Serial.println("Will Load menu binary");
-        updateFromFS(SD);
-        ESP.restart();
-      }
+     
+  And add this just after `M5.begin()`:
+    
+      checkSDUpdater();
 
 <br />
 
