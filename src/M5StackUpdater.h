@@ -94,7 +94,7 @@ extern "C" {
   #define DATA_DIR "/data"
 #endif
 
-//#define USE_DISPLAY // comment this out to enable headless mode
+#define USE_DISPLAY // comment this out to force headless mode
 
 static void updateFromFS( fs::FS &fs, const String& fileName );
 
@@ -189,7 +189,7 @@ class SDUpdater_Base {
       bool SPIFFSisEmpty();
     #endif
 
-    bool (*assertStartUpdate)( unsigned long scanDelay );
+    bool (*assertStartUpdate)();
     void (*displayUpdateUI)( const String& label );
     void (*SDMenuProgress)( int state, int size );
 

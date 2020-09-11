@@ -16,7 +16,7 @@ static bool assertStartUpdateFromSerial()
 
 
 static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long scanDelay ) {
-  Serial.printf("SDUpdater: you have %d milliseconds to send 'update' command");
+  Serial.printf("SDUpdater: you have %d milliseconds to send 'update' command", scanDelay);
   auto msec = millis();
   do {
     if ( assertStartUpdateFromSerial() ) {
