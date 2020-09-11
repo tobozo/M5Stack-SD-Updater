@@ -1,1 +1,1 @@
-#define M5_SD_UPDATER_VERSION F("0.5.0")
+#define M5_SD_UPDATER_VERSION F("1.0.0-alpha")
