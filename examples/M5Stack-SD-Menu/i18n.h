@@ -27,9 +27,9 @@
 #define MENU_BTN_NO "NO"
 #define MENU_BTN_CANCEL "CANCEL"
 
-#ifdef TFT_SDA_READ
-  #define MENU_SCREENSHOT "SNAP"
-#endif
+//#ifdef TFT_SDA_READ
+#define MENU_SCREENSHOT "SNAP"
+//#endif
 
 #define ABOUT_THIS_MENU F("--About This Launcher--")
 

@@ -30,31 +30,9 @@
 
 #include "M5StackUpdater.h"
 
-static int SD_UI_Progress;
-#if defined(M5STACK) || defined(_M5STICKC_H_)
-#define tft M5.Lcd // {M5StickC,M5Stack,ESP32-Chimera}-Core syntax sugar, forward compat with other displays
-#endif
-
-
-#define TITLE_POS_Y 10
-#define PERCENT_POS_Y 155
-#define PROGRESS_WIDTH 110
-#define PROGRESS_HEIGHT 130
-#define tft_setBrightness(x) tft.setBrightness( x )
-
 #if defined( ARDUINO_M5Stick_C )
-  //#pragma message ("M5StickC board detected")
-  #undef TITLE_POS_Y
-  #undef PERCENT_POS_Y
-  #undef PROGRESS_WIDTH
-  #undef PROGRESS_HEIGHT
-  #undef tft_setBrightness
-  #define TITLE_POS_Y 5
-  #define PERCENT_POS_Y 45
-  #define PROGRESS_WIDTH 30
-  #define PROGRESS_HEIGHT 20
+
   #define SD_PLATFORM_NAME "M5StickC"
-  #define tft_setBrightness(x) M5.Axp.ScreenBreath(7+x/12); tft.setRotation(3);
 
 #else
   #if defined( ARDUINO_ODROID_ESP32 )
@@ -66,6 +44,9 @@ static int SD_UI_Progress;
   #elif defined( ARDUINO_M5STACK_FIRE )
     //#pragma message ("M5Stack Fire board detected")
     #define SD_PLATFORM_NAME "M5Stack-Fire"
+  #elif defined( ARDUINO_M5STACK_Core2 )
+    //#pragma message ("M5Stack Core2 board detected")
+    #define SD_PLATFORM_NAME "M5StackCore2"
   #elif defined( ARDUINO_ESP32_DEV )
     //#pragma message ("WROVER KIT board detected")
     #define SD_PLATFORM_NAME "Wrover-Kit"
@@ -73,86 +54,19 @@ static int SD_UI_Progress;
     //#pragma message ("Custom ESP32 board detected")
     // put your custom UI settings here
     #define SD_PLATFORM_NAME "ESP32"
-    #undef tft_setBrightness
-    #define tft_setBrightness(x)
+
   #endif
 #endif
 
 // enable SPIFFS persistence by backuping/restoring to/from the SD
-SDUpdater::SDUpdater( const String SPIFFS2SDFolder ) {
+SDUpdater_Base::SDUpdater_Base( const String SPIFFS2SDFolder ) {
   if( SPIFFS2SDFolder!="" ) {
     SKETCH_NAME = SPIFFS2SDFolder;
     enableSPIFFS = true;
   }
 }
 
-#ifdef USE_DISPLAY
-  void SDUpdater::displayUpdateUI( String label ) {
-    tft.begin();
-    tft_setBrightness( 100 );
-    tft.fillScreen( TFT_BLACK );
-    tft.setTextColor( TFT_WHITE, TFT_BLACK );
-    tft.setTextFont( 0 );
-    tft.setTextSize( 2 );
-    // attemtp to center the text
-    int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
-    if ( xpos < 0 ) {
-      // try with smaller size
-      tft.setTextSize(1);
-      xpos = ( tft.width() / 2 ) - ( tft.textWidth( label ) / 2 );
-      if( xpos < 0 ) {
-        // give up
-        xpos = 0 ;
-      }
-    }
-    tft.setCursor( xpos, TITLE_POS_Y );
-    tft.print( label );
-    tft.drawRect( PROGRESS_WIDTH, PROGRESS_HEIGHT, 102, 20, TFT_WHITE );
-    SD_UI_Progress = -1;
-  }
-
-  void SDUpdater::SDMenuProgress( int state, int size ) {
-    int percent = ( state * 100 ) / size;
-    if( percent == SD_UI_Progress ) {
-      // don't render twice the same value
-      return;
-    }
-    //Serial.printf("percent = %d\n", percent); // this is spammy
-    SD_UI_Progress = percent;
-    if ( percent >= 0 && percent < 101 ) {
-      tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, percent, 18, TFT_GREEN );
-      tft.fillRect( PROGRESS_WIDTH+1+percent, PROGRESS_HEIGHT+1, 100-percent, 18, TFT_BLACK );
-      Serial.print( "." );
-    } else {
-      tft.fillRect( PROGRESS_WIDTH+1, PROGRESS_HEIGHT+1, 100, 18, TFT_BLACK );
-      Serial.println();
-    }
-    String percentStr = " " + String( percent ) + "% ";
-    tft.drawCentreString( percentStr , tft.width() >> 1, PERCENT_POS_Y, 0); // trailing space is important
-  }
-#else
-  void SDUpdater::displayUpdateUI( String label ) {
-
-  }
-
-  void SDUpdater::SDMenuProgress( int state, int size ) {
-    int percent = ( state * 100 ) / size;
-    if( percent == SD_UI_Progress ) {
-      // don't render twice the same value
-      return;
-    }
-    //Serial.printf("percent = %d\n", percent); // this is spammy
-    SD_UI_Progress = percent;
-    if ( percent >= 0 && percent < 101 ) {
-      Serial.print( "." );
-    } else {
-      Serial.println();
-    }
-  }
-#endif
-
-
-esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition ) {
+esp_image_metadata_t SDUpdater_Base::getSketchMeta( const esp_partition_t* source_partition ) {
   esp_image_metadata_t data;
   if ( !source_partition ) return data;
   const esp_partition_pos_t source_partition_pos  = {
@@ -165,7 +79,7 @@ esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_par
 }
 
 // rollback helper, save menu.bin meta info in NVS
-void SDUpdater::updateNVS() {
+void SDUpdater_Base::updateNVS() {
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
   esp_image_metadata_t nusketchMeta = getSketchMeta( update_partition );
   uint32_t nuSize = nusketchMeta.image_len;
@@ -178,7 +92,7 @@ void SDUpdater::updateNVS() {
 }
 
 // perform the actual update from a given stream
-void SDUpdater::performUpdate( Stream &updateSource, size_t updateSize, String fileName ) {
+void SDUpdater_Base::performUpdate( Stream &updateSource, size_t updateSize, String fileName ) {
   displayUpdateUI( "LOADING " + fileName );
   Update.onProgress( SDMenuProgress );
   if (Update.begin( updateSize )) {
@@ -209,7 +123,7 @@ void SDUpdater::performUpdate( Stream &updateSource, size_t updateSize, String f
 
 
 // if NVS has info about MENU_BIN flash size and digest, try rollback()
-void SDUpdater::tryRollback( String fileName ) {
+void SDUpdater_Base::tryRollback( String fileName ) {
   Preferences preferences;
   preferences.begin( "sd-menu" );
   uint32_t menuSize = preferences.getInt( "menusize", 0 );
@@ -261,7 +175,7 @@ void SDUpdater::tryRollback( String fileName ) {
 }
 
 // check given FS for valid menu.bin and perform update if available
-void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
+void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
   #ifdef M5_SD_UPDATER_VERSION
     Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
   #endif
@@ -345,7 +259,7 @@ void SDUpdater::updateFromFS( fs::FS &fs, String fileName ) {
 
 /*
 
-static void SDUpdater::getFactoryPartition() {
+static void SDUpdater_Base::getFactoryPartition() {
   esp_partition_iterator_t pi = esp_partition_find( ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL );
   if(pi != NULL) {
     const esp_partition_t* factory = esp_partition_get(pi);
@@ -361,13 +275,13 @@ static void SDUpdater::getFactoryPartition() {
 #if defined( SD_ENABLE_SPIFFS_COPY )
 
 
-String SDUpdater::gnu_basename( String path ) {
+String SDUpdater_Base::gnu_basename( String path ) {
   char *base = strrchr(path.c_str(), '/');
   return base ? String( base+1) : path;
 }
 
 
-void SDUpdater::copyFile( String sourceName, int dir ) {
+void SDUpdater_Base::copyFile( String sourceName, int dir ) {
   switch( dir ) {
     case BACKUP_SD_TO_SPIFFS:
       copyFile( sourceName, SDUPDATER_FS, dir );
@@ -379,7 +293,7 @@ void SDUpdater::copyFile( String sourceName, int dir ) {
 }
 
 
-void SDUpdater::copyFile( String sourceName, fs::FS &sourceFS, int dir ) {
+void SDUpdater_Base::copyFile( String sourceName, fs::FS &sourceFS, int dir ) {
   File sourceFile = sourceFS.open( sourceName );
   if (! sourceFile ) {
     log_e("Unable to open source file for reading : %s", sourceName );
@@ -390,7 +304,7 @@ void SDUpdater::copyFile( String sourceName, fs::FS &sourceFS, int dir ) {
 }
 
 
-void SDUpdater::copyFile( fs::File &sourceFile, int dir ) {
+void SDUpdater_Base::copyFile( fs::File &sourceFile, int dir ) {
   String destName;
   String SDAppDataDir = String(DATA_DIR) + "/" + String( SKETCH_NAME );
   switch( dir ) {
@@ -413,7 +327,7 @@ void SDUpdater::copyFile( fs::File &sourceFile, int dir ) {
 }
 
 
-void SDUpdater::copyFile( String sourceName, fs::FS &sourceFS, String destName, fs::FS &destinationFS ) {
+void SDUpdater_Base::copyFile( String sourceName, fs::FS &sourceFS, String destName, fs::FS &destinationFS ) {
   File sourceFile = sourceFS.open( sourceName );
   if (! sourceFile ) {
     log_e("Unable to open source file for reading : %s", sourceName );
@@ -427,7 +341,7 @@ void SDUpdater::copyFile( String sourceName, fs::FS &sourceFS, String destName, 
 
 #define BUFFER_SIZE 512
 
-void SDUpdater::copyFile( fs::File &sourceFile, String destName, fs::FS &destinationFS ) {
+void SDUpdater_Base::copyFile( fs::File &sourceFile, String destName, fs::FS &destinationFS ) {
   String sourceName = sourceFile.name();
   //displayUpdateUI( String( "MOVINGFILE_MESSAGE" ) + sourceName );
   size_t fileSize = sourceFile.size();
@@ -477,7 +391,7 @@ void SDUpdater::copyFile( fs::File &sourceFile, String destName, fs::FS &destina
 }
 
 
-void SDUpdater::copyDir( int direction ) {
+void SDUpdater_Base::copyDir( int direction ) {
   String SDAppDataDir;
 
   if( !SPIFFS_MOUNTED ) {
@@ -502,7 +416,7 @@ void SDUpdater::copyDir( int direction ) {
 }
 
 
-void SDUpdater::copyDir( const char * dirname, uint8_t levels, int direction ) {
+void SDUpdater_Base::copyDir( const char * dirname, uint8_t levels, int direction ) {
   switch( direction ) {
     case BACKUP_SD_TO_SPIFFS:
       copyDir( SDUPDATER_FS, dirname, levels, direction );
@@ -514,7 +428,7 @@ void SDUpdater::copyDir( const char * dirname, uint8_t levels, int direction ) {
 }
 
 
-void SDUpdater::copyDir(fs::FS &sourceFS, const char * dirname, uint8_t levels, int direction ) {
+void SDUpdater_Base::copyDir(fs::FS &sourceFS, const char * dirname, uint8_t levels, int direction ) {
     log_i("Listing directory: %s\n", dirname);
 
     File root = sourceFS.open(dirname);
@@ -544,7 +458,7 @@ void SDUpdater::copyDir(fs::FS &sourceFS, const char * dirname, uint8_t levels, 
 }
 
 
-void SDUpdater::makePathToFile( String destName, fs::FS destinationFS ) {
+void SDUpdater_Base::makePathToFile( String destName, fs::FS destinationFS ) {
   String basename = gnu_basename( destName );
   String basepath = destName.substring( 0, destName.length()-(basename.length()+1) );
   if( basename == "/" || basename=="") {
@@ -572,7 +486,7 @@ void SDUpdater::makePathToFile( String destName, fs::FS destinationFS ) {
 }
 
 
-bool SDUpdater::SPIFFSFormat() {
+bool SDUpdater_Base::SPIFFSFormat() {
   if( !SPIFFS.begin( true ) ){
     log_e( "SPIFFS Formatting FAILED!!" );
     return false;
@@ -585,7 +499,7 @@ bool SDUpdater::SPIFFSFormat() {
 }
 
 
-bool SDUpdater::SPIFFSisEmpty() {
+bool SDUpdater_Base::SPIFFSisEmpty() {
   if( !SPIFFS_MOUNTED ) {
     if( !SPIFFS.begin() ) {
       log_e( "SPIFFS MOUNT FAILED, ABORTING!!" );
@@ -612,4 +526,4 @@ bool SDUpdater::SPIFFSisEmpty() {
 
 #endif
 
-#undef tft
+//#undef tft

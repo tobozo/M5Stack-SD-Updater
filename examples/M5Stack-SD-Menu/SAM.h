@@ -1,4 +1,13 @@
-#include <M5Stack.h>
+#if defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
+  #include <M5Stack.h> // https://github.com/m5stack/M5Stack/ or https://github.com/tobozo/ESP32-Chimera-Core
+  // #include <ESP32-Chimera-Core.h>
+#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
+  #include <M5Core2.h>
+#elif defined( ARDUINO_M5Stick_C ) // M5StickC
+  #include <M5StickC.h>
+#else
+  #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
+#endif
 /*
 // why was it even here ?
 #if defined(WIRING) && WIRING >= 100

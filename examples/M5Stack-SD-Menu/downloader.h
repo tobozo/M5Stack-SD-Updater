@@ -39,6 +39,11 @@
 // registry this launcher is tied to
 #include "registry.h"
 
+#ifndef M5_LIB_VERSION
+  #define M5_LIB_VERSION "unknown"
+#endif
+
+
 long timezone = 0; // UTC
 byte daysavetime = 1; // UTC + 1
 

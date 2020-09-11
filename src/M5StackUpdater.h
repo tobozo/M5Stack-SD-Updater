@@ -71,6 +71,7 @@ extern "C" {
   #include "esp_ota_ops.h"
   #include "esp_image_format.h"
 }
+#include <FS.h>
 
 // #define SD_ENABLE_SPIFFS_COPY // enable SD <=> SPIFFS copy functions, from outside this library
 
@@ -79,6 +80,7 @@ extern "C" {
 //   #if defined( ARDUINO_ODROID_ESP32 )
 //   #if defined( ARDUINO_M5Stack_Core_ESP32 )
 //   #if defined( ARDUINO_M5STACK_FIRE )
+//   #if defined( ARDUINO_M5STACK_Core2 )
 //   #if defined( ARDUINO_M5Stick_C )
 
 #define SDUPDATER_SD_FS 0
@@ -92,7 +94,14 @@ extern "C" {
   #define DATA_DIR "/data"
 #endif
 
-#define USE_DISPLAY
+#define USE_DISPLAY // comment this out to force headless mode
+
+static void updateFromFS( fs::FS &fs, const String& fileName );
+
+#include "M5StackUpdaterHeadless.h"
+#ifdef USE_DISPLAY
+  #include "M5StackUpdaterUI.h"
+#endif
 
 #if defined( ARDUINO_ODROID_ESP32 ) // Odroid-GO
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
@@ -100,13 +109,15 @@ extern "C" {
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5STACK_FIRE ) // M5Stack Fire
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5Stick_C ) // M5StickC
   #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
 #elif defined( ARDUINO_ESP32_DEV ) // ESP32 Wrover Kit
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
 #else
-  #warning "No valid display detected, enabling headless mode"
-  #undef USE_DISPLAY // headless setup, progress will be rendered in Serial
+  #warning "No valid display detected, will use LGFX autodetect with default SD support"
+  //#undef USE_DISPLAY // headless setup, progress will be rendered in Serial
   #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS // default behaviour = use SD
 /*
@@ -119,16 +130,9 @@ extern "C" {
 */
 #endif
 
-#ifdef USE_DISPLAY
-  #if defined( ARDUINO_M5Stick_C )
-    #include <M5StickC.h> // load {M5StickC}-core
-  #else
-    #include <M5Stack.h> // load {M5Stack,ESP32-Chimera}-core
-  #endif
-#endif
-
-
-#if SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
+#if defined( M5STACK_SD )
+  #define SDUPDATER_FS M5STACK_SD
+#elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
   #define SDUPDATER_FS SD
   #include <SD.h>
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
@@ -149,20 +153,28 @@ extern "C" {
 // backwards compat
 #define M5SDMenuProgress SDMenuProgress
 
-class SDUpdater {
+#if defined USE_DISPLAY
+  #define SDUpdater SDUpdater_Display
+#else
+  #define SDUpdater SDUpdater_Headless
+#endif
+
+
+class SDUpdater_Base {
   public:
-    void updateFromFS( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN );
-    static void SDMenuProgress( int state, int size );
-    void displayUpdateUI( String label );
+    void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN );
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
-    static const int BACKUP_SD_TO_SPIFFS = 1;
-    static const int BACKUP_SPIFFS_TO_SD = 2;
-    SDUpdater( const String SPIFFS2SDFolder="" );
+    SDUpdater_Base( const String SPIFFS2SDFolder="" );
     String SKETCH_NAME = "";
     bool enableSPIFFS = false;
     bool SPIFFS_MOUNTED = false;
+
     #if defined( SD_ENABLE_SPIFFS_COPY )
+
+      static const int BACKUP_SD_TO_SPIFFS = 1;
+      static const int BACKUP_SPIFFS_TO_SD = 2;
+
       void copyFile( String sourceName, int dir );
       void copyFile( String sourceName, fs::FS &sourceFS, int dir );
       void copyFile( fs::File &sourceFile, int dir );
@@ -176,15 +188,61 @@ class SDUpdater {
       bool SPIFFSFormat();
       bool SPIFFSisEmpty();
     #endif
+
+    bool (*assertStartUpdate)();
+    void (*displayUpdateUI)( const String& label );
+    void (*SDMenuProgress)( int state, int size );
+
   private:
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
 };
 
+
+#if defined USE_DISPLAY
+class SDUpdater_Display : public SDUpdater_Base {
+  public:
+
+    SDUpdater_Display( const String SPIFFS2SDFolder="" ) : SDUpdater_Base( SPIFFS2SDFolder ) {
+      SDMenuProgress    = SDMenuProgressUI;
+      displayUpdateUI   = DisplayUpdateUI;
+      assertStartUpdate = assertStartUpdateFromButton;
+    };
+
+};
+#endif
+
+
+class SDUpdater_Headless : public SDUpdater_Base {
+  public:
+
+    SDUpdater_Headless( const String SPIFFS2SDFolder="" ) : SDUpdater_Base( SPIFFS2SDFolder ) {
+      SDMenuProgress  = SDMenuProgressHeadless;
+      displayUpdateUI = DisplayUpdateHeadless;
+      assertStartUpdate = assertStartUpdateFromSerial;
+    };
+
+};
+
+
+
 /* don't break older versions of the M5Stack SD Updater */
-__attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
+__attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN )
+{
   SDUpdater sdUpdater;
   sdUpdater.updateFromFS( fs, fileName );
 }
+
+__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
+  #if defined USE_DISPLAY
+    checkSDUpdaterUI( fs, fileName );
+  #else
+    checkSDUpdaterHeadless( fs, fileName, 5000 ); // wait 5000ms for serial update order
+  #endif
+}
+
+
+
+
 
 #endif
