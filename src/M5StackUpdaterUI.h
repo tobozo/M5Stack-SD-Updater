@@ -1,7 +1,7 @@
 #ifndef _M5UPDATER_UI_
 #define _M5UPDATER_UI_
 
-#if defined _CHIMERA_CORE_|| defined LOVYANGFX_HPP_ || defined _M5STACK_H_ || defined _M5Core2_H_
+#if defined _CHIMERA_CORE_|| defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_
 
 
   static bool assertStartUpdateFromButton()
