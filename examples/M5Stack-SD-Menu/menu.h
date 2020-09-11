@@ -30,7 +30,11 @@
 
 #if defined(_CHIMERA_CORE_)
   // auto-select board
-  #if defined( ARDUINO_M5Stack_Core_ESP32 )
+  #if defined( ARDUINO_M5STACK_Core2 )
+    #warning M5STACK Core2 DETECTED !!
+    #define PLATFORM_NAME "M5Core2"
+    #define DEFAULT_REGISTRY_BOARD "m5core2"
+  #elif defined( ARDUINO_M5Stack_Core_ESP32 )
     #warning M5STACK CLASSIC DETECTED !!
     #define PLATFORM_NAME "M5Stack"
     #define DEFAULT_REGISTRY_BOARD "m5stack"
@@ -68,11 +72,11 @@
 #include "compile_time.h"
 #include "SPIFFS.h"
 
-#if defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
+#if defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
+  #include <M5Core2.h> // https://github.com/m5stack/M5Core2/
+#elif defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
   #include <M5Stack.h> // https://github.com/m5stack/M5Stack/ or https://github.com/tobozo/ESP32-Chimera-Core
   // #include <ESP32-Chimera-Core.h>
-#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
-  #include <M5Core2.h>
 #elif defined( ARDUINO_M5Stick_C ) // M5StickC
   #include <M5StickC.h>
 #else
