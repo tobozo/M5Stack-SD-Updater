@@ -53,7 +53,7 @@ before_install:
   - install_library
   - install_library "M5Stack"
   - install_library "M5StickC"
-  - install_library "M5Core2"
+  - install_library "https://github.com/lovyan03/M5Core2.git" # "M5Core2" << Official repo slacking on the PR's :-(
   - install_library 'https://github.com/bblanchon/ArduinoJson.git' # "ArduinoJSON"
 
   - ls ${TRAVIS_BUILD_DIR} -la
@@ -63,6 +63,7 @@ before_install:
   - pwd
   # what the fsck is wrong install_package() ??
   - install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
+  - install_package "m5stack:esp32" "https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json"
   #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "compiler.warning_level=none" --save-prefs   &>/dev/null
   #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "build.warn_data_percentage=75" --save-prefs   &>/dev/null
   #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "boardsmanager.additional.urls=https://dl.espressif.com/dl/package_esp32_index.json" --save-prefs   &>/dev/null
@@ -74,13 +75,13 @@ script:
   # build_sketch arguments: sketch name, fqbn, allow failure, IDE version/list/range
   - check_library_manager_compliance "$TRAVIS_BUILD_DIR"
   - set_ide_preference "compiler.warning_level=auto"
+  
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "m5stack:esp32:m5stack-core2" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core-esp32" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stick-c" "false" "newest"
 
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/M5Stack-SD-Menu.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "newest"
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/m5stickc_tiny_menu/m5stickc_tiny_menu.ino" "esp32:esp32:m5stick-c" "false" "newest"
-
-  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core2" "false" "newest"
-  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core-esp32" "false" "newest"
-  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stick-c" "false" "newest"
 
 after_script:
   # Commit a report of the job results to the CI-reports repository
