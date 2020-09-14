@@ -1,25 +1,22 @@
+#ifndef M5StackSAM_h
+#define M5StackSAM_h
+
 #if defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
-  #include <M5Stack.h> // https://github.com/m5stack/M5Stack/ or https://github.com/tobozo/ESP32-Chimera-Core
+  #include <ESP32-Chimera-Core.h> // https://github.com/tobozo/ESP32-Chimera-Core
+  //#include <M5Stack.h> // https://github.com/m5stack/M5Stack/ or https://github.com/tobozo/ESP32-Chimera-Core
   // #include <ESP32-Chimera-Core.h>
 #elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
-  #include <M5Core2.h>
+  //#include <M5Core2.h>
+  #include <ESP32-Chimera-Core.h> // https://github.com/tobozo/ESP32-Chimera-Core
 #elif defined( ARDUINO_M5Stick_C ) // M5StickC
   #include <M5StickC.h>
 #else
   #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
 #endif
-/*
-// why was it even here ?
-#if defined(WIRING) && WIRING >= 100
-  #include <Wiring.h>
-#elif defined(ARDUINO) && ARDUINO >= 100
-  #include <Arduino.h>
-#else
-  #include <WProgram.h>
+
+#ifndef tft
+#define tft M5.Lcd
 #endif
-*/
-#ifndef M5StackSAM_h
-#define M5StackSAM_h
 
 #define M5SAM_MENU_TITLE_MAX_SIZE 24
 #define M5SAM_BTN_TITLE_MAX_SIZE 6
@@ -48,13 +45,13 @@ class M5SAM {
     void down();
     void execute();
     void windowClr();
-    void setColorSchema(unsigned int inmenucolor, unsigned int inwindowcolor, unsigned int intextcolor);
+    void setColorSchema(uint16_t inmenucolor, uint16_t inwindowcolor, uint16_t intextcolor);
     void drawAppMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, String inbtnCttl);
     #ifdef ARDUINO_ODROID_ESP32
     void drawAppMenu(String inmenuttl, String inbtnAttl, String intSpeakerttl, String inbtnBttl, String inbtnCttl);
     #endif
     void GoToLevel(byte inlevel);
-    unsigned int getrgb(byte inred, byte ingrn, byte inblue);
+    uint16_t getrgb(byte inred, byte ingrn, byte inblue);
     void addMenuItem(byte levelID, const char *menu_title,const char *btnA_title,const char *btnB_title,const char *btnC_title, signed char goto_level, void(*function)());
     void show();
     void showList();
@@ -82,9 +79,9 @@ class M5SAM {
     void keyboardEnable();
     void keyboardDisable();
     static void keyboardIRQ();
-    void drawMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, String inbtnCttl, unsigned int inmenucolor, unsigned int inwindowcolor, unsigned int intxtcolor);
+    void drawMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, String inbtnCttl, uint16_t inmenucolor, uint16_t inwindowcolor, uint16_t intxtcolor);
     #ifdef ARDUINO_ODROID_ESP32
-    void drawMenu(String inmenuttl, String inbtnAttl, String intSpeakerttl, String inbtnBttl, String inbtnCttl, unsigned int inmenucolor, unsigned int inwindowcolor, unsigned int intxtcolor);
+    void drawMenu(String inmenuttl, String inbtnAttl, String intSpeakerttl, String inbtnBttl, String inbtnCttl, uint16_t inmenucolor, uint16_t inwindowcolor, uint16_t intxtcolor);
     #endif
     struct MenuCommandCallback {
       char title[M5SAM_MENU_TITLE_MAX_SIZE + 1];
@@ -106,9 +103,9 @@ class M5SAM {
     byte menuIDX;
     byte levelIDX;
     byte menuCount[M5SAM_MAX_SUBMENUS];
-    unsigned int menucolor;
-    unsigned int windowcolor;
-    unsigned int menutextcolor;
+    uint16_t menucolor;
+    uint16_t windowcolor;
+    uint16_t menutextcolor;
 };
 
 #endif

@@ -39,7 +39,7 @@
  * flash back the menu.bin into memory.
  *
  */
-
+/*
 #if defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
   #include <M5Stack.h>
   // #include <ESP32-Chimera-Core.h>
@@ -50,7 +50,8 @@
 #else
   #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
 #endif
-
+*/
+#include <ESP32-Chimera-Core.h>
 #include <M5StackUpdater.h>
 
 void setup() {
@@ -63,6 +64,14 @@ void setup() {
   checkSDUpdater();
 
   Serial.println("Nope, will run the sketch normally");
+
+  RTC_TimeTypeDef Rtctime;
+  RTC_DateTypeDef RtcDate;
+  M5.Rtc.GetTime( &Rtctime );
+  M5.Rtc.GetData( &RtcDate );
+  Serial.printf( " %04d-%02d-%02d %02d:%02d:%02d ", RtcDate.Year, RtcDate.Month, RtcDate.Day, Rtctime.Hours, Rtctime.Minutes, Rtctime.Seconds );
+
+
 
 }
 
