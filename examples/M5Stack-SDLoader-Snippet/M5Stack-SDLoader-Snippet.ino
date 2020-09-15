@@ -65,14 +65,6 @@ void setup() {
 
   Serial.println("Nope, will run the sketch normally");
 
-  RTC_TimeTypeDef Rtctime;
-  RTC_DateTypeDef RtcDate;
-  M5.Rtc.GetTime( &Rtctime );
-  M5.Rtc.GetData( &RtcDate );
-  Serial.printf( " %04d-%02d-%02d %02d:%02d:%02d ", RtcDate.Year, RtcDate.Month, RtcDate.Day, Rtctime.Hours, Rtctime.Minutes, Rtctime.Seconds );
-
-
-
 }
 
 void loop() {
