@@ -56,7 +56,6 @@ before_install:
   - install_library "ESP32-Chimera-Core"
   - install_library "LovyanGFX"
   # make sure chimera-core does not collide with m5core
-  - rm $SKETCHBOOK_FOLDER/libraries/ESP32-Chimera-Core/src/M5Stack.h
   - install_library "https://github.com/lovyan03/M5Core2.git" # "M5Core2" << Official repo slacking on the PR's :-(
   - install_library 'https://github.com/bblanchon/ArduinoJson.git' # "ArduinoJSON"
 
