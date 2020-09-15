@@ -53,6 +53,9 @@ before_install:
   - install_library
   - install_library "M5Stack"
   - install_library "M5StickC"
+  - install_library "ESP32-Chimera-Core"
+  # make sure chimera-core does not collide with m5core
+  - rm $SKETCHBOOK_FOLDER/libraries/ESP32-Chimera-Core/src/M5Stack.h
   - install_library "https://github.com/lovyan03/M5Core2.git" # "M5Core2" << Official repo slacking on the PR's :-(
   - install_library 'https://github.com/bblanchon/ArduinoJson.git' # "ArduinoJSON"
 
@@ -75,7 +78,7 @@ script:
   # build_sketch arguments: sketch name, fqbn, allow failure, IDE version/list/range
   - check_library_manager_compliance "$TRAVIS_BUILD_DIR"
   - set_ide_preference "compiler.warning_level=auto"
-  
+
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "m5stack:esp32:m5stack-core2" "false" "newest"
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core-esp32" "false" "newest"
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stick-c" "false" "newest"
