@@ -72,17 +72,7 @@
 #include "compile_time.h"
 #include "SPIFFS.h"
 
-#if defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
-  #include <M5Core2.h> // https://github.com/m5stack/M5Core2/
-#elif defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
-  #include <M5Stack.h> // https://github.com/m5stack/M5Stack/ or https://github.com/tobozo/ESP32-Chimera-Core
-  // #include <ESP32-Chimera-Core.h>
-#elif defined( ARDUINO_M5Stick_C ) // M5StickC
-  #include <M5StickC.h>
-#else
-  #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
-#endif
-
+#include "core.h"
 
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 #define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
@@ -210,7 +200,7 @@ void renderIcon( FileInfo &fileInfo ) {
     return;
   }
   JSONMeta jsonMeta = fileInfo.jsonMeta;
-  tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE );
+  tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
 }
 
 /* by menu ID */
@@ -662,8 +652,12 @@ void UISetup() {
   tft.drawString( SD_LOADING_MESSAGE, 160, 142, 1 );
 
   bool toggle = true;
-
-  while( !M5_FS.begin( /*TFCARD_CS_PIN*/ ) ) {
+#ifdef _CHIMERA_CORE_
+  while( !M5.sd_begin() )
+#else
+  while( !M5_FS.begin() )
+#endif
+  {
     // TODO: make a more fancy animation
     toggle = !toggle;
     tft.setTextColor( toggle ? BLACK : WHITE );
@@ -694,7 +688,8 @@ void UISetup() {
     M5.update();
   #endif
 
-  if( M5.BtnA.isPressed() ) {
+  if( M5.BtnA.isPressed() )
+  {
     unsigned long pushStart = millis();
     unsigned long pushDuration = 0;
     drawAppMenu(); // render the menu

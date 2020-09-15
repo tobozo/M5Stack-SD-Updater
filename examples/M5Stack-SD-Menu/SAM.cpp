@@ -12,9 +12,9 @@ M5SAM::M5SAM()
   levelIDX = 0;
   menuCount[levelIDX] = 0;
   menuIDX = 0;
-  menucolor = getrgb(0,0,128);
-  windowcolor = getrgb(128,128,128);
-  menutextcolor = getrgb(255,255,255);
+  menucolor     = tft.color565( 0,0,128 );
+  windowcolor   = tft.color565( 128,128,128 );
+  menutextcolor = tft.color565( 255,255,255 );
   clearList();
 }
 
@@ -178,7 +178,7 @@ void M5SAM::windowClr(){
   M5.Lcd.fillRoundRect(0,32,M5.Lcd.width(),M5.Lcd.height()-32-32,3,windowcolor);
 }
 
-unsigned int M5SAM::getrgb(byte inred, byte ingrn, byte inblue){
+uint16_t M5SAM::getrgb(byte inred, byte ingrn, byte inblue){
   inred = map(inred,0,255,0,31);
   ingrn = map(ingrn,0,255,0,63);
   inblue = map(inblue,0,255,0,31);
@@ -190,7 +190,7 @@ void M5SAM::drawAppMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, St
   M5.Lcd.setTextColor(menutextcolor,windowcolor);
 }
 
-void M5SAM::setColorSchema(unsigned int inmenucolor, unsigned int inwindowcolor, unsigned int intextcolor){
+void M5SAM::setColorSchema(uint16_t inmenucolor, uint16_t inwindowcolor, uint16_t intextcolor){
   menucolor = inmenucolor;
   windowcolor = inwindowcolor;
   menutextcolor = intextcolor;
@@ -254,7 +254,7 @@ void M5SAM::keyboardIRQ(){
     1, 72, 188, 260
   };
 
-  void M5SAM::drawMenu(String inmenuttl, String inbtnAttl, String intSpeakerttl, String inbtnBttl, String inbtnCttl, unsigned int inmenucolor, unsigned int inwindowcolor, unsigned int intxtcolor) {
+  void M5SAM::drawMenu(String inmenuttl, String inbtnAttl, String intSpeakerttl, String inbtnBttl, String inbtnCttl, uint16_t inmenucolor, uint16_t inwindowcolor, uint16_t intxtcolor) {
     lastBtnTittle[1] = intSpeakerttl;
     drawMenu(inmenuttl, inbtnAttl, inbtnBttl, inbtnCttl,  inmenucolor, inwindowcolor, intxtcolor);
   }
@@ -286,7 +286,7 @@ void M5SAM::btnRestore(){
   M5.Lcd.setTextColor(menutextcolor,windowcolor);
 }
 
-void M5SAM::drawMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, String inbtnCttl, unsigned int inmenucolor, unsigned int inwindowcolor, unsigned int intxtcolor) {
+void M5SAM::drawMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, String inbtnCttl, uint16_t inmenucolor, uint16_t inwindowcolor, uint16_t intxtcolor) {
   #ifdef ARDUINO_ODROID_ESP32
     lastBtnTittle[0] = inbtnAttl;
     //lastBtnTittle[1] = "";

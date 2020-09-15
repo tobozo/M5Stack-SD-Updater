@@ -82,7 +82,7 @@
 
 void setup() {
   #if defined(_CHIMERA_CORE_)
-    M5.begin(true, true, true, false, true); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
+    M5.begin(true, false, true, false, true); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
   #else
     M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
   #endif
