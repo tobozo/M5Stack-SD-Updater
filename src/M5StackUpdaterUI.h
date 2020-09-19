@@ -1,32 +1,263 @@
 #ifndef _M5UPDATER_UI_
 #define _M5UPDATER_UI_
 
-#if defined _CHIMERA_CORE_|| defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_
+#include "assets.h"
+
+#if defined _CHIMERA_CORE_|| defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ //|| defined LGFX_ONLY
+
+  static void SDMenuProgressUI( int state, int size );
+  static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay = 2000  );
+  static void DisplayUpdateUI( const String& label );
+  static void SDMenuProgressUI( int state, int size );
+
+  #if defined LGFX_ONLY
+    static bool assertStartUpdateFromButton()
+    {
+      // Dummy function, see checkSDUpdaterUI() or its caller to override
+      return false;
+    }
+  #else
+    #ifndef tft
+      #define undef_tft
+      #define tft M5.Lcd
+    #endif
+    static bool assertStartUpdateFromButton()
+    {
+      M5.update();
+      return M5.BtnA.isPressed();
+    }
+  #endif
+
+  #if defined HAS_TOUCH // ESP32-Chimera-Core (TODO: add LGFX_ONLY) touch support
+
+    #define ROLLBACK_LABEL "Rollback" // reload app from the "other" OTA partition
+    #define LAUNCHER_LABEL "Launcher" // load Launcher (typically menu.bin)
+    #define SKIP_LABEL     "Skip >>|" // resume normal operations (=no action taken)
+
+    #define TOUCHBUTTONS_PADX    4
+    #define TOUCHBUTTONS_PADY    5
+    #define TOUCHBUTTONS_MARGINX 4
+    #define TOUCHBUTTONS_MARGINY 4
+    #define TOUCHBUTTONS_X1      TOUCHBUTTONS_MARGINX+tft.width()/4 // centered position
+    #define TOUCHBUTTONS_X2      TOUCHBUTTONS_MARGINX+tft.width()-tft.width()/4 // centered position
+    #define TOUCHBUTTONS_Y       tft.height()/2
+    #define TOUCHBUTTONS_W       (tft.width()/2)-(TOUCHBUTTONS_MARGINX*2)
+    #define TOUCHBUTTONS_H       tft.height()/4
+    #define TOUCHBUTTONS_ICON_X  TOUCHBUTTONS_MARGINX+16
+    #define TOUCHBUTTONS_ICON_Y  TOUCHBUTTONS_Y-8 //+ TOUCHBUTTONS_H/2 - 8
+    #define TOUCH_PROGRESSBAR_X  tft.width()/2+(TOUCHBUTTONS_MARGINX*2)+(TOUCHBUTTONS_PADX*2)-1
+    #define TOUCH_PROGRESSBAR_Y  (TOUCHBUTTONS_Y+TOUCHBUTTONS_H/2)+(TOUCHBUTTONS_MARGINY*2)-1
+    #define TOUCH_PROGRESSBAR_W  TOUCHBUTTONS_W-(TOUCHBUTTONS_MARGINX*4)-(TOUCHBUTTONS_PADX*4)
+    #define TOUCHBUTTONS_FSIZE   (tft.width()>240?2:1)
+
+    struct TouchButtonWrapper
+    {
+
+      bool iconRendered = false;
+
+      void handlePressed( TouchButton &btn, bool pressed, uint16_t x, uint16_t y)
+      {
+        if (pressed && btn.contains(x, y)) {
+          btn.press(true);  // tell the button it is pressed
+          //Serial.println("Pressed");
+        } else {
+          btn.press(false);  // tell the button it is NOT pressed
+        }
+      }
+
+      void handleJustPressed( TouchButton &btn, const char* label )
+      {
+        if ( btn.justPressed() ) {
+          btn.drawButton(true, label);
+          pushIcon( label );
+          //Serial.println("JustPressed");
+        }
+      }
+
+      bool justReleased( TouchButton &btn, bool pressed, const char* label )
+      {
+        bool ret = false;
+        if ( btn.justReleased() && (!pressed)) {
+          log_w("Callable");
+          ret = true;
+        } else if ( btn.justReleased() && (pressed)) {
+          ret = false;
+          //Serial.println("Not callable");
+        } else {
+          return false;
+        }
+        btn.drawButton(false, label);
+        pushIcon( label );
+        return ret;
+      }
+
+      void pushIcon(const char* label)
+      {
+        if( strcmp( label, LAUNCHER_LABEL ) == 0 || strcmp( label, ROLLBACK_LABEL ) )
+        {
+          auto IconSprite = TFT_eSprite( &tft );
+          IconSprite.createSprite(15,16);
+          IconSprite.drawJpg(sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 0,0, 15, 16);
+          IconSprite.pushSprite( TOUCHBUTTONS_ICON_X, TOUCHBUTTONS_ICON_Y, TFT_BLACK );
+          IconSprite.deleteSprite();
+        }
+      }
+
+    };
+
+    static int AnyTouchedButtonOf( char* labelLoad, char* labelSkip, unsigned long waitdelay=5000 )
+    {
+      /*
+      #ifndef tft
+        auto &tft = M5.Lcd;
+      #endif
+      */
+      if( waitdelay == 0 ) return -1;
+      // chimera core any-touch support + buttons
+      TouchButton LoadBtn;
+      TouchButton SkipBtn;
+      TouchButtonWrapper tbWrapper;
+
+      LoadBtn.initButton(
+        &tft,
+        TOUCHBUTTONS_X1, TOUCHBUTTONS_Y,  TOUCHBUTTONS_W, TOUCHBUTTONS_H,  // x, y, w, h
+        TFT_ORANGE, // Outline
+        tft.color565( 0xaa, 0x00, 0x00), // Fill
+        tft.color565( 0xdd, 0xdd, 0xdd), // Text
+        labelLoad, TOUCHBUTTONS_FSIZE    // label, fontsize
+      );
+      SkipBtn.initButton(
+        &tft,
+        TOUCHBUTTONS_X2, TOUCHBUTTONS_Y, TOUCHBUTTONS_W, TOUCHBUTTONS_H,  // x, y, w, h
+        tft.color565( 0x11, 0x11, 0x11), // Outline
+        tft.color565( 0x33, 0x88, 0x33), // Fill
+        tft.color565( 0xee, 0xee, 0xee), // Text
+        labelSkip, TOUCHBUTTONS_FSIZE    // label, fontsize
+      );
+
+      LoadBtn.setLabelDatum(TOUCHBUTTONS_PADX, TOUCHBUTTONS_PADY, MC_DATUM);
+      SkipBtn.setLabelDatum(TOUCHBUTTONS_PADX, TOUCHBUTTONS_PADY, MC_DATUM);
+
+      LoadBtn.drawButton();
+      SkipBtn.drawButton();
+
+      uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
+      bool ispressed = false;
+      int retval = -1; // return status
+
+      tft.drawFastHLine( TOUCH_PROGRESSBAR_X, TOUCH_PROGRESSBAR_Y, TOUCH_PROGRESSBAR_W-1, TFT_WHITE );
+
+      auto msectouch = millis();
+      do {
+        ispressed = tft.getTouch(&t_x, &t_y);
+
+        if( tbWrapper.iconRendered == false ) {
+          tbWrapper.pushIcon( labelLoad );
+          tbWrapper.iconRendered = true;
+        }
+
+        tbWrapper.handlePressed( LoadBtn, ispressed, t_x, t_y );
+        tbWrapper.handlePressed( SkipBtn, ispressed, t_x, t_y );
+
+        tbWrapper.handleJustPressed( LoadBtn, labelLoad );
+        tbWrapper.handleJustPressed( SkipBtn, labelSkip );
+
+        if( tbWrapper.justReleased( LoadBtn, ispressed, labelLoad ) ) {
+          retval = 1;
+          break;
+        }
+        if( tbWrapper.justReleased( SkipBtn, ispressed, labelSkip ) ) {
+          retval = 0;
+          break;
+        }
+
+        float barprogress = float(millis() - msectouch) / float(waitdelay);
+        int linewidth = float(TOUCH_PROGRESSBAR_W) * barprogress;
+        int linepos = TOUCH_PROGRESSBAR_W - ( linewidth +1 );
+        uint16_t grayscale = 255 - (192*barprogress);
+        tft.drawFastHLine( TOUCH_PROGRESSBAR_X,         TOUCH_PROGRESSBAR_Y, TOUCH_PROGRESSBAR_W-linewidth-1, tft.color565( grayscale, grayscale, grayscale ) );
+        tft.drawFastHLine( TOUCH_PROGRESSBAR_X+linepos, TOUCH_PROGRESSBAR_Y, 1,                               TFT_BLACK );
+
+      } while (millis() - msectouch < waitdelay);
+      tft.fillScreen(TFT_BLACK);
+      return retval;
+    }
+
+    static void rollBackUI()
+    {
+      if( Update.canRollBack() ) {
+        DisplayUpdateUI( "RE-LOADING APP" );
+        for( uint8_t i=1; i<50; i++ ) {
+          SDMenuProgressUI( i, 100 );
+        }
+        for( uint8_t i=50; i<=100; i++ ) {
+          SDMenuProgressUI( i, 100 );
+        }
+        Update.rollBack();
+        ESP.restart();
+      } else {
+        log_n("Cannot rollback: the other OTA partition doesn't seem to be populated or valid");
+        // TODO: better error hint (e.g. message) on the display
+        tft.fillScreen(TFT_RED);
+        delay(1000);
+      }
+    }
+
+  #endif
 
 
-  static bool assertStartUpdateFromButton()
+
+  static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay  )
   {
-    M5.update();
-    return M5.BtnA.isPressed();
-  }
-
-
-  static void checkSDUpdaterUI( fs::FS &fs, String fileName ) {
+    /*
     #ifndef tft
       auto &tft = M5.Lcd;
     #endif
-    tft.setCursor(0,0);
-    tft.print("SDUpdater\npress BtnA");
-    tft.setCursor(0,0);
-    auto msec = millis();
-    do {
-      if ( assertStartUpdateFromButton() ) {
-        Serial.println("Will Load menu binary");
-        updateFromFS( fs, fileName );
-        ESP.restart();
+    */
+    #if defined HAS_TOUCH
+      // bring up Touch UI as there are no buttons to click with
+      tft.setTextColor( TFT_WHITE, TFT_BLACK );
+      //tft.setTextFont( 0 );
+      tft.setTextSize( TOUCHBUTTONS_FSIZE );
+      tft.setCursor( 160, 0 );
+      tft.setTextDatum( TC_DATUM );
+      tft.drawString( "SD-Updater Options", tft.width()/2, 0 );
+      // todo: figure out a way to freeze/restore text settings
+      tft.setTextDatum( TL_DATUM );
+      tft.setCursor(0,0);
+
+      bool isRollBack = true;
+      if( fileName != "" ) {
+        isRollBack = false;
       }
-    } while (millis() - msec < 512);
-    tft.fillScreen(TFT_BLACK);
+      if( AnyTouchedButtonOf( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay) == 1 ) {
+        if( isRollBack == false ) {
+          Serial.print("Will Load menu binary : ");
+          Serial.println( fileName );
+          updateFromFS( fs, fileName );
+          ESP.restart();
+        } else {
+          Serial.println("sooowhat");
+          rollBackUI();
+        }
+        return;
+      }
+    #else
+      // show a hint
+      tft.setCursor(0,0);
+      tft.print("SDUpdater\npress BtnA");
+      tft.setCursor(0,0);
+
+      auto msec = millis();
+      do {
+        if ( assertStartUpdateFromButton() ) {
+          Serial.println("Will Load menu binary");
+          updateFromFS( fs, fileName );
+          ESP.restart();
+        }
+      } while (millis() - msec < 512);
+      tft.fillScreen(TFT_BLACK);
+    #endif
   }
 
 
@@ -38,10 +269,11 @@
     if( percent == SD_UI_Progress ) {
       // don't render twice the same value
       return;
-    }
+    }/*
     #ifndef tft
       auto &tft = M5.Lcd;
     #endif
+    */
     //Serial.printf("percent = %d\n", percent); // this is spammy
     SD_UI_Progress = percent;
     int progress_w = 102;
@@ -69,9 +301,11 @@
 
   static void DisplayUpdateUI( const String& label )
   {
+    /*
     #ifndef tft
       auto &tft = M5.Lcd;
     #endif
+    */
     if (tft.width() < tft.height()) tft.setRotation(tft.getRotation() ^ 1);
 
     tft.fillScreen( TFT_BLACK );
@@ -98,6 +332,11 @@
     tft.print( label );
     tft.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
   }
+
+
+  #if defined undef_tft
+    #undef tft
+  #endif
 
 #else
 
