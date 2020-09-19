@@ -12,7 +12,9 @@
 
 
   static void checkSDUpdaterUI( fs::FS &fs, String fileName ) {
-    auto &tft = M5.Lcd;
+    #ifndef tft
+      auto &tft = M5.Lcd;
+    #endif
     tft.setCursor(0,0);
     tft.print("SDUpdater\npress BtnA");
     tft.setCursor(0,0);
@@ -37,7 +39,9 @@
       // don't render twice the same value
       return;
     }
-    auto &tft = M5.Lcd;
+    #ifndef tft
+      auto &tft = M5.Lcd;
+    #endif
     //Serial.printf("percent = %d\n", percent); // this is spammy
     SD_UI_Progress = percent;
     int progress_w = 102;
@@ -65,7 +69,9 @@
 
   static void DisplayUpdateUI( const String& label )
   {
-    auto &tft = M5.Lcd;
+    #ifndef tft
+      auto &tft = M5.Lcd;
+    #endif
     if (tft.width() < tft.height()) tft.setRotation(tft.getRotation() ^ 1);
 
     tft.fillScreen( TFT_BLACK );

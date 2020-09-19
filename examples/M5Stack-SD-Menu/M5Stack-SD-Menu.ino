@@ -82,10 +82,16 @@
 
 void setup() {
   #if defined(_CHIMERA_CORE_)
-    M5.begin(true, false, true, false, true); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
+    M5.begin(true, false, true, false, false); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
   #else
     M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
   #endif
+
+  #if defined HAS_TOUCH
+    // suggest rollback
+    checkSDUpdater( M5_FS, "" );
+  #endif
+
   //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
   UISetup(); // UI init and check if a SD exists
 
