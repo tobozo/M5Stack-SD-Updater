@@ -72,6 +72,8 @@ extern "C" {
   #include "esp_image_format.h"
 }
 #include <FS.h>
+#include <Update.h>
+#include <Preferences.h>
 
 // #define SD_ENABLE_SPIFFS_COPY // enable SD <=> SPIFFS copy functions, from outside this library
 
@@ -94,7 +96,11 @@ extern "C" {
   #define DATA_DIR "/data"
 #endif
 
-#define USE_DISPLAY // comment this out to force headless mode
+#define USE_DISPLAY // #undef this from your sketch to force headless mode
+
+#if !defined(TFCARD_CS_PIN) // override this from your sketch
+ #define TFCARD_CS_PIN SS
+#endif
 
 static void updateFromFS( fs::FS &fs, const String& fileName );
 
@@ -109,12 +115,18 @@ static void updateFromFS( fs::FS &fs, const String& fileName );
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5STACK_FIRE ) // M5Stack Fire
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
+#elif defined( ARDUINO_M5STACK_Core2 ) // M5Core2
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5Stick_C ) // M5StickC
   #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
-#elif defined( ARDUINO_ESP32_DEV ) // ESP32 Wrover Kit
+#elif defined( ARDUINO_ESP32_DEV ) || defined( ARDUINO_ESP32_WROVER_KIT ) // ESP32 Wrover Kit
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
+#elif defined( ARDUINO_TTGO_T1 ) // TTGO T1
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
+#elif defined( ARDUINO_LOLIN_D32_PRO ) // LoLin D32 Pro
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+#elif defined( ARDUINO_T_Watch ) // TWatch, all model
+  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #else
   #warning "No valid display detected, will use LGFX autodetect with default SD support"
   //#undef USE_DISPLAY // headless setup, progress will be rendered in Serial
@@ -147,8 +159,7 @@ static void updateFromFS( fs::FS &fs, const String& fileName );
 #endif
 
 
-#include <Update.h>
-#include <Preferences.h>
+
 
 // backwards compat
 #define M5SDMenuProgress SDMenuProgress
@@ -226,18 +237,18 @@ class SDUpdater_Headless : public SDUpdater_Base {
 
 
 
-/* don't break older versions of the M5Stack SD Updater */
+/* don't break button-based (older) versions of the M5Stack SD Updater */
 __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN )
 {
   SDUpdater sdUpdater;
   sdUpdater.updateFromFS( fs, fileName );
 }
 
-__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN ) {
+__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 0 ) {
   #if defined USE_DISPLAY
-    checkSDUpdaterUI( fs, fileName );
+    checkSDUpdaterUI( fs, fileName, waitdelay );
   #else
-    checkSDUpdaterHeadless( fs, fileName, 5000 ); // wait 5000ms for serial update order
+    checkSDUpdaterHeadless( fs, fileName, waitdelay ); // wait 5000ms for serial update order
   #endif
 }
 

@@ -189,7 +189,7 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
     log_i(" Checking for SPIFFS Support");
     if( &fs == &SPIFFS ) {
       if( !SPIFFS.begin() ){
-        log_e( "SPIFFS MOUNT FAILED, ABORTING!!" );
+        log_n( "SPIFFS MOUNT FAILED, ABORTING!!" );
         return;
       } else {
         log_i( "SPIFFS Successfully mounted");
@@ -207,8 +207,8 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
     //#pragma message ("SD Support detected")
     log_i(" Checking for SD Support");
     if( &fs == &SD ) {
-      if( !SD.begin() ){
-        log_e( "SD MOUNT FAILED, ABORTING!!" );
+      if( !SD.begin( 4 ) ) {
+        log_n( "SD MOUNT FAILED, ABORTING!!" );
         return;
       } else {
         log_i( "SD Successfully mounted");
@@ -220,7 +220,7 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
     log_i(" Checking for SD_MMC Support");
     if( &fs == &SD_MMC ) {
       if( !SD_MMC.begin() ){
-        log_e( "SD_MMC MOUNT FAILED, ABORTING!!" );
+        log_n( "SD_MMC MOUNT FAILED, ABORTING!!" );
         return;
       } else {
         log_i( "SD_MMC Successfully mounted");

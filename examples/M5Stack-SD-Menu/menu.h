@@ -75,7 +75,6 @@
 #include "core.h"
 
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
-#define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
 
 #ifdef _LGFX_QRCODE_H_
   #define qrcode_getBufferSize lgfx_qrcode_getBufferSize
@@ -649,6 +648,8 @@ void UISetup() {
   lastcheck = millis();
   tft.drawJpg(disk01_jpg, 1775, (tft.width()-30)/2, 100);
   tft.setTextDatum(MC_DATUM);
+  tft.setTextColor( TFT_WHITE, TFT_BLACK );
+  tft.setTextSize( 1 );
   tft.drawString( SD_LOADING_MESSAGE, 160, 142, 1 );
 
   bool toggle = true;
@@ -660,7 +661,7 @@ void UISetup() {
   {
     // TODO: make a more fancy animation
     toggle = !toggle;
-    tft.setTextColor( toggle ? BLACK : WHITE );
+    tft.setTextColor( toggle ? TFT_BLACK : TFT_WHITE );
     tft.drawString( INSERTSD_MESSAGE, 160, 84, 2 );
     tft.drawJpg( toggle ? disk01_jpg : disk00_jpg, 1775, (tft.width()-30)/2, 100 );
     delay( toggle ? 300 : 500 );
