@@ -255,7 +255,7 @@
           updateFromFS( fs, fileName );
           ESP.restart();
         }
-      } while (millis() - msec < 512);
+      } while (millis() - msec < waitdelay);
       tft.fillScreen(TFT_BLACK);
     #endif
   }
