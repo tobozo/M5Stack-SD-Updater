@@ -3,12 +3,12 @@
 
 #include "assets.h"
 
-#if defined _CHIMERA_CORE_|| defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ //|| defined LGFX_ONLY
+#define ROLLBACK_LABEL "Rollback" // reload app from the "other" OTA partition
+#define LAUNCHER_LABEL "Launcher" // load Launcher (typically menu.bin)
+#define SKIP_LABEL     "Skip >>|" // resume normal operations (=no action taken)
+#define BTN_HINT_TPL   "SDUpdater\npress BtnA for %s"
 
-  static void SDMenuProgressUI( int state, int size );
-  static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay = 2000  );
-  static void DisplayUpdateUI( const String& label );
-  static void SDMenuProgressUI( int state, int size );
+#if defined _CHIMERA_CORE_|| defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ //|| defined LGFX_ONLY
 
   #if defined LGFX_ONLY
     static bool assertStartUpdateFromButton()
@@ -28,11 +28,33 @@
     }
   #endif
 
+  static void SDMenuProgressUI( int state, int size );
+  static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay = 2000  );
+  static void DisplayUpdateUI( const String& label );
+  static void SDMenuProgressUI( int state, int size );
+
+  static void rollBackUI()
+  {
+    if( Update.canRollBack() ) {
+      DisplayUpdateUI( "RE-LOADING APP" );
+      for( uint8_t i=1; i<50; i++ ) {
+        SDMenuProgressUI( i, 100 );
+      }
+      for( uint8_t i=50; i<=100; i++ ) {
+        SDMenuProgressUI( i, 100 );
+      }
+      Update.rollBack();
+      ESP.restart();
+    } else {
+      log_n("Cannot rollback: the other OTA partition doesn't seem to be populated or valid");
+      // TODO: better error hint (e.g. message) on the display
+      tft.fillScreen(TFT_RED);
+      delay(1000);
+    }
+  }
+
   #if defined HAS_TOUCH // ESP32-Chimera-Core (TODO: add LGFX_ONLY) touch support
 
-    #define ROLLBACK_LABEL "Rollback" // reload app from the "other" OTA partition
-    #define LAUNCHER_LABEL "Launcher" // load Launcher (typically menu.bin)
-    #define SKIP_LABEL     "Skip >>|" // resume normal operations (=no action taken)
 
     #define TOUCHBUTTONS_PADX    4
     #define TOUCHBUTTONS_PADY    5
@@ -183,26 +205,6 @@
       return retval;
     }
 
-    static void rollBackUI()
-    {
-      if( Update.canRollBack() ) {
-        DisplayUpdateUI( "RE-LOADING APP" );
-        for( uint8_t i=1; i<50; i++ ) {
-          SDMenuProgressUI( i, 100 );
-        }
-        for( uint8_t i=50; i<=100; i++ ) {
-          SDMenuProgressUI( i, 100 );
-        }
-        Update.rollBack();
-        ESP.restart();
-      } else {
-        log_n("Cannot rollback: the other OTA partition doesn't seem to be populated or valid");
-        // TODO: better error hint (e.g. message) on the display
-        tft.fillScreen(TFT_RED);
-        delay(1000);
-      }
-    }
-
   #endif
 
 
@@ -214,6 +216,12 @@
       auto &tft = M5.Lcd;
     #endif
     */
+
+    bool isRollBack = true;
+    if( fileName != "" ) {
+      isRollBack = false;
+    }
+
     #if defined HAS_TOUCH
       // bring up Touch UI as there are no buttons to click with
       tft.setTextColor( TFT_WHITE, TFT_BLACK );
@@ -226,10 +234,6 @@
       tft.setTextDatum( TL_DATUM );
       tft.setCursor(0,0);
 
-      bool isRollBack = true;
-      if( fileName != "" ) {
-        isRollBack = false;
-      }
       if( AnyTouchedButtonOf( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay) == 1 ) {
         if( isRollBack == false ) {
           Serial.print("Will Load menu binary : ");
@@ -237,7 +241,7 @@
           updateFromFS( fs, fileName );
           ESP.restart();
         } else {
-          Serial.println("sooowhat");
+          Serial.println("Will Roll back");
           rollBackUI();
         }
         return;
@@ -245,15 +249,25 @@
     #else
       // show a hint
       tft.setCursor(0,0);
-      tft.print("SDUpdater\npress BtnA");
+      if( isRollBack ) {
+        tft.printf( BTN_HINT_TPL, ROLLBACK_LABEL );
+      } else {
+        tft.printf( BTN_HINT_TPL, LAUNCHER_LABEL );
+      }
       tft.setCursor(0,0);
 
       auto msec = millis();
       do {
         if ( assertStartUpdateFromButton() ) {
-          Serial.println("Will Load menu binary");
-          updateFromFS( fs, fileName );
-          ESP.restart();
+          if( isRollBack == false ) {
+            Serial.println("Will Load menu binary");
+            updateFromFS( fs, fileName );
+            ESP.restart();
+          } else {
+            Serial.println("Will Roll back");
+            rollBackUI();
+          }
+
         }
       } while (millis() - msec < waitdelay);
       tft.fillScreen(TFT_BLACK);
