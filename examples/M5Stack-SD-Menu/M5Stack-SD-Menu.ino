@@ -87,10 +87,10 @@ void setup() {
     M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
   #endif
 
-  #if defined HAS_TOUCH
+  //#if defined HAS_TOUCH
     // suggest rollback
-    checkSDUpdater( M5_FS, "" );
-  #endif
+  checkSDUpdater( M5_FS, "", 2000 );
+  //#endif
 
   //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
   UISetup(); // UI init and check if a SD exists

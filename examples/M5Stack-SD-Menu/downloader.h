@@ -34,7 +34,10 @@
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include "wifi_manager.h"
+
 #include "mbedtls/md.h"
+#include <ESP32-targz.h>
 
 // registry this launcher is tied to
 #include "registry.h"
@@ -1308,6 +1311,14 @@ void updateOne(String appName) {
     syncFinished(false); // throw a modal
   } else {
     // tried all attempts and gave up
+
+    if( modalConfirm( "WiFi Fail", MENU_BTN_CANCELED, "You may need to run a WiFi Manager", "Config WiFi ?",  DOWNLOADER_MODAL_CHANGE, MENU_BTN_WFT, MENU_BTN_WFT ) == HID_SELECT ) {
+      // run WiFi Manager
+      wifiManagerSetup();
+      wifiManagerLoop();
+      ESP.restart();
+    }
+
   }
   appsCount = oldAppsCount;
 }
@@ -1323,6 +1334,15 @@ void updateAll() {
     }
     log_e("[HEAP after delete fileInfo[i]: %d]", ESP.getFreeHeap() );
     */
+
+    //if( wget("http://my.site/my_binary_package.tar.gz", "/my_binary_package.tar.gz") ) {
+    //  tft.drawString( "  Untarring ... ", tft.width()/2, tft.height()/2 );
+    //  gzExpander(M5_FS, "/my_binary_package.tar.gz", M5_FS, "/tmp/tmp.tar");
+    //  tft.drawString( "  Gunzipping ... ", tft.width()/2, tft.height()/2 );
+    //  tarExpander(M5_FS, "/tmp/tmp.tar", M5_FS, "/");
+    //  return;
+    //}
+
     while(!done && downloadererrors==0 ) {
       syncAppRegistry( Registry.defaultChannel.api_url_https );
       if( downloadererrors > 0 ) {

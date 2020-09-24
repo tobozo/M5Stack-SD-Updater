@@ -70,7 +70,7 @@
 
 #include <sys/time.h>
 #include "compile_time.h"
-#include "SPIFFS.h"
+#include <SPIFFS.h>
 
 #include "core.h"
 
@@ -89,6 +89,7 @@
 
 #include "SAM.h" // altered version of https://github.com/tomsuch/M5StackSAM, maintained at https://github.com/tobozo/M5StackSAM/
 #include <ArduinoJson.h>     // https://github.com/bblanchon/ArduinoJson/
+#include <Preferences.h>
 #include "i18n.h"            // language file
 #include "assets.h"          // some artwork for the UI
 #include "controls.h"        // keypad / joypad / keyboard controls
@@ -493,7 +494,9 @@ void menuInfo() {
   M5Menu.windowClr();
   if( MenuID == 0 ) {
     // downloader
-    M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_LAUNCH, MENU_BTN_SOURCE, MENU_BTN_BACK );
+    M5Menu.drawAppMenu( "Apps Downloader", MENU_BTN_LAUNCH, MENU_BTN_SOURCE, MENU_BTN_BACK );
+    lastpush = millis();
+    return;
   } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
     M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
   } else {
@@ -555,39 +558,44 @@ void checkMenuTimeStamp() {
 
 
 void downloaderMenu() {
-  int resp = modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, MENU_BTN_CANCEL );
+
+
+  int resp = modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, "WiFi" );
   // choose between updating the JSON or changing the default channel
   switch( resp ) {
 
     case HID_SELECT:
       resp = modalConfirm( "chanpick", CHANNEL_CHOOSER, CHANNEL_CHOOSER_PROMPT, CHANNEL_CHOOSER_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_CANCEL, MENU_BTN_BACK );
-      switch( resp ) {
-
-        case HID_SELECT:
-          if( resp == HID_SELECT ) {
-            if( Registry.pref_default_channel == "master" ) {
-              Registry.pref_default_channel = "unstable";
-            } else {
-              Registry.pref_default_channel = "master";
-            }
-            registrySave( Registry, appRegistryFolder + "/" + appRegistryDefaultName );
-            Serial.println("Will reload in 5 sec");
-            delay(5000);
-            ESP.restart();
-          }
-        break;
+      if( resp == HID_SELECT ) {
+        if( Registry.pref_default_channel == "master" ) {
+          Registry.pref_default_channel = "unstable";
+        } else {
+          Registry.pref_default_channel = "master";
+        }
+        registrySave( Registry, appRegistryFolder + "/" + appRegistryDefaultName );
+        Serial.println("Will reload in 5 sec");
+        delay(5000);
+        ESP.restart();
       }
     break;
 
     case HID_PAGE_DOWN:
       resp = modalConfirm( "chanupd", CHANNEL_DOWNLOADER, CHANNEL_DOWNLOADER_PROMPT, CHANNEL_DOWNLOADER_TEXT, MENU_BTN_UPDATE, MENU_BTN_CANCEL, MENU_BTN_BACK );
-      switch( resp ) {
-        case HID_SELECT:
-          // TODO: WiFi connect, wget file and save to SD
-          registryFetch( Registry, appRegistryFolder + "/" + appRegistryDefaultName );
-        break;
+      if( resp == HID_SELECT ) {
+        // TODO: WiFi connect, wget file and save to SD
+        registryFetch( Registry, appRegistryFolder + "/" + appRegistryDefaultName );
       }
     break;
+
+    default:
+      resp = modalConfirm( "appDlChooser", "WiFi Setup", "WiFi Manager", "        Start WiFi Manager ?",  "Start", MENU_BTN_CANCEL, MENU_BTN_BACK );
+      if( resp == HID_SELECT ) {
+        wifiManagerSetup();
+        wifiManagerLoop();
+        ESP.restart();
+      }
+    break;
+
   }
   drawM5Menu( inInfoMenu );
 }
@@ -689,7 +697,7 @@ void UISetup() {
     M5.update();
   #endif
 
-  if( M5.BtnA.isPressed() )
+  if( M5.BtnB.isPressed() )
   {
     unsigned long pushStart = millis();
     unsigned long pushDuration = 0;
@@ -698,7 +706,7 @@ void UISetup() {
     tft.setTextColor( WHITE, M5MENU_GREY );
     tft.setTextDatum(MC_DATUM);
     char remainingStr[32];
-    while( M5.BtnA.isPressed() ) {
+    while( M5.BtnB.isPressed() ) {
       pushDuration = millis() - pushStart;
       if( pushDuration > longPush ) break;
       if( pushDuration > shortPush ) {
