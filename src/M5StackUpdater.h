@@ -73,7 +73,9 @@ extern "C" {
 }
 #include <FS.h>
 #include <Update.h>
+#include <rom/rtc.h>
 #include <Preferences.h>
+#define resetReason (int)rtc_get_reset_reason(0)
 
 // #define SD_ENABLE_SPIFFS_COPY // enable SD <=> SPIFFS copy functions, from outside this library
 
