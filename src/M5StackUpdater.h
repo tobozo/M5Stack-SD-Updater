@@ -152,6 +152,7 @@ static void updateFromFS( fs::FS &fs, const String& fileName );
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
   #define SDUPDATER_FS SD_MMC
   #include <SD_MMC.h>
+  #error mais wtf ??
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SPIFFS_FS
   #define SDUPDATER_FS SPIFFS
   #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
@@ -246,7 +247,17 @@ __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, con
   sdUpdater.updateFromFS( fs, fileName );
 }
 
-__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 0 ) {
+__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 500 ) {
+  if( waitdelay == 0 ) {
+    // check for reset reset reason
+    switch( resetReason ) {
+      // 1  = just flashed
+      // 2  = ?
+      // 12 = just sd-updated ! -> force waitdelay to 2000ms ?
+      case 12: waitdelay = 2000; break;
+      default: break;
+    }
+  }
   #if defined USE_DISPLAY
     checkSDUpdaterUI( fs, fileName, waitdelay );
   #else
