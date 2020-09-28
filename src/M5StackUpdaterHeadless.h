@@ -3,28 +3,34 @@
 
 #include <Arduino.h>
 
+#define SDU_LOAD_TPL   "Will Load menu binary : \n"
+#define SDU_ROLLBACK_MSG "Will Roll back"
 
-static bool assertStartUpdateFromSerial()
+static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip )
 {
   if( Serial.available() ) {
     String out = Serial.readStringUntil('\n');
-    if( out == "update" ) return true;
+    if( out == "update" ) return 1;
+    if( out == "rollback") return 0;
   }
-  return false;
+  return -1;
 }
 
 
 
-static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long scanDelay ) {
-  Serial.printf("SDUpdater: you have %d milliseconds to send 'update' command", scanDelay);
+static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay ) {
+  Serial.printf("SDUpdater: you have %d milliseconds to send 'update' command", waitdelay);
+  if( waitdelay == 0 ) {
+    waitdelay = 100; // at lease give some time for the serial buffer to fill
+  }
   auto msec = millis();
   do {
-    if ( assertStartUpdateFromSerial() ) {
-      Serial.println("Will Load menu binary");
+    if ( assertStartUpdateFromSerial( nullptr, nullptr ) == 1 ) {
+      Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
       updateFromFS( fs, fileName );
       ESP.restart();
     }
-  } while (millis() - msec < scanDelay);
+  } while (millis() - msec < waitdelay);
   Serial.print("Delay expired, no SD-Update will occur");
 }
 

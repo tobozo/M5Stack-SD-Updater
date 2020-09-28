@@ -36,33 +36,49 @@
  * any app that will be compiled and copied the sd card.
  *
  *
- * In your sketch, find the line where M5 library is included:
+ * In your sketch, find the line where the core library is included:
  *
- *   #include <M5Stack.h>
+ *  // #include <M5Stack.h>
+ *  // #include <M5Core2.h>
+ *  // #include <ESP32-Chimera-Core.h>
+ *  // #include <M5StickC.h>
  *
  * And add this:
  *
- *  #include "M5StackUpdater.h"
- *  SDUpdater sdUpdater;
+ *  #include <M5StackUpdater.h>
  *
  *
  * In your setup() function, find the following statements:
  *
  *   M5.begin();
- *   Wire.begin()
  *
- * And add this after 'Wire.begin();':
+ * And add this:
+ *
+ *   checkSDUpdater();
+ *
+ * Then do whatever you need to do (button init, timers)
+ * in the setup and the loop. Your app will be ready
+ * to run normally except at boot if the Button A is
+ * pressed, it will load the "menu.bin" from the sd card.
+ *
+ * Touch UI has no buttons, this raises the problem of
+ * detecting a 'pushed' state when the touch is off.
+ * As a compensation, an UI will be visible for 2 seconds
+ * after every ESP.restart(), and this visibility can
+ * be forced in the setup :
+ *
+ *   checkSDUpdater( SD, MENU_BIN, 2000 );
+ *
+ * Headless setups can overload SDUpdater::assertStartUpdate
+ * with their own button/sensor/whatever detection routine
+ * or even issue the "update" command via serial
  *
  *   if(digitalRead(BUTTON_A_PIN) == 0) {
  *     Serial.println("Will Load menu binary");
- *     sdUpdater.updateFromFS(SD);
+ *     updateFromFS(SD);
  *     ESP.restart();
  *   }
  *
- * And do whatever you need to do (button init, timers)
- * in the setup and the loop. Your app will be ready
- * to run normally except at boot if the Button A is
- * pressed, it will load the "menu.bin" from the sd card
  *
  */
 #include "gitTagVersion.h"
@@ -111,26 +127,26 @@ static void updateFromFS( fs::FS &fs, const String& fileName );
   #include "M5StackUpdaterUI.h"
 #endif
 
-#if defined( ARDUINO_ODROID_ESP32 ) // Odroid-GO
+#if defined( ARDUINO_ODROID_ESP32 )         // Odroid-GO
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5Stack_Core_ESP32 ) // M5Stack Classic
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_M5STACK_FIRE ) // M5Stack Fire
+#elif defined( ARDUINO_M5STACK_FIRE )       // M5Stack Fire
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_M5STACK_Core2 ) // M5Core2
+#elif defined( ARDUINO_M5STACK_Core2 )      // M5Core2
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_M5Stick_C ) // M5StickC
+#elif defined( ARDUINO_M5Stick_C )          // M5StickC
   #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
 #elif defined( ARDUINO_ESP32_DEV ) || defined( ARDUINO_ESP32_WROVER_KIT ) // ESP32 Wrover Kit
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
-#elif defined( ARDUINO_TTGO_T1 ) // TTGO T1
+#elif defined( ARDUINO_TTGO_T1 )            // TTGO T1
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
-#elif defined( ARDUINO_LOLIN_D32_PRO ) // LoLin D32 Pro
+#elif defined( ARDUINO_LOLIN_D32_PRO )      // LoLin D32 Pro
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_T_Watch ) // TWatch, all model
+#elif defined( ARDUINO_T_Watch )            // TWatch, all model
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #else
-  #warning "No valid display detected, will use LGFX autodetect with default SD support"
+  #warning "No valid combination of Device+Display+SD detected, inheriting defaults"
   //#undef USE_DISPLAY // headless setup, progress will be rendered in Serial
   #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS // default behaviour = use SD
@@ -152,7 +168,6 @@ static void updateFromFS( fs::FS &fs, const String& fileName );
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
   #define SDUPDATER_FS SD_MMC
   #include <SD_MMC.h>
-  #error mais wtf ??
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SPIFFS_FS
   #define SDUPDATER_FS SPIFFS
   #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
@@ -161,17 +176,8 @@ static void updateFromFS( fs::FS &fs, const String& fileName );
   #error "Invalid FS type selected, must be one of: SDUPDATER_SD_FS, SDUPDATER_SD_MMC_FS, SDUPDATER_SPIFFS_FS"
 #endif
 
-
-
-
 // backwards compat
 #define M5SDMenuProgress SDMenuProgress
-
-#if defined USE_DISPLAY
-  #define SDUpdater SDUpdater_Display
-#else
-  #define SDUpdater SDUpdater_Headless
-#endif
 
 
 class SDUpdater_Base {
@@ -203,7 +209,7 @@ class SDUpdater_Base {
       bool SPIFFSisEmpty();
     #endif
 
-    bool (*assertStartUpdate)();
+    int (*assertStartUpdate)( char* labelLoad,  char* labelSkip );
     void (*displayUpdateUI)( const String& label );
     void (*SDMenuProgress)( int state, int size );
 
@@ -211,20 +217,6 @@ class SDUpdater_Base {
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
 };
-
-
-#if defined USE_DISPLAY
-class SDUpdater_Display : public SDUpdater_Base {
-  public:
-
-    SDUpdater_Display( const String SPIFFS2SDFolder="" ) : SDUpdater_Base( SPIFFS2SDFolder ) {
-      SDMenuProgress    = SDMenuProgressUI;
-      displayUpdateUI   = DisplayUpdateUI;
-      assertStartUpdate = assertStartUpdateFromButton;
-    };
-
-};
-#endif
 
 
 class SDUpdater_Headless : public SDUpdater_Base {
@@ -238,7 +230,21 @@ class SDUpdater_Headless : public SDUpdater_Base {
 
 };
 
+#if defined USE_DISPLAY
+  class SDUpdater_Display : public SDUpdater_Base {
+    public:
 
+      SDUpdater_Display( const String SPIFFS2SDFolder="" ) : SDUpdater_Base( SPIFFS2SDFolder ) {
+        SDMenuProgress    = SDMenuProgressUI;
+        displayUpdateUI   = DisplayUpdateUI;
+        assertStartUpdate = assertStartUpdateFromButton;
+      };
+
+  };
+  #define SDUpdater SDUpdater_Display
+#else
+  #define SDUpdater SDUpdater_Headless
+#endif
 
 /* don't break button-based (older) versions of the M5Stack SD Updater */
 __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN )
@@ -247,21 +253,32 @@ __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, con
   sdUpdater.updateFromFS( fs, fileName );
 }
 
-__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 500 ) {
+__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 0 ) {
   if( waitdelay == 0 ) {
     // check for reset reset reason
     switch( resetReason ) {
-      // 1  = just flashed
-      // 2  = ?
-      // 12 = just sd-updated ! -> force waitdelay to 2000ms ?
-      case 12: waitdelay = 2000; break;
-      default: break;
+      //case 1 : log_d("POWERON_RESET");break;                  // 1, Vbat power on reset
+      //case 3 : log_d("SW_RESET");break;                       // 3, Software reset digital core
+      //case 4 : log_d("OWDT_RESET");break;                     // 4, Legacy watch dog reset digital core
+      //case 5 : log_d("DEEPSLEEP_RESET");break;                // 5, Deep Sleep reset digital core
+      //case 6 : log_d("SDIO_RESET");break;                     // 6, Reset by SLC module, reset digital core
+      //case 7 : log_d("TG0WDT_SYS_RESET");break;               // 7, Timer Group0 Watch dog reset digital core
+      //case 8 : log_d("TG1WDT_SYS_RESET");break;               // 8, Timer Group1 Watch dog reset digital core
+      //case 9 : log_d("RTCWDT_SYS_RESET");break;               // 9, RTC Watch dog Reset digital core
+      //case 10 : log_d("INTRUSION_RESET");break;               // 10, Instrusion tested to reset CPU
+      //case 11 : log_d("TGWDT_CPU_RESET");break;               // 11, Time Group reset CPU
+      case 12 : log_d("SW_CPU_RESET"); waitdelay=2000; break;   // 12, Software reset CPU
+      //case 13 : log_d("RTCWDT_CPU_RESET");break;              // 13, RTC Watch dog Reset CPU
+      //case 14 : log_d("EXT_CPU_RESET");break;                 // 14, for APP CPU, reseted by PRO CPU
+      //case 15 : log_d("RTCWDT_BROWN_OUT_RESET");break;        // 15, Reset when the vdd voltage is not stable
+      case 16 : log_d("RTCWDT_RTC_RESET"); waitdelay=500; break;// 16, RTC Watch dog reset digital core and rtc module
+      default : log_d("NO_MEAN");
     }
   }
   #if defined USE_DISPLAY
     checkSDUpdaterUI( fs, fileName, waitdelay );
   #else
-    checkSDUpdaterHeadless( fs, fileName, waitdelay ); // wait 5000ms for serial update order
+    checkSDUpdaterHeadless( fs, fileName, waitdelay );
   #endif
 }
 

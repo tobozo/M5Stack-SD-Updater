@@ -28,44 +28,41 @@
  *
  */
 
-#if defined(_CHIMERA_CORE_)
-  // auto-select board
-  #if defined( ARDUINO_M5STACK_Core2 )
-    #warning M5STACK Core2 DETECTED !!
-    #define PLATFORM_NAME "M5Core2"
-    #define DEFAULT_REGISTRY_BOARD "m5core2"
-  #elif defined( ARDUINO_M5Stack_Core_ESP32 )
-    #warning M5STACK CLASSIC DETECTED !!
-    #define PLATFORM_NAME "M5Stack"
-    #define DEFAULT_REGISTRY_BOARD "m5stack"
-  #elif defined( ARDUINO_M5STACK_FIRE )
-    #warning M5STACK FIRE DETECTED !!
-    #define PLATFORM_NAME "M5Stack"
-    #define DEFAULT_REGISTRY_BOARD "m5stack"
-  #elif defined( ARDUINO_ODROID_ESP32 )
-    #warning ODROID DETECTED !!
-    #define PLATFORM_NAME "Odroid-GO"
-    #define DEFAULT_REGISTRY_BOARD "odroid"
-  #elif defined ( ARDUINO_ESP32_DEV )
-    #warning WROVER DETECTED !!
-    #define DEFAULT_REGISTRY_BOARD "esp32"
-    #define PLATFORM_NAME "ESP32"
-  #else
-    #warning NOTHING DETECTED !!
-    #define DEFAULT_REGISTRY_BOARD "lambda"
-    #define PLATFORM_NAME "LAMBDA"
-  #endif
-  // auto-select SD source
-  #define M5_FS SDUPDATER_FS
-
-#else
-
-  // until M5Stack clean up their flags
-  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+// auto-select board
+#if defined( ARDUINO_M5STACK_Core2 )
+  #warning M5STACK Core2 DETECTED !!
+  #define PLATFORM_NAME "M5Core2"
+  #define DEFAULT_REGISTRY_BOARD "m5stack"
+#elif defined( ARDUINO_M5Stack_Core_ESP32 )
+  #warning M5STACK CLASSIC DETECTED !!
   #define PLATFORM_NAME "M5Stack"
   #define DEFAULT_REGISTRY_BOARD "m5stack"
-  #define M5_FS SD
+#elif defined( ARDUINO_M5STACK_FIRE )
+  #warning M5STACK FIRE DETECTED !!
+  #define PLATFORM_NAME "M5Fire"
+  #define DEFAULT_REGISTRY_BOARD "m5stack"
+#elif defined( ARDUINO_ODROID_ESP32 )
+  #warning ODROID DETECTED !!
+  #define PLATFORM_NAME "Odroid-GO"
+  #define DEFAULT_REGISTRY_BOARD "odroid"
+#elif defined ( ARDUINO_ESP32_DEV )
+  #warning WROVER DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "esp32"
+  #define PLATFORM_NAME "ESP32"
+#else
+  #warning NOTHING DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "lambda"
+  #define PLATFORM_NAME "LAMBDA"
+#endif
 
+
+#if defined(_CHIMERA_CORE_)
+  // auto-select SD source
+  #define M5_FS SDUPDATER_FS
+#else
+  // until M5Stack clean up their flags
+  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  #define M5_FS SD
 #endif
 
 #include <sys/time.h>
