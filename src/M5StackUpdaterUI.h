@@ -1,6 +1,10 @@
 #ifndef _M5UPDATER_UI_
 #define _M5UPDATER_UI_
 
+// LGFX complains when using old TFT_eSPI syntax
+// but this sketch must be driver agnostic
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 #include "assets.h"
 
 #define ROLLBACK_LABEL "Rollback" // reload app from the "other" OTA partition
@@ -10,6 +14,27 @@
 
 
 #if defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ //|| defined LGFX_ONLY
+
+
+  #if defined LGFX_ONLY
+    static int assertStartUpdateFromButton( char* labelLoad, char* labelSkip )
+    {
+      // Dummy function, see checkSDUpdaterUI() or its caller to override
+      return -1;
+    }
+  #else
+    #ifndef tft
+      #define undef_tft
+      #define tft M5.Lcd
+    #endif
+    static int assertStartUpdateFromButton( char* labelLoad, char* labelSkip )
+    {
+      M5.update();
+      if( M5.BtnA.isPressed() ) return 1;
+      if( M5.BtnB.isPressed() ) return 0;
+      return -1;
+    }
+  #endif
 
   #ifdef ARDUINO_ODROID_ESP32 // odroid has 4 buttons under the TFT
     #define BUTTON_WIDTH 60
@@ -49,26 +74,6 @@
   static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay = 2000  );
   static void DisplayUpdateUI( const String& label );
   static void SDMenuProgressUI( int state, int size );
-
-  #if defined LGFX_ONLY
-    static int assertStartUpdateFromButton( char* labelLoad, char* labelSkip )
-    {
-      // Dummy function, see checkSDUpdaterUI() or its caller to override
-      return -1;
-    }
-  #else
-    #ifndef tft
-      #define undef_tft
-      #define tft M5.Lcd
-    #endif
-    static int assertStartUpdateFromButton( char* labelLoad, char* labelSkip )
-    {
-      M5.update();
-      if( M5.BtnA.isPressed() ) return 1;
-      if( M5.BtnB.isPressed() ) return 0;
-      return -1;
-    }
-  #endif
 
   static void rollBackUI()
   {
