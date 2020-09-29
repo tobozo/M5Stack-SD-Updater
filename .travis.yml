@@ -53,6 +53,7 @@ before_install:
   - install_library
   - install_library "M5Stack"
   - install_library "M5StickC"
+  - install_library "ESP32-targz"
   #- install_library "ESP32-Chimera-Core"
   - install_library "https://github.com/tobozo/ESP32-Chimera-Core/archive/Touch.zip"
   - install_library "LovyanGFX"
