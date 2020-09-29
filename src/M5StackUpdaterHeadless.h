@@ -18,7 +18,7 @@ static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip )
 
 
 
-static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay ) {
+static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay, const int TfCardCsPin_ ) {
   Serial.printf("SDUpdater: you have %d milliseconds to send 'update' command", waitdelay);
   if( waitdelay == 0 ) {
     waitdelay = 100; // at lease give some time for the serial buffer to fill
@@ -27,7 +27,7 @@ static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long w
   do {
     if ( assertStartUpdateFromSerial( nullptr, nullptr ) == 1 ) {
       Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
-      updateFromFS( fs, fileName );
+      updateFromFS( fs, fileName, TfCardCsPin_ );
       ESP.restart();
     }
   } while (millis() - msec < waitdelay);

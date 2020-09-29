@@ -120,7 +120,7 @@ extern "C" {
  #define TFCARD_CS_PIN SS
 #endif
 
-static void updateFromFS( fs::FS &fs, const String& fileName );
+static void updateFromFS( fs::FS &fs, const String& fileName, const int TFCardCsPin );
 
 #include "M5StackUpdaterHeadless.h"
 #ifdef USE_DISPLAY
@@ -182,10 +182,11 @@ static void updateFromFS( fs::FS &fs, const String& fileName );
 
 class SDUpdater_Base {
   public:
+    SDUpdater_Base( const int TFCardCsPin_ = TFCARD_CS_PIN );
+    SDUpdater_Base( const String SPIFFS2SDFolder="" );
     void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN );
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
-    SDUpdater_Base( const String SPIFFS2SDFolder="" );
     String SKETCH_NAME = "";
     bool enableSPIFFS = false;
     bool SPIFFS_MOUNTED = false;
@@ -214,6 +215,7 @@ class SDUpdater_Base {
     void (*SDMenuProgress)( int state, int size );
 
   private:
+    int _TFCardCsPin = TFCARD_CS_PIN;
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
 };
@@ -222,7 +224,7 @@ class SDUpdater_Base {
 class SDUpdater_Headless : public SDUpdater_Base {
   public:
 
-    SDUpdater_Headless( const String SPIFFS2SDFolder="" ) : SDUpdater_Base( SPIFFS2SDFolder ) {
+    SDUpdater_Headless( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
       SDMenuProgress  = SDMenuProgressHeadless;
       displayUpdateUI = DisplayUpdateHeadless;
       assertStartUpdate = assertStartUpdateFromSerial;
@@ -234,7 +236,7 @@ class SDUpdater_Headless : public SDUpdater_Base {
   class SDUpdater_Display : public SDUpdater_Base {
     public:
 
-      SDUpdater_Display( const String SPIFFS2SDFolder="" ) : SDUpdater_Base( SPIFFS2SDFolder ) {
+      SDUpdater_Display( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
         SDMenuProgress    = SDMenuProgressUI;
         displayUpdateUI   = DisplayUpdateUI;
         assertStartUpdate = assertStartUpdateFromButton;
@@ -246,14 +248,14 @@ class SDUpdater_Headless : public SDUpdater_Base {
   #define SDUpdater SDUpdater_Headless
 #endif
 
-/* don't break button-based (older) versions of the M5Stack SD Updater */
-__attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN )
+// provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater
+__attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN, const int TfCardCsPin = TFCARD_CS_PIN )
 {
-  SDUpdater sdUpdater;
+  SDUpdater sdUpdater( TfCardCsPin );
   sdUpdater.updateFromFS( fs, fileName );
 }
-
-__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 0 ) {
+// provide a conditional function to cover more devices, including headless and touch
+__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 0, const int TfCardCsPin_ = TFCARD_CS_PIN ) {
   if( waitdelay == 0 ) {
     // check for reset reset reason
     switch( resetReason ) {
@@ -276,9 +278,9 @@ __attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, S
     }
   }
   #if defined USE_DISPLAY
-    checkSDUpdaterUI( fs, fileName, waitdelay );
+    checkSDUpdaterUI( fs, fileName, waitdelay, TfCardCsPin_ );
   #else
-    checkSDUpdaterHeadless( fs, fileName, waitdelay );
+    checkSDUpdaterHeadless( fs, fileName, waitdelay, TfCardCsPin_ );
   #endif
 }
 

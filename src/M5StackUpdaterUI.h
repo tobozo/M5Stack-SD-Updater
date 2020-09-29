@@ -310,7 +310,7 @@
 
   #endif // HAS_TOUCH
 
-  static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay  )
+  static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay, const int TFCardCsPin )
   {
     /* auto &tft = M5.Lcd; */
     log_n("Booting with reset reason: %d", resetReason );
@@ -330,7 +330,7 @@
       if( SDUpdaterAsserTrigger( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL ) == 1 ) {
         if( isRollBack == false ) {
           Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
-          updateFromFS( fs, fileName );
+          updateFromFS( fs, fileName, TFCardCsPin );
           ESP.restart();
         } else {
           Serial.println( SDU_ROLLBACK_MSG );
@@ -365,7 +365,7 @@
         if ( assertStartUpdateFromButton( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL ) == 1 ) {
           if( isRollBack == false ) {
             Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
-            updateFromFS( fs, fileName );
+            updateFromFS( fs, fileName, TFCardCsPin );
             ESP.restart();
           } else {
             Serial.println( SDU_ROLLBACK_MSG );
