@@ -82,21 +82,80 @@ This sketch is the menu app. It must be (a) compiled and saved to the root direc
 The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used to make any Arduino compatible sketch compatible for use with the SD-Updater menu.
 
 
-  For an existing M5 app, find the line:
 
-      #include <M5Stack.h>
+ In your sketch, find the line where the core library is included:
 
-  And add this:
+ ```C
+    // #include <M5Stack.h>
+    // #include <M5Core2.h>
+    // #include <ESP32-Chimera-Core.h>
+    // #include <M5StickC.h>
+```
 
-      #include "M5StackUpdater.h"
+ And add this:
 
-  In your setup() function, find the following statement:
+```C
+    #include <M5StackUpdater.h>
+```
 
-      M5.begin();
-     
-  And add this just after `M5.begin()`:
-    
-      checkSDUpdater();
+ In your setup() function, find the following statements:
+
+```C
+    M5.begin();
+```
+
+ And add this:
+
+```C
+    checkSDUpdater();
+```
+
+ Then do whatever you need to do (button init, timers)
+ in the setup and the loop. Your app will be ready
+ to run normally except at boot if the Button A is
+ pressed, it will load the "menu.bin" from the sd card.
+
+ Touch UI has no buttons, this raises the problem of
+ detecting a 'pushed' state when the touch is off.
+ As a compensation, an UI will be visible for 2 seconds
+ after every ESP.restart(), and this visibility can
+ be forced in the setup :
+
+```C
+    checkSDUpdater( SD, MENU_BIN, 2000 );
+```
+
+ Headless setups can overload SDUpdater::assertStartUpdate
+ with their own button/sensor/whatever detection routine.
+
+
+```C
+
+    Serial.begin( 115200 );
+
+    if(digitalRead(BUTTON_A_PIN) == 0) {
+      Serial.println("Will Load menu binary");
+      updateFromFS(SD);
+      ESP.restart();
+    }
+
+```
+
+  Custom SD-Load scenarios can be achieved using non default values:
+
+```C
+
+    M5.begin();
+
+    checkSDUpdater(
+      SD,           // filesystem (default=SD)
+      MENU_BIN,     // path to binary (default = /menu.bin, empty string = rollback only)
+      0,            // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
+      TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
+    );
+
+```
+
 
 <br />
 
