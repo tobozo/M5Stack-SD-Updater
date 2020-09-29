@@ -117,7 +117,9 @@
     tft.setTextSize( SDUTextStyle.textsize);
     tft.setTextDatum( SDUTextStyle.textdatum );
     tft.setTextColor( SDUTextStyle.textcolor , SDUTextStyle.textbgcolor );
-    tft.setFont( nullptr );
+    #ifndef  _M5STICKC_H_
+      tft.setFont( nullptr );
+    #endif
     tft.setCursor(0,0);
     tft.fillScreen(TFT_BLACK);
   }
