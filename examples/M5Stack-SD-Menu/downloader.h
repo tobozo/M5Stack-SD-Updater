@@ -463,8 +463,9 @@ void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float siz
 
 void drawSDUpdaterChannel() {
   tft.setTextColor(TFT_WHITE, M5MENU_BLUE );
+  tft.setTextDatum( ML_DATUM );
   tft.drawJpg(bluefork_jpg, bluefork_jpg_len, 2, 8 );
-  tft.drawString( Registry.defaultChannel.name, 16, 11 );
+  tft.drawString( Registry.defaultChannel.name, 18, 14 );
   tft.setTextColor(TFT_WHITE, M5MENU_GREY );
 }
 
