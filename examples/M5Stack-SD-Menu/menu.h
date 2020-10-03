@@ -73,7 +73,8 @@
 
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
-#ifdef _LGFX_QRCODE_H_
+#if defined(_CHIMERA_CORE_)
+  #include "lgfx/utility/lgfx_qrcode.h"
   #define qrcode_getBufferSize lgfx_qrcode_getBufferSize
   #define qrcode_initText lgfx_qrcode_initText
   #define qrcode_initBytes lgfx_qrcode_initBytes
@@ -118,6 +119,7 @@ int16_t lastScrollOffset; // last scrolling string position
 SDUpdater sdUpdater;
 M5SAM M5Menu;
 AppRegistry Registry;
+TFT_eSprite sprite = TFT_eSprite( &tft );
 
 
 /* vMicro compliance, see https://github.com/tobozo/M5Stack-SD-Updater/issues/5#issuecomment-386749435 */
@@ -129,18 +131,28 @@ void renderMeta( JSONMeta &jsonMeta );
 void qrRender( String text, float sizeinpixels );
 
 
-void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
+
+void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t width = tft.width() ) {
+
   if( scrollText=="" ) return;
-  tft.setTextSize( 2 ); // setup text size before it's measured
+
+  sprite.setTextSize( 2 ); // setup text size before it's measured
+  sprite.setTextDatum( ML_DATUM );
+  sprite.setTextWrap( false ); // lazy way to solve a wrap bug
+
+  sprite.setColorDepth( 1 );
+  sprite.createSprite( width, BUTTON_HEIGHT );
+  //sprite.fillSprite( TFT_BLACK );
+
   if( !scrollText.endsWith( " " )) {
-    scrollText += " "; // append a space since scrolling text *will* repeat
+    scrollText += "   ***   "; // append a space since scrolling text *will* repeat
   }
-  while( tft.textWidth( scrollText ) < width ) {
+  while( sprite.textWidth( scrollText ) < width ) {
     scrollText += scrollText; // grow text to desired width
   }
 
   String  scrollMe = "";
-  int16_t textWidth = tft.textWidth( scrollText );
+  int16_t textWidth = sprite.textWidth( scrollText );
   int16_t vsize = 0,
           vpos = 0,
           voffset = 0,
@@ -153,41 +165,43 @@ void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
     scrollPointer = 0;
     vsize = scrollPointer;
   }
-  while( tft.textWidth(scrollMe) < width ) {
+  while( sprite.textWidth(scrollMe) < width ) {
     for( uint8_t i=0; i<scrollText.length(); i++ ) {
       char thisChar[2];
       thisChar[0] = scrollText[i];
       thisChar[1] = '\0';
-      csize = tft.textWidth( thisChar );
+      csize = sprite.textWidth( thisChar );
       vsize+=csize;
       vpos = vsize+scrollPointer;
-      if( vpos>x && vpos<=x+width ) {
+      if( vpos>0 && vpos<=width ) {
         scrollMe += scrollText[i];
         lastcsize = csize;
         voffset = scrollPointer%lastcsize;
-        scrollOffset = x+voffset;
-        if( tft.textWidth(scrollMe) > width-voffset ) {
+        scrollOffset = voffset;
+        if( sprite.textWidth(scrollMe) > width-voffset ) {
           break; // break out of the loop and out of the while
         }
       }
     }
   }
   // display trim
-  while( tft.textWidth( scrollMe ) > width-voffset ) {
+  while( sprite.textWidth( scrollMe ) > width-voffset ) {
     scrollMe.remove( scrollMe.length()-1 );
   }
+  //scrollMe.remove( scrollMe.length()-1 ); // one last for the ride
   // only draw if things changed
   if( scrollOffset!=lastScrollOffset || scrollMe!=lastScrollMessage ) {
-    tft.setTextColor( WHITE, BLACK ); // setting background color removes the flickering effect
-    tft.setCursor( scrollOffset, y );
-    tft.print( scrollMe );
-    tft.setTextColor( WHITE );
+    sprite.setTextColor( WHITE, BLACK ); // setting background color removes the flickering effect
+    sprite.setCursor( scrollOffset, BUTTON_HEIGHT/2 );
+    sprite.print( scrollMe );
+    sprite.setTextColor( WHITE );
+    sprite.pushSprite( x, y );
   }
-  tft.setTextSize( 1 );
+  sprite.deleteSprite();
   lastScrollMessage = scrollMe;
   lastScrollOffset  = scrollOffset;
   lastScrollRender  = micros();
-  lastpush          = millis();
+  //lastpush          = millis();
 }
 
 
@@ -212,25 +226,37 @@ void renderFace( String face ) {
 
 
 void renderMeta( JSONMeta &jsonMeta ) {
-  tft.setTextSize( 1 );
-  tft.setTextColor( WHITE );
-  tft.setCursor( 10, 35 );
-  tft.print( fileInfo[MenuID].fileName );
-  tft.setCursor( 10, 70 );
-  tft.print( String( fileInfo[MenuID].fileSize ) + String( FILESIZE_UNITS ) );
-  tft.setCursor( 10, 50 );
+
+  sprite.setTextSize( 1 );
+  sprite.setTextDatum( TL_DATUM );
+  sprite.setTextColor( WHITE, BLACK );
+  sprite.setTextWrap( false );
+
+  sprite.setColorDepth( 1 );
+  sprite.createSprite( (tft.width() / 2)-20, 5*sprite.fontHeight() );
+  sprite.setCursor( 0, 0 );
+  sprite.println( fileInfo[MenuID].fileName );
+  sprite.println();
 
   if( jsonMeta.authorName!="" && jsonMeta.projectURL!="" ) { // both values provided
-    tft.print( AUTHOR_PREFIX );
-    tft.print( jsonMeta.authorName );
-    tft.print( AUTHOR_SUFFIX );
+    sprite.print( AUTHOR_PREFIX );
+    sprite.print( jsonMeta.authorName );
+    sprite.println( AUTHOR_SUFFIX );
+    sprite.println();
     qrRender( jsonMeta.projectURL, 160 );
   } else if( jsonMeta.projectURL!="" ) { // only projectURL
-    tft.print( jsonMeta.projectURL );
+    sprite.println( jsonMeta.projectURL );
+    sprite.println();
     qrRender( jsonMeta.projectURL, 160 );
   } else { // only authorName
-    tft.drawCentreString( jsonMeta.authorName,tft.width()/2,(tft.height()/2)-25,2 );
+    sprite.println( jsonMeta.authorName );
+    sprite.println();
   }
+
+  sprite.println( String( fileInfo[MenuID].fileSize ) + String( FILESIZE_UNITS ) );
+  sprite.pushSprite( 5, 35, TFT_BLACK );
+  sprite.deleteSprite();
+
 }
 
 
@@ -863,7 +889,7 @@ void HIDMenuObserve() {
     default:
     case HID_INERT:
       if( inInfoMenu ) { // !! scrolling text also prevents sleep mode !!
-        renderScroll( fileInfo[MenuID].jsonMeta.credits, 0, 5, 320 );
+        renderScroll( fileInfo[MenuID].jsonMeta.credits );
       }
     break;
   }
