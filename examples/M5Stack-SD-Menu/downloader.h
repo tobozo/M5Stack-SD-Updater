@@ -37,7 +37,7 @@
 #include "wifi_manager.h"
 
 #include "mbedtls/md.h"
-#include <ESP32-targz.h>
+//#include <ESP32-targz.h>
 
 // registry this launcher is tied to
 #include "registry.h"
