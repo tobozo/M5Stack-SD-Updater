@@ -25,18 +25,54 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
   bool JOY_X_pressed = false;
 #endif
 
+
+#if defined ARDUINO_M5STACK_Core2
+  // enable haptic feedback !
+  static bool isVibrating = false;
+
+  static void vibrateTask( void * param ) {
+    if( !isVibrating ) {
+      isVibrating = true;
+      int ms = *((int*)param); // dafuq
+      M5.Axp.SetLDOEnable( 3,1 );
+      delay( ms );
+      M5.Axp.SetLDOEnable( 3,0 );
+      isVibrating = false;
+    }
+    vTaskDelete( NULL );
+  }
+
+  static void HIDFeedback( int ms ) {
+    xTaskCreatePinnedToCore( vibrateTask, "vibrateTask", 2048, (void*)&ms, 16, NULL , 1 );
+  }
+
+#else
+
+  static void HIDFeedback( int ms ) { ;  }
+
+#endif
+
+
+HIDSignal HIDFeedback( HIDSignal signal, int ms = 100 ) {
+  if( signal != HID_INERT ) {
+    HIDFeedback( ms );
+  }
+  return signal;
+}
+
+
 HIDSignal getControls() {
   // no buttons? no problemo! (c) Arnold S.
   if( Serial.available() ) {
     char command = Serial.read(); // read one char
     Serial.flush();
     switch(command) {
-      case 'a':Serial.println("Sending HID_DOWN Signal");return HID_DOWN;
-      case 'b':Serial.println("Sending HID_UP Signal");return HID_UP;
-      case 'c':Serial.println("Sending HID_PAGE_DOWN Signal");return HID_PAGE_DOWN;
-      case 'd':Serial.println("Sending HID_PAGE_UP Signal");return HID_PAGE_UP;
-      case 'e':Serial.println("Sending HID_SCREENSHOT Signal");return HID_SCREENSHOT;
-      case 'f':Serial.println("Sending HID_SELECT Signal");return HID_SELECT;
+      case 'a':Serial.println("Sending HID_DOWN Signal");      return HIDFeedback( HID_DOWN );
+      case 'b':Serial.println("Sending HID_UP Signal");        return HIDFeedback( HID_UP );
+      case 'c':Serial.println("Sending HID_PAGE_DOWN Signal"); return HIDFeedback( HID_PAGE_DOWN );
+      case 'd':Serial.println("Sending HID_PAGE_UP Signal");   return HIDFeedback( HID_PAGE_UP );
+      case 'e':Serial.println("Sending HID_SCREENSHOT Signal");return HIDFeedback( HID_SCREENSHOT );
+      case 'f':Serial.println("Sending HID_SELECT Signal");    return HIDFeedback( HID_SELECT );
       default: Serial.print("Ignoring serial input: ");Serial.println( String(command) );
     }
   }
@@ -49,8 +85,8 @@ HIDSignal getControls() {
       beforeRepeatDelay += FAST_REPEAT_DELAY;
       JOY_Y_pressed = true;
       switch( updown ) {
-        case 1: return HID_DOWN;
-        case 2: return HID_UP;
+        case 1: return HIDFeedback( HID_DOWN );
+        case 2: return HIDFeedback( HID_UP );
         break;
       }
     }
@@ -70,8 +106,8 @@ HIDSignal getControls() {
       beforeRepeatDelay += FAST_REPEAT_DELAY;
       JOY_X_pressed = true;
       switch( leftright ) {
-        case 1: return HID_PAGE_DOWN;
-        case 2: return HID_PAGE_UP;
+        case 1: return HIDFeedback( HID_PAGE_DOWN );
+        case 2: return HIDFeedback( HID_PAGE_UP );
         break;
       }
     }
@@ -90,10 +126,10 @@ HIDSignal getControls() {
   bool c = M5.BtnStart.wasPressed(); // acts as "BntC" on M5Stack, rightmost button, no alias
   bool d = M5.BtnVolume.wasPressed();
 
-  if( d ) return HID_SCREENSHOT;
-  if( b ) return HID_PAGE_DOWN;
-  if( c ) return HID_DOWN;
-  if( a ) return HID_SELECT;
+  if( d ) return HIDFeedback( HID_SCREENSHOT );
+  if( b ) return HIDFeedback( HID_PAGE_DOWN );
+  if( c ) return HIDFeedback( HID_DOWN );
+  if( a ) return HIDFeedback( HID_SELECT );
 
 #else
 
@@ -103,10 +139,10 @@ HIDSignal getControls() {
   bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
   bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
 
-  if( d || e ) return HID_PAGE_UP; // multiple push, suggested by https://github.com/mongonta0716
-  if( b ) return HID_PAGE_DOWN;
-  if( c ) return HID_DOWN;
-  if( a ) return HID_SELECT;
+  if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
+  if( b ) return HIDFeedback( HID_PAGE_DOWN );
+  if( c ) return HIDFeedback( HID_DOWN );
+  if( a ) return HIDFeedback( HID_SELECT );
 
 #endif
 

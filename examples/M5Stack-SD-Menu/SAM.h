@@ -1,6 +1,8 @@
 #ifndef M5StackSAM_h
 #define M5StackSAM_h
-
+// LGFX complains when M5Stack SAM uses old syntax
+// but this sketch must be driver agnostic
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include "core.h"
 
 #ifndef tft

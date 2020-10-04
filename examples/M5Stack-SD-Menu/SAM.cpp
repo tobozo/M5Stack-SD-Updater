@@ -280,7 +280,8 @@ void M5SAM::btnRestore(){
   for( byte i=0; i<BUTTONS_COUNT; i++ ) {
     M5.Lcd.fillRoundRect(buttonsXOffset[i],M5.Lcd.height()-BUTTON_HEIGHT,BUTTON_WIDTH,BUTTON_HEIGHT,3,menucolor);
     if( lastBtnTittle[i] != "" ) {
-      M5.Lcd.drawCentreString(lastBtnTittle[i],buttonsXOffset[i]+BUTTON_HWIDTH,M5.Lcd.height()-BUTTON_HEIGHT+6,2);
+      M5.Lcd.drawCentreString( lastBtnTittle[i], buttonsXOffset[i]+BUTTON_HWIDTH, M5.Lcd.height()-BUTTON_HEIGHT+6, 2);
+
     }
   }
   M5.Lcd.setTextColor(menutextcolor,windowcolor);

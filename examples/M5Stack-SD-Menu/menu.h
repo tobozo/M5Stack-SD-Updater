@@ -28,55 +28,53 @@
  *
  */
 
-#if defined(_CHIMERA_CORE_)
-  // auto-select board
-  #if defined( ARDUINO_M5STACK_Core2 )
-    #warning M5STACK Core2 DETECTED !!
-    #define PLATFORM_NAME "M5Core2"
-    #define DEFAULT_REGISTRY_BOARD "m5core2"
-  #elif defined( ARDUINO_M5Stack_Core_ESP32 )
-    #warning M5STACK CLASSIC DETECTED !!
-    #define PLATFORM_NAME "M5Stack"
-    #define DEFAULT_REGISTRY_BOARD "m5stack"
-  #elif defined( ARDUINO_M5STACK_FIRE )
-    #warning M5STACK FIRE DETECTED !!
-    #define PLATFORM_NAME "M5Stack"
-    #define DEFAULT_REGISTRY_BOARD "m5stack"
-  #elif defined( ARDUINO_ODROID_ESP32 )
-    #warning ODROID DETECTED !!
-    #define PLATFORM_NAME "Odroid-GO"
-    #define DEFAULT_REGISTRY_BOARD "odroid"
-  #elif defined ( ARDUINO_ESP32_DEV )
-    #warning WROVER DETECTED !!
-    #define DEFAULT_REGISTRY_BOARD "esp32"
-    #define PLATFORM_NAME "ESP32"
-  #else
-    #warning NOTHING DETECTED !!
-    #define DEFAULT_REGISTRY_BOARD "lambda"
-    #define PLATFORM_NAME "LAMBDA"
-  #endif
-  // auto-select SD source
-  #define M5_FS SDUPDATER_FS
-
-#else
-
-  // until M5Stack clean up their flags
-  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+// auto-select board
+#if defined( ARDUINO_M5STACK_Core2 )
+  #warning M5STACK Core2 DETECTED !!
+  #define PLATFORM_NAME "M5Core2"
+  #define DEFAULT_REGISTRY_BOARD "m5stack"
+#elif defined( ARDUINO_M5Stack_Core_ESP32 )
+  #warning M5STACK CLASSIC DETECTED !!
   #define PLATFORM_NAME "M5Stack"
   #define DEFAULT_REGISTRY_BOARD "m5stack"
-  #define M5_FS SD
+#elif defined( ARDUINO_M5STACK_FIRE )
+  #warning M5STACK FIRE DETECTED !!
+  #define PLATFORM_NAME "M5Fire"
+  #define DEFAULT_REGISTRY_BOARD "m5stack"
+#elif defined( ARDUINO_ODROID_ESP32 )
+  #warning ODROID DETECTED !!
+  #define PLATFORM_NAME "Odroid-GO"
+  #define DEFAULT_REGISTRY_BOARD "odroid"
+#elif defined ( ARDUINO_ESP32_DEV )
+  #warning WROVER DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "esp32"
+  #define PLATFORM_NAME "ESP32"
+#else
+  #warning NOTHING DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "lambda"
+  #define PLATFORM_NAME "LAMBDA"
+#endif
 
+
+#if defined(_CHIMERA_CORE_)
+  // auto-select SD source
+  #define M5_FS SDUPDATER_FS
+#else
+  // until M5Stack clean up their flags
+  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  #define M5_FS SD
 #endif
 
 #include <sys/time.h>
 #include "compile_time.h"
-#include "SPIFFS.h"
+#include <SPIFFS.h>
 
 #include "core.h"
 
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
-#ifdef _LGFX_QRCODE_H_
+#if defined(_CHIMERA_CORE_)
+  #include "lgfx/utility/lgfx_qrcode.h"
   #define qrcode_getBufferSize lgfx_qrcode_getBufferSize
   #define qrcode_initText lgfx_qrcode_initText
   #define qrcode_initBytes lgfx_qrcode_initBytes
@@ -89,6 +87,7 @@
 
 #include "SAM.h" // altered version of https://github.com/tomsuch/M5StackSAM, maintained at https://github.com/tobozo/M5StackSAM/
 #include <ArduinoJson.h>     // https://github.com/bblanchon/ArduinoJson/
+#include <Preferences.h>
 #include "i18n.h"            // language file
 #include "assets.h"          // some artwork for the UI
 #include "controls.h"        // keypad / joypad / keyboard controls
@@ -120,6 +119,7 @@ int16_t lastScrollOffset; // last scrolling string position
 SDUpdater sdUpdater;
 M5SAM M5Menu;
 AppRegistry Registry;
+TFT_eSprite sprite = TFT_eSprite( &tft );
 
 
 /* vMicro compliance, see https://github.com/tobozo/M5Stack-SD-Updater/issues/5#issuecomment-386749435 */
@@ -131,18 +131,28 @@ void renderMeta( JSONMeta &jsonMeta );
 void qrRender( String text, float sizeinpixels );
 
 
-void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
+
+void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t width = tft.width() ) {
+
   if( scrollText=="" ) return;
-  tft.setTextSize( 2 ); // setup text size before it's measured
+
+  sprite.setTextSize( 2 ); // setup text size before it's measured
+  sprite.setTextDatum( ML_DATUM );
+  sprite.setTextWrap( false ); // lazy way to solve a wrap bug
+
+  sprite.setColorDepth( 1 );
+  sprite.createSprite( width, BUTTON_HEIGHT );
+  //sprite.fillSprite( TFT_BLACK );
+
   if( !scrollText.endsWith( " " )) {
-    scrollText += " "; // append a space since scrolling text *will* repeat
+    scrollText += "   ***   "; // append a space since scrolling text *will* repeat
   }
-  while( tft.textWidth( scrollText ) < width ) {
+  while( sprite.textWidth( scrollText ) < width ) {
     scrollText += scrollText; // grow text to desired width
   }
 
   String  scrollMe = "";
-  int16_t textWidth = tft.textWidth( scrollText );
+  int16_t textWidth = sprite.textWidth( scrollText );
   int16_t vsize = 0,
           vpos = 0,
           voffset = 0,
@@ -155,41 +165,43 @@ void renderScroll( String scrollText, uint8_t x, uint8_t y, uint16_t width ) {
     scrollPointer = 0;
     vsize = scrollPointer;
   }
-  while( tft.textWidth(scrollMe) < width ) {
+  while( sprite.textWidth(scrollMe) < width ) {
     for( uint8_t i=0; i<scrollText.length(); i++ ) {
       char thisChar[2];
       thisChar[0] = scrollText[i];
       thisChar[1] = '\0';
-      csize = tft.textWidth( thisChar );
+      csize = sprite.textWidth( thisChar );
       vsize+=csize;
       vpos = vsize+scrollPointer;
-      if( vpos>x && vpos<=x+width ) {
+      if( vpos>0 && vpos<=width ) {
         scrollMe += scrollText[i];
         lastcsize = csize;
         voffset = scrollPointer%lastcsize;
-        scrollOffset = x+voffset;
-        if( tft.textWidth(scrollMe) > width-voffset ) {
+        scrollOffset = voffset;
+        if( sprite.textWidth(scrollMe) > width-voffset ) {
           break; // break out of the loop and out of the while
         }
       }
     }
   }
   // display trim
-  while( tft.textWidth( scrollMe ) > width-voffset ) {
+  while( sprite.textWidth( scrollMe ) > width-voffset ) {
     scrollMe.remove( scrollMe.length()-1 );
   }
+  //scrollMe.remove( scrollMe.length()-1 ); // one last for the ride
   // only draw if things changed
   if( scrollOffset!=lastScrollOffset || scrollMe!=lastScrollMessage ) {
-    tft.setTextColor( WHITE, BLACK ); // setting background color removes the flickering effect
-    tft.setCursor( scrollOffset, y );
-    tft.print( scrollMe );
-    tft.setTextColor( WHITE );
+    sprite.setTextColor( WHITE, BLACK ); // setting background color removes the flickering effect
+    sprite.setCursor( scrollOffset, BUTTON_HEIGHT/2 );
+    sprite.print( scrollMe );
+    sprite.setTextColor( WHITE );
+    sprite.pushSprite( x, y );
   }
-  tft.setTextSize( 1 );
+  sprite.deleteSprite();
   lastScrollMessage = scrollMe;
   lastScrollOffset  = scrollOffset;
   lastScrollRender  = micros();
-  lastpush          = millis();
+  //lastpush          = millis();
 }
 
 
@@ -214,25 +226,37 @@ void renderFace( String face ) {
 
 
 void renderMeta( JSONMeta &jsonMeta ) {
-  tft.setTextSize( 1 );
-  tft.setTextColor( WHITE );
-  tft.setCursor( 10, 35 );
-  tft.print( fileInfo[MenuID].fileName );
-  tft.setCursor( 10, 70 );
-  tft.print( String( fileInfo[MenuID].fileSize ) + String( FILESIZE_UNITS ) );
-  tft.setCursor( 10, 50 );
+
+  sprite.setTextSize( 1 );
+  sprite.setTextDatum( TL_DATUM );
+  sprite.setTextColor( WHITE, BLACK );
+  sprite.setTextWrap( false );
+
+  sprite.setColorDepth( 1 );
+  sprite.createSprite( (tft.width() / 2)-20, 5*sprite.fontHeight() );
+  sprite.setCursor( 0, 0 );
+  sprite.println( fileInfo[MenuID].fileName );
+  sprite.println();
 
   if( jsonMeta.authorName!="" && jsonMeta.projectURL!="" ) { // both values provided
-    tft.print( AUTHOR_PREFIX );
-    tft.print( jsonMeta.authorName );
-    tft.print( AUTHOR_SUFFIX );
+    sprite.print( AUTHOR_PREFIX );
+    sprite.print( jsonMeta.authorName );
+    sprite.println( AUTHOR_SUFFIX );
+    sprite.println();
     qrRender( jsonMeta.projectURL, 160 );
   } else if( jsonMeta.projectURL!="" ) { // only projectURL
-    tft.print( jsonMeta.projectURL );
+    sprite.println( jsonMeta.projectURL );
+    sprite.println();
     qrRender( jsonMeta.projectURL, 160 );
   } else { // only authorName
-    tft.drawCentreString( jsonMeta.authorName,tft.width()/2,(tft.height()/2)-25,2 );
+    sprite.println( jsonMeta.authorName );
+    sprite.println();
   }
+
+  sprite.println( String( fileInfo[MenuID].fileSize ) + String( FILESIZE_UNITS ) );
+  sprite.pushSprite( 5, 35, TFT_BLACK );
+  sprite.deleteSprite();
+
 }
 
 
@@ -493,7 +517,9 @@ void menuInfo() {
   M5Menu.windowClr();
   if( MenuID == 0 ) {
     // downloader
-    M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_LAUNCH, MENU_BTN_SOURCE, MENU_BTN_BACK );
+    M5Menu.drawAppMenu( "Apps Downloader", MENU_BTN_LAUNCH, MENU_BTN_SOURCE, MENU_BTN_BACK );
+    lastpush = millis();
+    return;
   } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
     M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
   } else {
@@ -555,39 +581,44 @@ void checkMenuTimeStamp() {
 
 
 void downloaderMenu() {
-  int resp = modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, MENU_BTN_CANCEL );
+
+
+  int resp = modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, "WiFi" );
   // choose between updating the JSON or changing the default channel
   switch( resp ) {
 
     case HID_SELECT:
       resp = modalConfirm( "chanpick", CHANNEL_CHOOSER, CHANNEL_CHOOSER_PROMPT, CHANNEL_CHOOSER_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_CANCEL, MENU_BTN_BACK );
-      switch( resp ) {
-
-        case HID_SELECT:
-          if( resp == HID_SELECT ) {
-            if( Registry.pref_default_channel == "master" ) {
-              Registry.pref_default_channel = "unstable";
-            } else {
-              Registry.pref_default_channel = "master";
-            }
-            registrySave( Registry, appRegistryFolder + "/" + appRegistryDefaultName );
-            Serial.println("Will reload in 5 sec");
-            delay(5000);
-            ESP.restart();
-          }
-        break;
+      if( resp == HID_SELECT ) {
+        if( Registry.pref_default_channel == "master" ) {
+          Registry.pref_default_channel = "unstable";
+        } else {
+          Registry.pref_default_channel = "master";
+        }
+        registrySave( Registry, appRegistryFolder + "/" + appRegistryDefaultName );
+        Serial.println("Will reload in 5 sec");
+        delay(5000);
+        ESP.restart();
       }
     break;
 
     case HID_PAGE_DOWN:
       resp = modalConfirm( "chanupd", CHANNEL_DOWNLOADER, CHANNEL_DOWNLOADER_PROMPT, CHANNEL_DOWNLOADER_TEXT, MENU_BTN_UPDATE, MENU_BTN_CANCEL, MENU_BTN_BACK );
-      switch( resp ) {
-        case HID_SELECT:
-          // TODO: WiFi connect, wget file and save to SD
-          registryFetch( Registry, appRegistryFolder + "/" + appRegistryDefaultName );
-        break;
+      if( resp == HID_SELECT ) {
+        // TODO: WiFi connect, wget file and save to SD
+        registryFetch( Registry, appRegistryFolder + "/" + appRegistryDefaultName );
       }
     break;
+
+    default:
+      resp = modalConfirm( "appDlChooser", "WiFi Setup", "WiFi Manager", "        Start WiFi Manager ?",  "Start", MENU_BTN_CANCEL, MENU_BTN_BACK );
+      if( resp == HID_SELECT ) {
+        wifiManagerSetup();
+        wifiManagerLoop();
+        ESP.restart();
+      }
+    break;
+
   }
   drawM5Menu( inInfoMenu );
 }
@@ -689,7 +720,7 @@ void UISetup() {
     M5.update();
   #endif
 
-  if( M5.BtnA.isPressed() )
+  if( M5.BtnB.isPressed() )
   {
     unsigned long pushStart = millis();
     unsigned long pushDuration = 0;
@@ -698,7 +729,7 @@ void UISetup() {
     tft.setTextColor( WHITE, M5MENU_GREY );
     tft.setTextDatum(MC_DATUM);
     char remainingStr[32];
-    while( M5.BtnA.isPressed() ) {
+    while( M5.BtnB.isPressed() ) {
       pushDuration = millis() - pushStart;
       if( pushDuration > longPush ) break;
       if( pushDuration > shortPush ) {
@@ -858,7 +889,7 @@ void HIDMenuObserve() {
     default:
     case HID_INERT:
       if( inInfoMenu ) { // !! scrolling text also prevents sleep mode !!
-        renderScroll( fileInfo[MenuID].jsonMeta.credits, 0, 5, 320 );
+        renderScroll( fileInfo[MenuID].jsonMeta.credits );
       }
     break;
   }

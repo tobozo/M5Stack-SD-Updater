@@ -58,6 +58,12 @@
   #endif
 #endif
 
+
+SDUpdater_Base::SDUpdater_Base( const int TFCardCsPin ) {
+  _TFCardCsPin = TFCardCsPin;
+};
+
+
 // enable SPIFFS persistence by backuping/restoring to/from the SD
 SDUpdater_Base::SDUpdater_Base( const String SPIFFS2SDFolder ) {
   if( SPIFFS2SDFolder!="" ) {
@@ -207,7 +213,7 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
     //#pragma message ("SD Support detected")
     log_i(" Checking for SD Support");
     if( &fs == &SD ) {
-      if( !SD.begin( 4 ) ) {
+      if( !SD.begin( _TFCardCsPin /*4*/ ) ) {
         log_n( "SD MOUNT FAILED, ABORTING!!" );
         return;
       } else {

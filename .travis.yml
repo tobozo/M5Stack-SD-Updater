@@ -53,10 +53,13 @@ before_install:
   - install_library
   - install_library "M5Stack"
   - install_library "M5StickC"
-  - install_library "ESP32-Chimera-Core"
+  - install_library "ESP32-targz"
+  #- install_library "ESP32-Chimera-Core"
+  - install_library "https://github.com/tobozo/ESP32-Chimera-Core/archive/Touch.zip"
   - install_library "LovyanGFX"
   # make sure chimera-core does not collide with m5core
-  - install_library "https://github.com/lovyan03/M5Core2.git" # "M5Core2" << Official repo slacking on the PR's :-(
+  #- install_library "https://github.com/lovyan03/M5Core2.git" # "M5Core2" << Official repo slacking on the PR's :-(
+  - install_library "https://github.com/ropg/M5Core2/archive/visual.zip"
   - install_library 'https://github.com/bblanchon/ArduinoJson.git' # "ArduinoJSON"
 
   - ls ${TRAVIS_BUILD_DIR} -la

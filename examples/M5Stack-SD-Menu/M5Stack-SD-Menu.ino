@@ -87,10 +87,21 @@ void setup() {
     M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
   #endif
 
-  #if defined HAS_TOUCH
-    // suggest rollback
-    checkSDUpdater( M5_FS, "" );
+  // suggest rollback
+  //checkSDUpdater( M5_FS, "", 2000 );
+  checkSDUpdater(
+    SD,           // filesystem (default=SD)
+    "",           // path to binary (default = /menu.bin, empty = rollback only)
+    0,            // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
+    TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
+  );
+
+  #if defined(_CHIMERA_CORE_)
+    // debug I2C
+    //Wire.begin(SDA, SCL);
+    //M5.I2C.scan();
   #endif
+
 
   //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
   UISetup(); // UI init and check if a SD exists

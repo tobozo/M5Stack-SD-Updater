@@ -120,11 +120,12 @@ void checkMenuStickyPartition() {
     tft.print("! WARNING !\r\nNo OTA partition.\r\nCan't use SD-Updater.");
     delay(3000);
   } else if (running && running->label[3] == '0' && nextupdate->label[3] == '1') {
-    tft.drawString("TobozoLauncher on app0", 160, 10, 2);
+    tft.drawString("Checking 'app0' partition", 160, 10, 2);
     size_t sksize = ESP.getSketchSize();
     if (!comparePartition(running, nextupdate, sksize)) {
+      // TODO: handle SPIFFS
       bool flgSD = M5_FS.begin( /*TFCARD_CS_PIN, SPI, 40000000*/ );
-      tft.drawString("Synchronizing 'app1' partition", 160, 24, 2);
+      tft.drawString("Synchronizing to 'app1' partition", 160, 24, 2);
       File dst;
       if (flgSD) {
         dst = (M5_FS.open(menubinfilename, FILE_WRITE ));
