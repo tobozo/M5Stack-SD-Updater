@@ -55,7 +55,7 @@ before_install:
   - install_library "M5StickC"
   - install_library "ESP32-targz"
   #- install_library "ESP32-Chimera-Core"
-  - install_library "https://github.com/tobozo/ESP32-Chimera-Core/archive/Touch.zip"
+  - install_library "https://github.com/tobozo/ESP32-Chimera-Core/archive/master.zip"
   - install_library "LovyanGFX"
   # make sure chimera-core does not collide with m5core
   #- install_library "https://github.com/lovyan03/M5Core2.git" # "M5Core2" << Official repo slacking on the PR's :-(
