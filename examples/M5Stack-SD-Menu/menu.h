@@ -660,6 +660,7 @@ void launchApp( FileInfo &info ) {
 
 void UISetup() {
 
+  HIDInit();
   // make sure you're using the latest from https://github.com/tobozo/M5StackSAM/
   M5Menu.listMaxLabelSize = 32; // list labels will be trimmed
   M5Menu.listPagination = 8; // 8 items per page
