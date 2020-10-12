@@ -745,7 +745,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
   } else {
     log_d(" [%s:INFO] An HTTP (NO TLS) URL was called (%s)", sender, urlParts.url.c_str() );
     router.endhttp = false;
-    http.begin( urlParts.url );
+    http.begin(*client, urlParts.url );
   }
   log_d( "[%s:INFO] Running http.GET( %s ) [%d]", sender, urlParts.url.c_str(), ESP.getFreeHeap() );
   int httpCode = http.GET();
