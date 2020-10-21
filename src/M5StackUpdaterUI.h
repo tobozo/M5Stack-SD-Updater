@@ -40,14 +40,14 @@
     #define BUTTON_WIDTH 60
     #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
     #define BUTTON_HEIGHT 28
-    uint16_t SDUButtonsXOffset[4] = {
+    static uint16_t SDUButtonsXOffset[4] = {
       1, 72, 188, 260
     };
   #else
     #define BUTTON_WIDTH 60
     #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
     #define BUTTON_HEIGHT 28
-    uint16_t SDUButtonsXOffset[3] = {
+    static uint16_t SDUButtonsXOffset[3] = {
       31, 126, 221
     };
   #endif
