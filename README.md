@@ -1,5 +1,5 @@
 [![License: MIT](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tobozo/M5Stack-SD-Updater/blob/master/LICENSE)
-[![Build Status](https://travis-ci.org/tobozo/M5Stack-SD-Updater.svg?branch=master)](https://travis-ci.org/tobozo/M5Stack-SD-Updater)
+[![Build Status](https://travis-ci.com/tobozo/M5Stack-SD-Updater.svg?branch=master)](https://travis-ci.com/github/tobozo/M5Stack-SD-Updater)
 [![Gitter](https://badges.gitter.im/M5Stack-SD-Updater/community.svg)](https://gitter.im/M5Stack-SD-Updater/community)
 [![arduino-library-badge](https://www.ardu-badge.com/badge/M5Stack-SD-Updater.svg?)](https://www.ardu-badge.com/M5Stack-SD-Updater)
 
