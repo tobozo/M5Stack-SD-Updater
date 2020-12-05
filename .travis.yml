@@ -67,13 +67,15 @@ before_install:
   - ls $SKETCHBOOK_FOLDER -la
   - ls $SKETCHBOOK_FOLDER/libraries -la
   - pwd
-  # what the fsck is wrong install_package() ??
   - install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
-  - install_package "m5stack:esp32" "https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json"
+  #- install_package "m5stack:esp32" "https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json"
   #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "compiler.warning_level=none" --save-prefs   &>/dev/null
   #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "build.warn_data_percentage=75" --save-prefs   &>/dev/null
   #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "boardsmanager.additional.urls=https://dl.espressif.com/dl/package_esp32_index.json" --save-prefs   &>/dev/null
   #- /home/travis/arduino-ide/arduino-1.8.10/arduino --install-boards esp32:esp32 &>/dev/null
+  
+  # load custom boards from chimera-core
+  - cp -R $SKETCHBOOK_FOLDER/libraries/ESP32-Chimera-Core-master/boards/* ~/.arduino15/packages/esp32/hardware/esp32/1.0.4/
   - pip install pyserial
 
 script:
@@ -82,7 +84,7 @@ script:
   - check_library_manager_compliance "$TRAVIS_BUILD_DIR"
   - set_ide_preference "compiler.warning_level=auto"
 
-  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "m5stack:esp32:m5stack-core2" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core2" "false" "newest"
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core-esp32" "false" "newest"
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stick-c" "false" "newest"
 
