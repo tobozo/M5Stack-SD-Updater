@@ -1,7 +1,7 @@
 {
   "name": "M5Stack-SD-Updater",
   "description": "Make your apps loadable from the SD card",
-  "keywords": "M5Stack M5Core2 Odroid-Go ttgo-ts d-duino-32-xs esp32-wrover-kit",
+  "keywords": ["SD-Updater", "M5Stack", "M5Core2", "Odroid-Go", "ttgo-ts", "d-duino-32-xs", "esp32-wrover-kit", "SDUpdater"],
   "authors": {
     "name": "tobozo",
     "url": "https://github.com/tobozo/"
