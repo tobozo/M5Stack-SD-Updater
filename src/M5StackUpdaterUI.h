@@ -71,7 +71,7 @@
   };
 
   static void SDMenuProgressUI( int state, int size );
-  static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay = 2000  );
+  //static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay = 2000  );
   static void DisplayUpdateUI( const String& label );
   static void SDMenuProgressUI( int state, int size );
 
@@ -126,6 +126,7 @@
     log_d("Thawed textStyle, size: %d, datum: %d, color: %d, bgcolor: %d", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
   }
 
+  __attribute__((unused))
   static void drawSDUMessage()
   {
     BtnStyles bs;
@@ -136,7 +137,7 @@
     tft.setTextFont( 0 );
     tft.drawString( BTN_HINT_MSG, tft.width()/2, 0 );
   }
-
+  __attribute__((unused))
   static void drawSDUPushButton( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor ) {
     BtnStyles bs;
     tft.setTextColor( textcolor, fillcolor );

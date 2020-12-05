@@ -3,9 +3,10 @@
 
 #include <Arduino.h>
 
-#define SDU_LOAD_TPL   "Will Load menu binary : \n"
+#define SDU_LOAD_TPL   "Will Load menu binary : %s\n"
 #define SDU_ROLLBACK_MSG "Will Roll back"
 
+__attribute__((unused))
 static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip )
 {
   if( Serial.available() ) {
@@ -17,9 +18,9 @@ static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip )
 }
 
 
-
+__attribute__((unused))
 static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay, const int TfCardCsPin_ ) {
-  Serial.printf("SDUpdater: you have %d milliseconds to send 'update' command", waitdelay);
+  Serial.printf("SDUpdater: you have %d milliseconds to send 'update' command", (int)waitdelay);
   if( waitdelay == 0 ) {
     waitdelay = 100; // at lease give some time for the serial buffer to fill
   }
@@ -34,10 +35,12 @@ static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long w
   Serial.print("Delay expired, no SD-Update will occur");
 }
 
+__attribute__((unused))
 static void DisplayUpdateHeadless( const String& label ) {
   // TODO: draw some fancy serial output
 };
 
+__attribute__((unused))
 static void SDMenuProgressHeadless( int state, int size )
 {
   static int SD_UI_Progress;

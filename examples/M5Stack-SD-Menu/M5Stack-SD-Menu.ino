@@ -80,6 +80,7 @@
 #include "menu.h"
 
 
+
 void setup() {
   #if defined(_CHIMERA_CORE_)
     M5.begin(true, false, true, false, false); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
@@ -108,6 +109,27 @@ void setup() {
 
   doFSChecks(); // replicate on SD and app1 partition, scan data folder, load registry
   doFSInventory(); // enumerate apps and render menu
+
+  /*
+  tft.setTextDatum(MC_DATUM);
+  tft.setTextSize(2);
+  tft.setTextColor( TFT_WHITE, TFT_BLACK );
+  //M5.ScreenShot.init( &tft, SD );
+  tft.drawString( "GIF", tft.width()/2, tft.height()/2);
+  M5.ScreenShot.snapGIF("blah", true);
+  delay(1000);
+  tft.drawString( "PNG", tft.width()/2, tft.height()/2);
+  M5.ScreenShot.snapPNG("blah", true);
+  delay(1000);
+  tft.drawString( "JPG", tft.width()/2, tft.height()/2);
+  M5.ScreenShot.snapJPG("blah", true);
+  tft.drawString( "BMP", tft.width()/2, tft.height()/2);
+  M5.ScreenShot.snapBMP("blah", true);
+
+  tft.setTextSize(1);
+  */
+
+
 }
 
 
