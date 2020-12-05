@@ -1,0 +1,5 @@
+.github/tools/SD-Apps/* linguist-vendored
+.github/tools/* linguist-vendored 
+.github/tools/scripts/* linguist-vendored
+#.github/tools/*.sh -linguist-detectable
+*.sh linguist-detectable=false
