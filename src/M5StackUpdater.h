@@ -70,7 +70,8 @@
  *   checkSDUpdater( SD, MENU_BIN, 2000 );
  *
  * Headless setups can overload SDUpdater::assertStartUpdate
- * with their own button/sensor/whatever detection routine
+ * (see setAssertTrigger() in M5StachUpdateUI.h) and have
+ * their own button/sensor/whatever detection routine
  * or even issue the "update" command via serial
  *
  *   if(digitalRead(BUTTON_A_PIN) == 0) {
@@ -210,7 +211,7 @@ class SDUpdater_Base {
       bool SPIFFSisEmpty();
     #endif
 
-    int (*assertStartUpdate)( char* labelLoad,  char* labelSkip );
+    //int (*assertStartUpdate)( char* labelLoad,  char* labelSkip, unsigned long waitdelay );
     void (*displayUpdateUI)( const String& label );
     void (*SDMenuProgress)( int state, int size );
 
@@ -227,7 +228,7 @@ class SDUpdater_Headless : public SDUpdater_Base {
     SDUpdater_Headless( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
       SDMenuProgress  = SDMenuProgressHeadless;
       displayUpdateUI = DisplayUpdateHeadless;
-      assertStartUpdate = assertStartUpdateFromSerial;
+      //assertStartUpdate = assertStartUpdateFromSerial;
     };
 
 };
@@ -239,7 +240,7 @@ class SDUpdater_Headless : public SDUpdater_Base {
       SDUpdater_Display( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
         SDMenuProgress    = SDMenuProgressUI;
         displayUpdateUI   = DisplayUpdateUI;
-        assertStartUpdate = assertStartUpdateFromButton;
+        //assertStartUpdate = assertStartUpdateFromPushButton;
       };
 
   };

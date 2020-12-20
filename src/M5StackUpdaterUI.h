@@ -13,42 +13,47 @@
 #define BTN_HINT_MSG   "SD-Updater Options"
 
 
+__attribute__((unused))
+static int (*SDUpdaterAssertTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay ) = nullptr;
+typedef int (*assertTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay );
+// attach a button/touch event detection
+__attribute__((unused))
+static void setAssertTrigger( assertTrigger tg )
+{
+  SDUpdaterAssertTrigger = tg;
+}
+
 #if defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ //|| defined LGFX_ONLY
 
-
   #if defined LGFX_ONLY
-    static int assertStartUpdateFromButton( char* labelLoad, char* labelSkip )
-    {
-      // Dummy function, see checkSDUpdaterUI() or its caller to override
-      return -1;
-    }
+    // TODO: consexpr 'tft'
   #else
     #ifndef tft
       #define undef_tft
       #define tft M5.Lcd
     #endif
-    static int assertStartUpdateFromButton( char* labelLoad, char* labelSkip )
-    {
-      M5.update();
-      if( M5.BtnA.isPressed() ) return 1;
-      if( M5.BtnB.isPressed() ) return 0;
-      return -1;
-    }
   #endif
+
 
   #ifdef ARDUINO_ODROID_ESP32 // odroid has 4 buttons under the TFT
     #define BUTTON_WIDTH 60
     #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
     #define BUTTON_HEIGHT 28
-    static uint16_t SDUButtonsXOffset[4] = {
+    static int16_t SDUButtonsXOffset[4] = {
       1, 72, 188, 260
+    };
+    static int16_t SDUButtonsYOffset[4] = {
+      0, 0, 0, 0
     };
   #else
     #define BUTTON_WIDTH 60
     #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
     #define BUTTON_HEIGHT 28
-    static uint16_t SDUButtonsXOffset[3] = {
+    static int16_t SDUButtonsXOffset[3] = {
       31, 126, 221
+    };
+    static int16_t SDUButtonsYOffset[3] = {
+      0, 0, 0
     };
   #endif
 
@@ -69,6 +74,9 @@
     uint8_t  MsgFontSize     = 2; // welcome message font size
     uint16_t MsgFontFolor[2] = {TFT_WHITE, TFT_BLACK}; // foreground, background
   };
+
+  BtnStyles DefaultBtnStyle;
+  static BtnStyles *userBtnStyle = nullptr;
 
   static void SDMenuProgressUI( int state, int size );
   //static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay = 2000  );
@@ -129,9 +137,9 @@
   __attribute__((unused))
   static void drawSDUMessage()
   {
-    BtnStyles bs;
-    tft.setTextColor( bs.MsgFontFolor[0], bs.MsgFontFolor[1] );
-    tft.setTextSize( bs.MsgFontSize );
+    BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
+    tft.setTextColor( bs->MsgFontFolor[0], bs->MsgFontFolor[1] );
+    tft.setTextSize( bs->MsgFontSize );
     tft.setCursor( tft.width()/2, 0 );
     tft.setTextDatum( TC_DATUM );
     tft.setTextFont( 0 );
@@ -139,18 +147,45 @@
   }
   __attribute__((unused))
   static void drawSDUPushButton( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor ) {
-    BtnStyles bs;
+    BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
     tft.setTextColor( textcolor, fillcolor );
-    tft.setTextSize( bs.FontSize );
-    tft.fillRoundRect( SDUButtonsXOffset[position], tft.height() - bs.height - 2, bs.width, bs.height, 3, fillcolor );
-    tft.drawRoundRect( SDUButtonsXOffset[position], tft.height() - bs.height - 2, bs.width, bs.height, 3, outlinecolor );
-    tft.drawCentreString( label, SDUButtonsXOffset[position] + bs.hwidth, tft.height() - bs.height + 4, 2 );
+    tft.setTextSize( bs->FontSize );
+    tft.fillRoundRect( SDUButtonsXOffset[position], tft.height() - bs->height - 2 - SDUButtonsYOffset[position], bs->width, bs->height, 3, fillcolor );
+    tft.drawRoundRect( SDUButtonsXOffset[position], tft.height() - bs->height - 2 - SDUButtonsYOffset[position], bs->width, bs->height, 3, outlinecolor );
+    tft.drawCentreString( label, SDUButtonsXOffset[position] + bs->hwidth, tft.height() - bs->height + 4 - SDUButtonsYOffset[position], 2 );
   }
 
 
-  #if defined HAS_TOUCH || defined _M5Core2_H_ // ESP32-Chimera-Core (TODO: add LGFX_ONLY) touch support
+  #if defined LGFX_ONLY
+    __attribute__((unused))
+    static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
+    {
+      // Dummy function, see checkSDUpdaterUI() or its caller to override
+      return -1;
+    }
+  #else
+    __attribute__((unused))
+    static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
+    {
+      if( waitdelay > 100 ) {
+        freezeTextStyle();
+        drawSDUMessage();
+        BtnStyles btns;
+        drawSDUPushButton( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
+        drawSDUPushButton( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+      }
+      auto msec = millis();
+      do {
+        M5.update();
+        if( M5.BtnA.isPressed() ) return 1;
+        if( M5.BtnB.isPressed() ) return 0;
+      } while (millis() - msec < waitdelay);
+      return -1;
+    }
+  #endif
 
-    #define SDUpdaterAssertTrigger AnyTouchedButtonOf
+
+  #if defined HAS_TOUCH || defined _M5Core2_H_ // ESP32-Chimera-Core (TODO: add LGFX_ONLY) touch support
 
     #if defined _M5Core2_H_
       // use TFT_eSPI_Touch emulation from M5Core2.h
@@ -183,7 +218,6 @@
 
     struct TouchButtonWrapper
     {
-
       bool iconRendered = false;
 
       void handlePressed( SDU_TouchButton *btn, bool pressed, uint16_t x, uint16_t y)
@@ -237,10 +271,9 @@
           IconSprite.deleteSprite();
         }
       }
+    }; // end struct TouchButtonWrapper
 
-    };
-
-    static int AnyTouchedButtonOf( char* labelLoad, char* labelSkip, unsigned long waitdelay=5000 )
+    static int assertStartUpdateFromTouchButton( char* labelLoad, char* labelSkip, unsigned long waitdelay=5000 )
     {
       /* auto &tft = M5.Lcd; */
       if( waitdelay == 0 ) return -1;
@@ -324,10 +357,6 @@
       return retval;
     }
 
-  #else
-
-    #define SDUpdaterAssertTrigger assertStartUpdateFromButton
-
   #endif // HAS_TOUCH
 
   static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay, const int TFCardCsPin )
@@ -341,13 +370,14 @@
     }
 
     #if defined HAS_TOUCH || defined _M5Core2_H_
+      if( SDUpdaterAssertTrigger==nullptr ) setAssertTrigger( &assertStartUpdateFromTouchButton );
       // TODO: see if "touch/press" detect on boot is possible (spoil : NO)
       // TODO: read signal from other (external?) buttons
-      if( waitdelay == 0 ) return; // don't check for touch signal if waitDelay = 0
+      if( waitdelay == 0 ) return; // don't check for any touch/button signal if waitDelay = 0
       freezeTextStyle();
       drawSDUMessage();
       // bring up Touch UI as there are no buttons to click with
-      if( SDUpdaterAssertTrigger( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL ) == 1 ) {
+      if( SDUpdaterAssertTrigger( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
         if( isRollBack == false ) {
           Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
           updateFromFS( fs, fileName, TFCardCsPin );
@@ -357,44 +387,38 @@
           rollBackUI();
         }
       }
+      // reset text styles to avoid messing with the overlayed application
       thawTextStyle();
     #else
+      if( !SDUpdaterAssertTrigger ) setAssertTrigger( &assertStartUpdateFromPushButton );
       bool draw = false;
-      if( waitdelay == 0 ) {
+      if( waitdelay <= 100 ) {
+        // no UI draw, but attempt to detect "button is pressed on boot"
+        // also force some minimal delay
         waitdelay = 100;
       } else {
+        // only draw if waitdelay > 0
         draw = true;
       }
 
-      if( draw ) {
-        // show a hint
-        freezeTextStyle();
-        drawSDUMessage();
-        BtnStyles btns;
-        if( isRollBack ) {
-          drawSDUPushButton( ROLLBACK_LABEL, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
-        } else {
-          drawSDUPushButton( LAUNCHER_LABEL, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
-        }
-        drawSDUPushButton( SKIP_LABEL, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+      if( draw ) { // bring up the UI
+
       }
 
-      auto msec = millis();
-      do {
-        if ( assertStartUpdateFromButton( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL ) == 1 ) {
-          if( isRollBack == false ) {
-            Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
-            updateFromFS( fs, fileName, TFCardCsPin );
-            ESP.restart();
-          } else {
-            Serial.println( SDU_ROLLBACK_MSG );
-            rollBackUI();
-          }
-
+      if ( SDUpdaterAssertTrigger( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
+        if( isRollBack == false ) {
+          Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
+          updateFromFS( fs, fileName, TFCardCsPin );
+          ESP.restart();
+        } else {
+          Serial.println( SDU_ROLLBACK_MSG );
+          rollBackUI();
         }
-      } while (millis() - msec < waitdelay);
+      }
+
 
       if( draw ) {
+        // reset text styles to avoid messing with the overlayed application
         thawTextStyle();
       }
     #endif

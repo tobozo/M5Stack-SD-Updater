@@ -7,13 +7,16 @@
 #define SDU_ROLLBACK_MSG "Will Roll back"
 
 __attribute__((unused))
-static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip )
+static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip, unsigned long waitdelay )
 {
-  if( Serial.available() ) {
-    String out = Serial.readStringUntil('\n');
-    if( out == "update" ) return 1;
-    if( out == "rollback") return 0;
-  }
+  auto msec = millis();
+  do {
+    if( Serial.available() ) {
+      String out = Serial.readStringUntil('\n');
+      if( out == "update" ) return 1;
+      if( out == "rollback") return 0;
+    }
+  } while( msec > millis()-waitdelay );
   return -1;
 }
 
@@ -24,14 +27,13 @@ static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long w
   if( waitdelay == 0 ) {
     waitdelay = 100; // at lease give some time for the serial buffer to fill
   }
-  auto msec = millis();
-  do {
-    if ( assertStartUpdateFromSerial( nullptr, nullptr ) == 1 ) {
-      Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
-      updateFromFS( fs, fileName, TfCardCsPin_ );
-      ESP.restart();
-    }
-  } while (millis() - msec < waitdelay);
+
+  if ( assertStartUpdateFromSerial( nullptr, nullptr, waitdelay ) == 1 ) {
+    Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
+    updateFromFS( fs, fileName, TfCardCsPin_ );
+    ESP.restart();
+  }
+
   Serial.print("Delay expired, no SD-Update will occur");
 }
 
