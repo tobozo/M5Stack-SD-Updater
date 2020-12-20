@@ -234,6 +234,6 @@ void wifiManagerSetup() {
 void wifiManagerLoop() {
   do {
     webServer.handleClient();
-  } while( settingMode = true );
+  } while( settingMode == true );
 }
 
