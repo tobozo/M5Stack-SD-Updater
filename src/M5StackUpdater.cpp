@@ -315,18 +315,18 @@ void SDUpdater_Base::copyFile( fs::File &sourceFile, int dir ) {
   String SDAppDataDir = String(DATA_DIR) + "/" + String( SKETCH_NAME );
   switch( dir ) {
     case BACKUP_SD_TO_SPIFFS:
-      destName = sourceFile.name();
+      destName = fs_file_path(&sourceFile);
       destName.replace( SDAppDataDir, "" );
-      log_i("BACKUP_SD_TO_SPIFFS source: %s, dest: %s", sourceFile.name(), destName.c_str() );
+      log_i("BACKUP_SD_TO_SPIFFS source: %s, dest: %s", fs_file_path(&sourceFile), destName.c_str() );
       if (SPIFFS.totalBytes() - SPIFFS.usedBytes() < sourceFile.size() ) {
-        log_e("not enough space left to copy %s\n", sourceFile.name() );
+        log_e("not enough space left to copy %s\n", fs_file_path(&sourceFile) );
         return;
       }
       copyFile( sourceFile, destName, SPIFFS );
     break;
     case BACKUP_SPIFFS_TO_SD:
-      destName = SDAppDataDir + String( sourceFile.name() );
-      log_i("BACKUP_SPIFFS_TO_SD source: %s, dest: %s", sourceFile.name(), destName.c_str() );
+      destName = SDAppDataDir + String( fs_file_path(&sourceFile) );
+      log_i("BACKUP_SPIFFS_TO_SD source: %s, dest: %s", fs_file_path(&sourceFile), destName.c_str() );
       copyFile( sourceFile, destName, SD );
     break;
   }
@@ -348,7 +348,7 @@ void SDUpdater_Base::copyFile( String sourceName, fs::FS &sourceFS, String destN
 #define BUFFER_SIZE 512
 
 void SDUpdater_Base::copyFile( fs::File &sourceFile, String destName, fs::FS &destinationFS ) {
-  String sourceName = sourceFile.name();
+  String sourceName = fs_file_path(&sourceFile);
   //displayUpdateUI( String( "MOVINGFILE_MESSAGE" ) + sourceName );
   size_t fileSize = sourceFile.size();
 
@@ -450,13 +450,13 @@ void SDUpdater_Base::copyDir(fs::FS &sourceFS, const char * dirname, uint8_t lev
     File sourceFile = root.openNextFile();
     while(sourceFile){
         if(sourceFile.isDirectory()){
-            log_i("  DIR : %s", sourceFile.name());
+            log_i("  DIR : %s", fs_file_path(&sourceFile));
             if(levels){
-                copyDir(sourceFS, sourceFile.name(), levels -1, direction );
+                copyDir(sourceFS, fs_file_path(&sourceFile), levels -1, direction );
             }
         } else {
             // TODO : copy file
-            log_i("  FILE: %32s - %8d bytes", sourceFile.name(), sourceFile.size());
+            log_i("  FILE: %32s - %8d bytes", fs_file_path(&sourceFile), sourceFile.size());
             copyFile( sourceFile, direction );
         }
         sourceFile = root.openNextFile();

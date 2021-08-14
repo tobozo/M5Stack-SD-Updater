@@ -45,8 +45,8 @@
   #warning ODROID DETECTED !!
   #define PLATFORM_NAME "Odroid-GO"
   #define DEFAULT_REGISTRY_BOARD "odroid"
-#elif defined ( ARDUINO_ESP32_DEV )
-  #warning WROVER DETECTED !!
+#elif defined ( ARDUINO_ESP32_DEV ) || defined( ARDUINO_LOLIN_D32_PRO )
+  #warning WROVER OR LOLIN_D32_PRO DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
 #else
@@ -67,7 +67,7 @@
 
 #include <sys/time.h>
 #include "compile_time.h"
-#include <SPIFFS.h>
+//#include <SPIFFS.h>
 
 #include "core.h"
 
@@ -191,10 +191,10 @@ void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t wid
   //scrollMe.remove( scrollMe.length()-1 ); // one last for the ride
   // only draw if things changed
   if( scrollOffset!=lastScrollOffset || scrollMe!=lastScrollMessage ) {
-    sprite.setTextColor( WHITE, BLACK ); // setting background color removes the flickering effect
+    sprite.setTextColor( TFT_WHITE, TFT_BLACK ); // setting background color removes the flickering effect
     sprite.setCursor( scrollOffset, BUTTON_HEIGHT/2 );
     sprite.print( scrollMe );
-    sprite.setTextColor( WHITE );
+    sprite.setTextColor( TFT_WHITE );
     sprite.pushSprite( x, y );
   }
   sprite.deleteSprite();
@@ -229,7 +229,7 @@ void renderMeta( JSONMeta &jsonMeta ) {
 
   sprite.setTextSize( 1 );
   sprite.setTextDatum( TL_DATUM );
-  sprite.setTextColor( WHITE, BLACK );
+  sprite.setTextColor( TFT_WHITE, TFT_BLACK );
   sprite.setTextWrap( false );
 
   sprite.setColorDepth( 1 );
@@ -296,7 +296,7 @@ void qrRender( String text, float sizeinpixels ) {
   uint8_t xOffset = ( ( tft.width() - ( lineLength ) ) / 2 ) + 70;
   uint8_t yOffset =  ( tft.height() - ( lineLength ) ) / 2;
 
-  tft.fillRect( xOffset-5, yOffset-5, lineLength+10, lineLength+10, WHITE );
+  tft.fillRect( xOffset-5, yOffset-5, lineLength+10, lineLength+10, TFT_WHITE );
 
   for ( uint8_t y = 0; y < qrcode.size; y++ ) {
     // Each horizontal module
@@ -324,12 +324,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
   File file = root.openNextFile();
   while( file ){
     if( file.isDirectory() ){
-      log_d( "%s %s", DEBUG_DIRLABEL, file.name() );
+      log_d( "%s %s", DEBUG_DIRLABEL, sdUpdater.fs_file_path(&file) );
       if( levels ){
-        listDir( fs, file.name(), levels -1, process );
+        listDir( fs, sdUpdater.fs_file_path(&file), levels -1, process );
       }
     } else {
-      if( isValidAppName( file.name() ) ) {
+      if( isValidAppName( sdUpdater.fs_file_path(&file) ) ) {
         if( process ) {
           getFileInfo( fileInfo[appsCount], fs, file );
           if( appsCountProgress > 0 ) {
@@ -341,16 +341,16 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
         }
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
-          //Serial.println( String( DEBUG_IGNORED ) + file.name() );
+          //Serial.println( String( DEBUG_IGNORED ) + sdUpdater.fs_file_path(&file) );
           log_w( "%s", DEBUG_ABORTLISTING );
           break; // don't make M5Stack list explode
         }
       } else {
-        if( String( file.name() ).endsWith(".tmp") || String( file.name() ).endsWith(".pcap") ) {
-          fs.remove( file.name() );
-          log_d( "%s %s", DEBUG_CLEANED, file.name() );
+        if( String( sdUpdater.fs_file_path(&file) ).endsWith(".tmp") || String( sdUpdater.fs_file_path(&file) ).endsWith(".pcap") ) {
+          fs.remove( sdUpdater.fs_file_path(&file) );
+          log_d( "%s %s", DEBUG_CLEANED, sdUpdater.fs_file_path(&file) );
         } else {
-          log_d( "%s %s", DEBUG_IGNORED, file.name() );
+          log_d( "%s %s", DEBUG_IGNORED, sdUpdater.fs_file_path(&file) );
         }
       }
     }
@@ -376,7 +376,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
 
 /*
  *  bubble sort filenames
- *  '32' is based on SD Card filename limitations
+ *  '32' is based on SPIFFS filename limitations
  */
 void aSortFiles( uint8_t depth_level=32 ) {
   bool swapped;
@@ -611,12 +611,14 @@ void downloaderMenu() {
     break;
 
     default:
-      resp = modalConfirm( "appDlChooser", "WiFi Setup", "WiFi Manager", "        Start WiFi Manager ?",  "Start", MENU_BTN_CANCEL, MENU_BTN_BACK );
-      if( resp == HID_SELECT ) {
-        wifiManagerSetup();
-        wifiManagerLoop();
-        ESP.restart();
-      }
+      #if defined USE_WIFI_MANAGER
+        resp = modalConfirm( "appDlChooser", "WiFi Setup", "WiFi Manager", "        Start WiFi Manager ?",  "Start", MENU_BTN_CANCEL, MENU_BTN_BACK );
+        if( resp == HID_SELECT ) {
+          wifiManagerSetup();
+          wifiManagerLoop();
+          ESP.restart();
+        }
+      #endif
     break;
 
   }
@@ -703,8 +705,10 @@ void UISetup() {
       #ifdef ARDUINO_M5STACK_Core2
         M5.Axp.DeepSleep();
       #else
-        M5.setWakeupButton( BUTTON_B_PIN );
-        M5.powerOFF();
+        #if !defined _CHIMERA_CORE_ || defined HAS_POWER
+          M5.setWakeupButton( BUTTON_B_PIN );
+          M5.powerOFF();
+        #endif
       #endif
     }
   }
@@ -727,14 +731,14 @@ void UISetup() {
     unsigned long pushDuration = 0;
     drawAppMenu(); // render the menu
     M5.update();
-    tft.setTextColor( WHITE, M5MENU_GREY );
+    tft.setTextColor( TFT_WHITE, M5MENU_GREY );
     tft.setTextDatum(MC_DATUM);
     char remainingStr[32];
     while( M5.BtnB.isPressed() ) {
       pushDuration = millis() - pushStart;
       if( pushDuration > longPush ) break;
       if( pushDuration > shortPush ) {
-        tft.setTextColor( WHITE, RED );
+        tft.setTextColor( TFT_WHITE, TFT_RED );
         tft.drawString( "FULL RESET", 160, 100, 2 );
         sprintf( remainingStr, "%.2f", (float)(longPush-pushDuration)/1000 );
       } else {
@@ -768,8 +772,10 @@ void UISetup() {
     #ifdef ARDUINO_M5STACK_Core2
       M5.Axp.DeepSleep();
     #else
-      M5.setWakeupButton( BUTTON_B_PIN );
-      M5.powerOFF();
+      #if !defined _CHIMERA_CORE_ || defined HAS_POWER
+        M5.setWakeupButton( BUTTON_B_PIN );
+        M5.powerOFF();
+      #endif
     #endif
 
   }
@@ -778,7 +784,7 @@ void UISetup() {
 
 
 void doFSChecks() {
-  tft.setTextColor( WHITE );
+  tft.setTextColor( TFT_WHITE );
   tft.setTextSize( 1 );
   tft.clear();
 
@@ -809,7 +815,7 @@ void doFSChecks() {
 
 
 void doFSInventory() {
-  tft.setTextColor( WHITE );
+  tft.setTextColor( TFT_WHITE );
   tft.setTextSize( 1 );
   tft.clear();
   tft.progressBar( 110, 112, 100, 20, 20);
@@ -919,8 +925,10 @@ void sleepTimer() {
     #ifdef ARDUINO_M5STACK_Core2
       M5.Axp.DeepSleep();
     #else
-      M5.setWakeupButton( BUTTON_B_PIN );
-      M5.powerOFF();
+      #if !defined _CHIMERA_CORE_ || defined HAS_POWER
+        M5.setWakeupButton( BUTTON_B_PIN );
+        M5.powerOFF();
+      #endif
     #endif
   }
 }

@@ -13,16 +13,6 @@
 #define BTN_HINT_MSG   "SD-Updater Options"
 
 
-__attribute__((unused))
-static int (*SDUpdaterAssertTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay ) = nullptr;
-typedef int (*assertTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay );
-// attach a button/touch event detection
-__attribute__((unused))
-static void setAssertTrigger( assertTrigger tg )
-{
-  SDUpdaterAssertTrigger = tg;
-}
-
 #if defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ //|| defined LGFX_ONLY
 
   #if defined LGFX_ONLY
@@ -311,7 +301,6 @@ static void setAssertTrigger( assertTrigger tg )
 
       LoadBtn->press(false);
       SkipBtn->press(false);
-
 
       uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
       bool ispressed = false;

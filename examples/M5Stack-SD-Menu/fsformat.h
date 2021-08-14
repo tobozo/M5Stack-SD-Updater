@@ -235,6 +235,7 @@ void scanDataFolder() {
   if( !migrateSPIFFS ) {
     return;
   }
+#if 0
   log_i( "%s", DEBUG_SPIFFS_SCAN );
   if( !SPIFFS.begin() ){
     log_e( "%s", DEBUG_SPIFFS_MOUNTFAILED );
@@ -274,7 +275,7 @@ void scanDataFolder() {
             while( file.read( buf, 512) ) {
               destFile.write( buf, 512 );
               packets++;
-              sdUpdater.SDMenuProgress( (packets*512)-511, fileSize );
+              /*sdUpdater.*/SDMenuProgress( (packets*512)-511, fileSize );
             }
             destFile.close();
             Serial.println();
@@ -290,6 +291,7 @@ void scanDataFolder() {
       } // aaaaa
     } // aaaaaaaaa
   } // aaaaaaaaaaaaah!
+#endif
 } // nooooooooooooooes!!
 
 
@@ -317,7 +319,7 @@ bool replaceItem( fs::FS &fs, String SourceName, String  DestName) {
     Serial.print(".");
     if(dot++%64==0) {
       Serial.println();
-      sdUpdater.SDMenuProgress( (dot*4096)-4095, fileSize );
+      /*sdUpdater.*/SDMenuProgress( (dot*4096)-4095, fileSize );
     }
     dest.write(buf, n);
   }

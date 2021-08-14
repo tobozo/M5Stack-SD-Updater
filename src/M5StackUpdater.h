@@ -70,7 +70,7 @@
  *   checkSDUpdater( SD, MENU_BIN, 2000 );
  *
  * Headless setups can overload SDUpdater::assertStartUpdate
- * (see setAssertTrigger() in M5StachUpdateUI.h) and have
+ * (see setAssertTrigger() in M5StackUpdateUI.h) and have
  * their own button/sensor/whatever detection routine
  * or even issue the "update" command via serial
  *
@@ -90,7 +90,20 @@ extern "C" {
 }
 #include <FS.h>
 #include <Update.h>
-#include <rom/rtc.h>
+#if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
+  #if defined CONFIG_IDF_TARGET_ESP32
+    #include <esp32/rom/rtc.h>
+  #elif defined CONFIG_IDF_TARGET_ESP32S2
+    #include <esp32s2/rom/rtc.h>
+  #elif defined CONFIG_IDF_TARGET_ESP32C3
+    #include <esp32c3/rom/rtc.h>
+  #else
+    #error Target CONFIG_IDF_TARGET is not supported
+  #endif
+#else
+  #include <rom/rtc.h>
+#endif
+
 #include <Preferences.h>
 #define resetReason (int)rtc_get_reset_reason(0)
 
@@ -122,6 +135,27 @@ extern "C" {
 #endif
 
 static void updateFromFS( fs::FS &fs, const String& fileName, const int TFCardCsPin );
+
+__attribute__((unused))
+static int (*SDUpdaterAssertTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay ) = nullptr;
+typedef int (*assertTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay );
+
+__attribute__((unused))
+static void (*SDMenuProgress)( int state, int size ) = nullptr;
+typedef void (*progressCb)( int state, int size );
+
+// attach a button/touch event detection
+__attribute__((unused))
+static void setAssertTrigger( assertTrigger tg )
+{
+  SDUpdaterAssertTrigger = tg;
+}
+// attach a custom progress function
+__attribute__((unused))
+static void setMenuProgressCb( progressCb cb )
+{
+  SDMenuProgress = cb;
+}
 
 #include "M5StackUpdaterHeadless.h"
 #ifdef USE_DISPLAY
@@ -213,7 +247,14 @@ class SDUpdater_Base {
 
     //int (*assertStartUpdate)( char* labelLoad,  char* labelSkip, unsigned long waitdelay );
     void (*displayUpdateUI)( const String& label );
-    void (*SDMenuProgress)( int state, int size );
+    //void (*SDMenuProgress)( int state, int size );
+    const char* fs_file_path( fs::File *file ) {
+      #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
+        return file->path();
+      #else
+        return file->name();
+      #endif
+    }
 
   private:
     int _TFCardCsPin = TFCARD_CS_PIN;

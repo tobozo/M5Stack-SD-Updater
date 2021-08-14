@@ -34,10 +34,18 @@
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include "wifi_manager.h"
+
+//#define USE_WIFI_MANAGER
+
+#if defined USE_WIFI_MANAGER
+  #include "wifi_manager.h"
+#endif
 
 #include "mbedtls/md.h"
 //#include <ESP32-targz.h>
+
+// #include "sodium/crypto_hash_sha256.h"
+// crypto_hash_sha256_state ctx;
 
 // registry this launcher is tied to
 #include "registry.h"
@@ -380,7 +388,7 @@ int modalConfirm( const char* modalName, const char* question, const char* title
   tft.clear();
   M5Menu.drawAppMenu( question, labelA, labelB, labelC);
   tft.setTextSize( 1 );
-  tft.setTextColor( WHITE );
+  tft.setTextColor( TFT_WHITE );
   tft.drawCentreString( title, 160, 50, 1 );
   tft.setCursor( 0, 72 );
   tft.print( body );
@@ -406,7 +414,7 @@ int modalConfirm( const char* modalName, const char* question, const char* title
 void printProgress(uint16_t progress) {
   uint16_t x = tft.getCursorX();
   uint16_t y = tft.getCursorX();
-  tft.setTextColor( WHITE, M5MENU_GREY );
+  tft.setTextColor( TFT_WHITE, M5MENU_GREY );
   tft.setCursor( 10, 194 );
   tft.print( String( OVERALL_PROGRESS_TITLE ) + String(progress) + "%" );
   tft.setCursor( 260, 194 );
@@ -415,7 +423,7 @@ void printProgress(uint16_t progress) {
 }
 
 
-void renderDownloadIcon(uint16_t color=GREEN, int16_t x=272, int16_t y=7, float size=2.0 ) {
+void renderDownloadIcon(uint16_t color=TFT_GREEN, int16_t x=272, int16_t y=7, float size=2.0 ) {
   float halfsize = size/2;
   tft.fillTriangle(x,      y+2*size,   x+4*size, y+2*size,   x+2*size, y+5*size, color);
   tft.fillTriangle(x+size, y,          x+3*size, y,          x+2*size, y+5*size, color);
@@ -427,31 +435,31 @@ void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float siz
   uint16_t barColors[4] = { bgcolor, bgcolor, bgcolor, bgcolor };
   switch(rssi%6) {
    case 5:
-      barColors[0] = GREEN;
-      barColors[1] = GREEN;
-      barColors[2] = GREEN;
-      barColors[3] = GREEN;
+      barColors[0] = TFT_GREEN;
+      barColors[1] = TFT_GREEN;
+      barColors[2] = TFT_GREEN;
+      barColors[3] = TFT_GREEN;
     break;
     case 4:
-      barColors[0] = GREEN;
-      barColors[1] = GREEN;
-      barColors[2] = GREEN;
+      barColors[0] = TFT_GREEN;
+      barColors[1] = TFT_GREEN;
+      barColors[2] = TFT_GREEN;
     break;
     case 3:
-      barColors[0] = YELLOW;
-      barColors[1] = YELLOW;
-      barColors[2] = YELLOW;
+      barColors[0] =  TFT_YELLOW;
+      barColors[1] =  TFT_YELLOW;
+      barColors[2] =  TFT_YELLOW;
     break;
     case 2:
-      barColors[0] = YELLOW;
-      barColors[1] = YELLOW;
+      barColors[0] =  TFT_YELLOW;
+      barColors[1] =  TFT_YELLOW;
     break;
     case 1:
-      barColors[0] = RED;
+      barColors[0] = TFT_RED;
     break;
     default:
     case 0:
-      barColors[0] = RED; // want: RAINBOW
+      barColors[0] = TFT_RED; // want: RAINBOW
     break;
   }
   tft.fillRect(x,          y + 4*size, 2*size, 4*size, barColors[0]);
@@ -491,7 +499,7 @@ void cleanDir( const char* dir) {
 
   tft.fillRoundRect( 0, 32, M5.Lcd.width(), M5.Lcd.height()-32-32, 3, M5MENU_GREY );
   tft.setCursor( 8, 36 );
-  tft.setTextColor( WHITE, M5MENU_GREY );
+  tft.setTextColor( TFT_WHITE, M5MENU_GREY );
 
   String dirToOpen = String( dir );
 
@@ -538,7 +546,7 @@ typedef struct {
   bool endhttp = false;
   bool dismiss( WiFiClientSecure *client, bool error = false ) {
     if( error ) {
-      renderDownloadIcon( RED );
+      renderDownloadIcon( TFT_RED );
       downloadererrors++;
     }
     if( endhttp ) {
@@ -590,7 +598,7 @@ static void sha256_sum(const char* fileName) {
   while ((n = checkFile.read(shabuff, sizeOfBuff)) > 0) {
     mbedtls_md_update(&ctx, (const unsigned char *) shabuff, n);
     if( fileSize/10 > sizeOfBuff && fileSize != len ) {
-      sdUpdater.M5SDMenuProgress(fileSize-len, fileSize);
+      /*sdUpdater.*/M5SDMenuProgress(fileSize-len, fileSize);
     }
     len -= n;
   }
@@ -768,7 +776,7 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
 bool wget( const char* bin_url, const char* outputFile ) {
   log_d("[HEAP Before: %d]", ESP.getFreeHeap() );
   Serial.printf("#> wget %s --output-document=%s ", bin_url, outputFile );
-  renderDownloadIcon( GREEN );
+  renderDownloadIcon( TFT_GREEN );
   WiFiClientSecure *client = new WiFiClientSecure;
   //int httpCode;
 
@@ -810,7 +818,7 @@ bool wget( const char* bin_url, const char* outputFile ) {
   Serial.print("[Download+SHA256 Sum -->][..");
   while(http.connected() && (len > 0 || len == -1)) {
     if( httpSize/10 > sizeOfBuff && httpSize!=len ) {
-      sdUpdater.M5SDMenuProgress(httpSize-len, httpSize);
+      /*sdUpdater.*/M5SDMenuProgress(httpSize-len, httpSize);
     }
     // get available data size
     size_t size = stream->available();
@@ -875,7 +883,7 @@ static void countDownReboot( void * param ) {
 void syncFinished( bool restart=true ) {
   M5Menu.windowClr();
   tft.setCursor(10,60);
-  tft.setTextColor(WHITE, M5MENU_GREY);
+  tft.setTextColor( TFT_WHITE, M5MENU_GREY );
   tft.println( SYNC_FINISHED );
   Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
   xTaskCreatePinnedToCore( countDownReboot, "countDownReboot", 2048, NULL, 5, NULL, 0 );
@@ -911,7 +919,7 @@ void printVerifyProgress( const char* msg, uint16_t textcolor, uint16_t bgcolor,
 
 
 bool getApp( String appURL ) {
-  renderDownloadIcon( GREEN );
+  renderDownloadIcon( TFT_GREEN );
 
   HTTPRouter getAppRouter;
   URLParts urlParts = parseURL( appURL );
@@ -974,13 +982,13 @@ bool getApp( String appURL ) {
       if( shaResultStr.equals( sha_sum ) ) {
         log_d("[checksums match]");
         checkedfiles++;
-        printVerifyProgress( WGET_SKIPPING, GREEN, M5MENU_GREY, WHITE);
+        printVerifyProgress( WGET_SKIPPING, TFT_GREEN, M5MENU_GREY, TFT_WHITE);
         continue;
       }
       log_d("[checksums differ]");
-      printVerifyProgress( WGET_UPDATING, TFT_ORANGE, M5MENU_GREY, WHITE);
+      printVerifyProgress( WGET_UPDATING, TFT_ORANGE, M5MENU_GREY, TFT_WHITE);
     } else {
-      printVerifyProgress( WGET_CREATING, WHITE, M5MENU_GREY, WHITE);
+      printVerifyProgress( WGET_CREATING, TFT_WHITE, M5MENU_GREY, TFT_WHITE);
     }
 
     appURL = base_url + filePath + fileName;
@@ -1004,12 +1012,12 @@ bool getApp( String appURL ) {
         M5_FS.rename( tempFileName, finalName );
       } else {
         // download failed, error was previously disclosed
-        printVerifyProgress( DOWNLOAD_FAIL, RED, M5MENU_GREY, WHITE);
+        printVerifyProgress( DOWNLOAD_FAIL, TFT_RED, M5MENU_GREY, TFT_WHITE);
       }
     } else {
       downloadererrors++;
       Serial.printf("  [SHA256 SUM ERROR] Remote hash: %s, Local hash: %s ### keeping local file and removing temp file ###\n", String(sha_sum).c_str(), shaResultStr.c_str() );
-      printVerifyProgress( SHASHUM_FAIL, RED, M5MENU_GREY, WHITE);
+      printVerifyProgress( SHASHUM_FAIL, TFT_RED, M5MENU_GREY, TFT_WHITE);
       M5_FS.remove( tempFileName );
     }
     uint16_t myprogress = progress + (i* float(progress_modulo/assets_count));
@@ -1089,7 +1097,7 @@ bool syncAppRegistry( String BASE_URL ) {
     M5Menu.windowClr();
     printProgress(progress);
     Serial.printf("\n[%s] :\n", appName.c_str());
-    tft.setTextColor( WHITE, M5MENU_GREY );
+    tft.setTextColor( TFT_WHITE, M5MENU_GREY );
     tft.setCursor(10, 36);
     tft.print( appName );
     getApp( appURL );
@@ -1199,7 +1207,7 @@ void enableWiFi() {
   tft.clear();
   drawAppMenu();
   tft.setCursor(10, 50);
-  tft.setTextColor(WHITE, M5MENU_GREY);
+  tft.setTextColor( TFT_WHITE, M5MENU_GREY );
   tft.println(WIFI_MSG_WAITING);
   size_t rssi = 0;
 
@@ -1228,7 +1236,7 @@ void enableNTP() {
   tft.clear();
   drawAppMenu();
   tft.setCursor(10, 50);
-  tft.setTextColor(WHITE, M5MENU_GREY);
+  tft.setTextColor( TFT_WHITE, M5MENU_GREY );
   tft.println("Contacting NTP Server");
   tft.drawJpg( ntp_jpeg, ntp_jpeg_len, 144, 104, 32, 32 );
   configTime(timezone*3600, daysavetime*3600, "pool.ntp.org", "asia.pool.ntp.org", "europe.pool.ntp.org");
@@ -1277,7 +1285,7 @@ void updateOne(String appName) {
 
     M5Menu.windowClr();
     Serial.printf( "\n[%s] :\n", AppEndpointURLStr.c_str() );
-    tft.setTextColor( WHITE, M5MENU_GREY );
+    tft.setTextColor( TFT_WHITE, M5MENU_GREY );
     tft.setCursor( 10, 36 );
     tft.print( AppEndpointURLStr );
     if( ! getApp( appURL ) ) { // no cert, invalid cert, invalid TLS host or JSON parsin failed ?
@@ -1304,7 +1312,7 @@ void updateOne(String appName) {
     delay(300);
     M5Menu.windowClr();
     tft.setCursor(10,60);
-    tft.setTextColor(WHITE, M5MENU_GREY);
+    tft.setTextColor( TFT_WHITE, M5MENU_GREY );
     tft.println( SYNC_FINISHED );
     Serial.printf("\n\n## Download Finished  ##\n   Errors: %d\n\n", downloadererrors );
     WiFi.mode( WIFI_OFF );
@@ -1312,14 +1320,14 @@ void updateOne(String appName) {
     syncFinished(false); // throw a modal
   } else {
     // tried all attempts and gave up
-
-    if( modalConfirm( "WiFi Fail", MENU_BTN_CANCELED, "You may need to run a WiFi Manager", "Config WiFi ?",  DOWNLOADER_MODAL_CHANGE, MENU_BTN_WFT, MENU_BTN_WFT ) == HID_SELECT ) {
-      // run WiFi Manager
-      wifiManagerSetup();
-      wifiManagerLoop();
-      ESP.restart();
-    }
-
+    #if defined USE_WIFI_MANAGER
+      if( modalConfirm( "WiFi Fail", MENU_BTN_CANCELED, "You may need to run a WiFi Manager", "Config WiFi ?",  DOWNLOADER_MODAL_CHANGE, MENU_BTN_WFT, MENU_BTN_WFT ) == HID_SELECT ) {
+        // run WiFi Manager
+        wifiManagerSetup();
+        wifiManagerLoop();
+        ESP.restart();
+      }
+    #endif
   }
   appsCount = oldAppsCount;
 }
