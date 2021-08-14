@@ -13,7 +13,8 @@ before_install:
 
   # TODO: undo
   # remove submodules, we don't want those to be actually tested for compliance
-  - git submodule status | git rm --cached `cut -d ' ' -f 3`
+  #- git submodule status | git rm --cached `cut -d ' ' -f 3`
+  - git submodule status | rm -Rf `cut -d ' ' -f 3`
 
   # Formatting checks:
   # Check for files starting with a blank line
