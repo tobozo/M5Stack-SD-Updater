@@ -88,7 +88,8 @@ before_install:
 script:
   # Compile all example sketches included with the library
   # build_sketch arguments: sketch name, fqbn, allow failure, IDE version/list/range
-  - git submodule update --init --recursive # reload the submodules since 'check_library_manager_compliance' complains about missing files :-(
+  - cd ${TRAVIS_BUILD_DIR}
+  - git submodule foreach git fetch && git submodule deinit -f . && git submodule update --init # reload the submodules since 'check_library_manager_compliance' complains about missing files :-(
   - check_library_manager_compliance "$TRAVIS_BUILD_DIR" # why this fails on submodules for a missing 'exe' file is beyond me ...
   - set_ide_preference "compiler.warning_level=auto"
 

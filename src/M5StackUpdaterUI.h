@@ -142,7 +142,13 @@
     tft.setTextSize( bs->FontSize );
     tft.fillRoundRect( SDUButtonsXOffset[position], tft.height() - bs->height - 2 - SDUButtonsYOffset[position], bs->width, bs->height, 3, fillcolor );
     tft.drawRoundRect( SDUButtonsXOffset[position], tft.height() - bs->height - 2 - SDUButtonsYOffset[position], bs->width, bs->height, 3, outlinecolor );
-    tft.drawCentreString( label, SDUButtonsXOffset[position] + bs->hwidth, tft.height() - bs->height + 4 - SDUButtonsYOffset[position], 2 );
+
+    tft.setTextDatum( TC_DATUM );
+    tft.setCursor( SDUButtonsXOffset[position] + bs->hwidth, tft.height() - bs->height + 4 - SDUButtonsYOffset[position] );
+    tft.setTextFont( 2 );
+    tft.print( label );
+
+    //tft.drawCentreString( label, SDUButtonsXOffset[position] + bs->hwidth, tft.height() - bs->height + 4 - SDUButtonsYOffset[position], 2 );
   }
 
 
@@ -438,7 +444,10 @@
       Serial.println();
     }
     String percentStr = " " + String( percent ) + "% ";
-    tft.drawCentreString( percentStr , tft.width() >> 1, progress_y+progress_h+5, 0); // trailing space is important
+    tft.setTextDatum( TC_DATUM );
+    tft.setCursor( tft.width() >> 1, progress_y+progress_h+5 );
+    tft.setTextFont( 0 );
+    tft.print( percentStr );
     if ( percent >= 0 && percent < 101 ) {
       Serial.print( "." );
     } else {
@@ -457,6 +466,7 @@
     tft.setTextColor( TFT_WHITE, TFT_BLACK );
     tft.setTextFont( 0 );
     tft.setTextSize( 2 );
+    tft.setTextDatum( ML_DATUM );
     // attemtp to center the text
     int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
     if ( xpos < 0 ) {
