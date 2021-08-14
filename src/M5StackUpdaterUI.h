@@ -438,7 +438,7 @@
       Serial.println();
     }
     String percentStr = " " + String( percent ) + "% ";
-    tft.drawCentreString( percentStr , tft.width() >> 1, progress_y+progress_h+5, nullptr); // trailing space is important
+    tft.drawCentreString( percentStr , tft.width() >> 1, progress_y+progress_h+5, 0); // trailing space is important
     if ( percent >= 0 && percent < 101 ) {
       Serial.print( "." );
     } else {
