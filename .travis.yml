@@ -77,10 +77,6 @@ before_install:
   #- install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
   - install_package "esp32:esp32" "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json"
   #- install_package "m5stack:esp32" "https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json"
-  #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "compiler.warning_level=none" --save-prefs   &>/dev/null
-  #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "build.warn_data_percentage=75" --save-prefs   &>/dev/null
-  #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "boardsmanager.additional.urls=https://dl.espressif.com/dl/package_esp32_index.json" --save-prefs   &>/dev/null
-  #- /home/travis/arduino-ide/arduino-1.8.10/arduino --install-boards esp32:esp32 &>/dev/null
 
   # load custom boards from chimera-core
   # - cp -R $SKETCHBOOK_FOLDER/libraries/ESP32-Chimera-Core-master/boards/* ~/.arduino15/packages/esp32/hardware/esp32/1.0.4/
@@ -90,8 +86,9 @@ script:
   # Compile all example sketches included with the library
   # build_sketch arguments: sketch name, fqbn, allow failure, IDE version/list/range
   - cd ${TRAVIS_BUILD_DIR}
-  - git submodule foreach git fetch && git submodule deinit -f . && git submodule update --init # reload the submodules since 'check_library_manager_compliance' complains about missing files :-(
-  - check_library_manager_compliance "$TRAVIS_BUILD_DIR" # why this fails on submodules for a missing 'exe' file is beyond me ...
+  - rm -Rf "${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/SD-Apps"
+  #- git submodule foreach git fetch && git submodule deinit -f . && git submodule update --init # reload the submodules since 'check_library_manager_compliance' complains about missing files :-(
+  - check_library_manager_compliance "$TRAVIS_BUILD_DIR" # why this fails on submodules for an existing '.exe' file is beyond me ...
   - set_ide_preference "compiler.warning_level=auto"
 
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core2" "false" "newest"
