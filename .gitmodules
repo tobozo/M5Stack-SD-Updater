@@ -104,6 +104,3 @@ url = https://gist.github.com/shioken/e90b9fa3b43d8b067adde77a75768efd
 [submodule "examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Test_tools"]
 	path = examples/M5Stack-SD-Menu/SD-Apps/M5Stack_Test_tools
 	url = https://github.com/mongonta0716/M5Stack_Test_tools
-[submodule "examples/m5stickc_tiny_menu"]
-	path = examples/m5stickc_tiny_menu
-	url = https://github.com/matsumo/m5stickc_tiny_menu
