@@ -130,7 +130,13 @@ void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
 void qrRender( String text, float sizeinpixels );
 
-
+static const char* sduFSFilePath( fs::File *file ) {
+  #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
+    return file->path();
+  #else
+    return file->name();
+  #endif
+}
 
 void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t width = tft.width() ) {
 
