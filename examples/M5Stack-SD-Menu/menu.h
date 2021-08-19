@@ -92,7 +92,11 @@
 #include "assets.h"          // some artwork for the UI
 #include "controls.h"        // keypad / joypad / keyboard controls
 #include "fsformat.h"        // filesystem bin formats, functions, helpers
-#include "downloader.h"      // binaries downloader module A.K.A YOLO Downloader
+
+//#define USE_DOWNLOADER // this requires large partition with OTA (https uses more space since esp32-core 2.x.x)
+#if defined USE_DOWNLOADER
+  #include "downloader.h"      // binaries downloader module A.K.A YOLO Downloader
+#endif
 #include "partition_manager.h"
 
 #define MAX_BRIGHTNESS 100
@@ -118,7 +122,9 @@ int16_t lastScrollOffset; // last scrolling string position
 
 SDUpdater sdUpdater;
 M5SAM M5Menu;
-AppRegistry Registry;
+#if defined USE_DOWNLOADER
+  AppRegistry Registry;
+#endif
 TFT_eSprite sprite = TFT_eSprite( &tft );
 
 
@@ -129,6 +135,15 @@ void freeMeta();
 void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
 void qrRender( String text, float sizeinpixels );
+
+static String heapState() {
+  log_i("\nRAM SIZE:\t%.2f KB\nFREE RAM:\t%.2f KB\nMAX ALLOC:\t%.2f KB",
+    ESP.getHeapSize() / 1024.0,
+    ESP.getFreeHeap() / 1024.0,
+    ESP.getMaxAllocHeap() / 1024.0
+  );
+  return "";
+}
 
 static const char* sduFSFilePath( fs::File *file ) {
   #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
@@ -452,7 +467,9 @@ void drawM5Menu( bool renderButtons = false ) {
       M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
     #endif
     tft.drawJpg(sd_updater15x16_jpg, sd_updater15x16_jpg_len, 296, 6, 15, 16);
-    drawSDUpdaterChannel();
+    #if defined USE_DOWNLOADER
+      drawSDUpdaterChannel();
+    #endif
   }
   M5Menu.showList();
   renderIcon( MenuID );
@@ -531,7 +548,9 @@ void menuInfo() {
   } else {
     M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
   }
-  drawSDUpdaterChannel();
+  #if defined USE_DOWNLOADER
+    drawSDUpdaterChannel();
+  #endif
   renderMeta( fileInfo[MenuID].jsonMeta );
   if( fileInfo[MenuID].hasFace() ) {
     renderFace( fileInfo[MenuID].faceName );
@@ -585,9 +604,9 @@ void checkMenuTimeStamp() {
 
 }
 
+#if defined USE_DOWNLOADER
 
 void downloaderMenu() {
-
 
   int resp = modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, "WiFi" );
   // choose between updating the JSON or changing the default channel
@@ -642,16 +661,20 @@ void updateApp( FileInfo &info ) {
   drawM5Menu( inInfoMenu );
 }
 
+#endif
+
 
 void launchApp( FileInfo &info ) {
-  if( info.fileName == String( DOWNLOADER_BIN ) ) {
-    if( modalConfirm( "launchapp", DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) == HID_SELECT ) {
-      updateAll();
+  #if defined USE_DOWNLOADER
+    if( info.fileName == String( DOWNLOADER_BIN ) ) {
+      if( modalConfirm( "launchapp", DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) == HID_SELECT ) {
+        updateAll();
+      }
+      // action cancelled or refused by user
+      drawM5Menu( inInfoMenu );
+      return;
     }
-    // action cancelled or refused by user
-    drawM5Menu( inInfoMenu );
-    return;
-  }
+  #endif
   if( info.fileName.endsWith( launcherSignature ) ) {
     log_w("Will overwrite current %s with a copy of %s\n", MENU_BIN, info.fileName.c_str() );
     if( replaceLauncher( M5_FS, info ) ) {
@@ -731,60 +754,62 @@ void UISetup() {
     M5.update();
   #endif
 
-  if( M5.BtnB.isPressed() )
-  {
-    unsigned long pushStart = millis();
-    unsigned long pushDuration = 0;
-    drawAppMenu(); // render the menu
-    M5.update();
-    tft.setTextColor( TFT_WHITE, M5MENU_GREY );
-    tft.setTextDatum(MC_DATUM);
-    char remainingStr[32];
-    while( M5.BtnB.isPressed() ) {
-      pushDuration = millis() - pushStart;
-      if( pushDuration > longPush ) break;
-      if( pushDuration > shortPush ) {
-        tft.setTextColor( TFT_WHITE, TFT_RED );
-        tft.drawString( "FULL RESET", 160, 100, 2 );
-        sprintf( remainingStr, "%.2f", (float)(longPush-pushDuration)/1000 );
-      } else {
-        tft.drawString( "TLS RESET", 160, 100, 2 );
-        sprintf( remainingStr, "%.2f", (float)(shortPush-pushDuration)/1000 );
-      }
-      tft.drawString( remainingStr, 160, 120, 2 );
-      delay(100);
+  #if defined USE_DOWNLOADER
+    if( M5.BtnB.isPressed() )
+    {
+      unsigned long pushStart = millis();
+      unsigned long pushDuration = 0;
+      drawAppMenu(); // render the menu
       M5.update();
-    }
-    tft.setTextDatum(TL_DATUM);
-
-    Serial.printf("Push duration : %d\n", (int)pushDuration );
-    if( pushDuration > shortPush ) {
-      // Short push at boot = cleanup /cert/ and /.registry/ folders
-      cleanDir( SD_CERT_PATH );
-      cleanDir( appRegistryFolder.c_str() );
-    }
-    if( pushDuration > longPush ) {
-      int resp = modalConfirm( "cleanup", "DELETE APPS", "CAUTION! This will remove all apps and assets.", "    Obliviate?",  "DELETE", "CANCEL", "NOES!" );
-      if( resp == HID_SELECT ) {
-        checkMenuTimeStamp(); // set the time before cleaning up the folder
-        cleanDir( "/" );
-        cleanDir( "/jpg/" );
-        cleanDir( "/json/" );
-        drawAppMenu(); // render the menu
-        copyPartition(); // restore the menu.bin file
+      tft.setTextColor( TFT_WHITE, M5MENU_GREY );
+      tft.setTextDatum(MC_DATUM);
+      char remainingStr[32];
+      while( M5.BtnB.isPressed() ) {
+        pushDuration = millis() - pushStart;
+        if( pushDuration > longPush ) break;
+        if( pushDuration > shortPush ) {
+          tft.setTextColor( TFT_WHITE, TFT_RED );
+          tft.drawString( "FULL RESET", 160, 100, 2 );
+          sprintf( remainingStr, "%.2f", (float)(longPush-pushDuration)/1000 );
+        } else {
+          tft.drawString( "TLS RESET", 160, 100, 2 );
+          sprintf( remainingStr, "%.2f", (float)(shortPush-pushDuration)/1000 );
+        }
+        tft.drawString( remainingStr, 160, 120, 2 );
+        delay(100);
+        M5.update();
       }
-    }
-    Serial.println( GOTOSLEEP_MESSAGE );
-    #ifdef ARDUINO_M5STACK_Core2
-      M5.Axp.DeepSleep();
-    #else
-      #if !defined _CHIMERA_CORE_ || defined HAS_POWER
-        M5.setWakeupButton( BUTTON_B_PIN );
-        M5.powerOFF();
-      #endif
-    #endif
+      tft.setTextDatum(TL_DATUM);
 
-  }
+      Serial.printf("Push duration : %d\n", (int)pushDuration );
+      if( pushDuration > shortPush ) {
+        // Short push at boot = cleanup /cert/ and /.registry/ folders
+        cleanDir( SD_CERT_PATH );
+        cleanDir( appRegistryFolder.c_str() );
+      }
+      if( pushDuration > longPush ) {
+        int resp = modalConfirm( "cleanup", "DELETE APPS", "CAUTION! This will remove all apps and assets.", "    Obliviate?",  "DELETE", "CANCEL", "NOES!" );
+        if( resp == HID_SELECT ) {
+          checkMenuTimeStamp(); // set the time before cleaning up the folder
+          cleanDir( "/" );
+          cleanDir( "/jpg/" );
+          cleanDir( "/json/" );
+          drawAppMenu(); // render the menu
+          copyPartition(); // restore the menu.bin file
+        }
+      }
+      Serial.println( GOTOSLEEP_MESSAGE );
+      #ifdef ARDUINO_M5STACK_Core2
+        M5.Axp.DeepSleep();
+      #else
+        #if !defined _CHIMERA_CORE_ || defined HAS_POWER
+          M5.setWakeupButton( BUTTON_B_PIN );
+          M5.powerOFF();
+        #endif
+      #endif
+
+    }
+  #endif
 
 }
 
@@ -802,21 +827,26 @@ void doFSChecks() {
   tft.progressBar( 110, 112, 100, 20, 10);
 
   scanDataFolder(); // do SD / SPIFFS health checks
-  Registry = registryInit(); // load registry profile
 
-  if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
-    if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) { // rename for hoisting in the list
-      M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
-    } else { // create a dummy file to enable the feature
-      fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
-      dummyDownloader.print("Fake Binary");
-      dummyDownloader.close();
+  #if defined USE_DOWNLOADER
+
+    Registry = registryInit(); // load registry profile
+
+    if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
+      if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) { // rename for hoisting in the list
+        M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
+      } else { // create a dummy file to enable the feature
+        fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
+        dummyDownloader.print("Fake Binary");
+        dummyDownloader.close();
+      }
+    } else { // cleanup old legacy file if necessary
+      if( M5_FS.exists(DOWNLOADER_BIN_VIRTUAL) ) {
+        M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
+      }
     }
-  } else { // cleanup old legacy file if necessary
-    if( M5_FS.exists(DOWNLOADER_BIN_VIRTUAL) ) {
-      M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
-    }
-  }
+  #endif
+
 }
 
 
@@ -881,6 +911,7 @@ void HIDMenuObserve() {
       }
     break;
     case HID_PAGE_DOWN:
+      #if defined USE_DOWNLOADER
       if( inInfoMenu ) {
         // update
         if( fileInfo[MenuID].fileName == String( DOWNLOADER_BIN ) ) {
@@ -891,6 +922,9 @@ void HIDMenuObserve() {
       } else {
         pageDown();
       }
+      #else
+        pageDown();
+      #endif
     break;
     case HID_PAGE_UP:
       if( inInfoMenu ) {

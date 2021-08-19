@@ -114,6 +114,7 @@ int modalConfirm( const char* modalName, const char* question, const char* title
 bool wifiSetupWorked();
 bool init_tls_or_die( String host );
 static const char* sduFSFilePath( fs::File *file );
+static String heapState();
 
 struct URLParts {
   String url;
@@ -159,16 +160,6 @@ URLParts parseURL( const char* url ) {
   return parseURL( String( url ) );
 }
 
-
-
-String heapState() {
-  log_i("\nRAM SIZE:\t%.2f KB\nFREE RAM:\t%.2f KB\nMAX ALLOC:\t%.2f KB",
-    ESP.getHeapSize() / 1024.0,
-    ESP.getFreeHeap() / 1024.0,
-    ESP.getMaxAllocHeap() / 1024.0
-  );
-  return "";
-}
 
 
 void registrySave( AppRegistry registry, String appRegistryLocalFile = "" ) {
