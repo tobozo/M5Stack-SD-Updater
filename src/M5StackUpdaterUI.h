@@ -112,7 +112,7 @@
 
   static void freezeTextStyle()
   {
-    #if __has_include(<LovyanGFX.h>)
+    #if defined LGFX_ONLY
       SDUTextStyle.textcolor   = SDU_GFX.getTextStyle().fore_rgb888;
       SDUTextStyle.textbgcolor = SDU_GFX.getTextStyle().back_rgb888;
       SDUTextStyle.textdatum   = SDU_GFX.getTextStyle().datum;
