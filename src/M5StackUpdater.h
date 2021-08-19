@@ -148,6 +148,7 @@ typedef void (*progressCb)( int state, int size );
 __attribute__((unused))
 static void setAssertTrigger( assertTrigger tg )
 {
+  log_d("Setting assert trigger");
   SDUpdaterAssertTrigger = tg;
 }
 // attach a custom progress function
@@ -245,6 +246,10 @@ class SDUpdater_Base {
       bool SPIFFSisEmpty();
     #endif
 
+    static bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
+    static bool copyFsPartition(File* dst, const esp_partition_t* src, size_t length);
+    static bool copyFsPartition(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} );
+
     //int (*assertStartUpdate)( char* labelLoad,  char* labelSkip, unsigned long waitdelay );
     void (*displayUpdateUI)( const String& label );
     //void (*SDMenuProgress)( int state, int size );
@@ -267,6 +272,7 @@ class SDUpdater_Headless : public SDUpdater_Base {
   public:
 
     SDUpdater_Headless( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
+      log_d("SDUpdater headless mode");
       SDMenuProgress  = SDMenuProgressHeadless;
       displayUpdateUI = DisplayUpdateHeadless;
       //assertStartUpdate = assertStartUpdateFromSerial;
@@ -279,6 +285,7 @@ class SDUpdater_Headless : public SDUpdater_Base {
     public:
 
       SDUpdater_Display( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
+        log_d("SDUpdater UI mode");
         SDMenuProgress    = SDMenuProgressUI;
         displayUpdateUI   = DisplayUpdateUI;
         //assertStartUpdate = assertStartUpdateFromPushButton;
@@ -289,6 +296,16 @@ class SDUpdater_Headless : public SDUpdater_Base {
 #else
   #define SDUpdater SDUpdater_Headless
 #endif
+
+
+
+// copy compiled sketch from flash partition to filesystem binary file
+__attribute__((unused)) static bool copyFsPartition(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN}, const int TfCardCsPin = TFCARD_CS_PIN )
+{
+  SDUpdater sdUpdater( TfCardCsPin );
+  return sdUpdater.copyFsPartition( fs, binfilename );
+}
+
 
 // provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater
 __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN, const int TfCardCsPin = TFCARD_CS_PIN )
@@ -316,7 +333,7 @@ __attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, S
       //case 14 : log_d("EXT_CPU_RESET");break;                 // 14, for APP CPU, reseted by PRO CPU
       //case 15 : log_d("RTCWDT_BROWN_OUT_RESET");break;        // 15, Reset when the vdd voltage is not stable
       case 16 : log_d("RTCWDT_RTC_RESET"); waitdelay=500; break;// 16, RTC Watch dog reset digital core and rtc module
-      default : log_d("NO_MEAN");
+      default : log_d("NO_MEAN"); waitdelay=100;
     }
   }
   #if defined USE_DISPLAY

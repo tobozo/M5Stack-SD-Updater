@@ -84,6 +84,82 @@ esp_image_metadata_t SDUpdater_Base::getSketchMeta( const esp_partition_t* sourc
   return data;//.image_len;
 }
 
+
+
+bool SDUpdater_Base::compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length) {
+  size_t lengthLeft = length;
+  const size_t bufSize = SPI_FLASH_SEC_SIZE;
+  std::unique_ptr<uint8_t[]> buf1(new uint8_t[bufSize]);
+  std::unique_ptr<uint8_t[]> buf2(new uint8_t[bufSize]);
+  uint32_t offset = 0;
+  uint32_t progress = 0, progressOld = 1;
+  size_t i;
+  while( lengthLeft > 0) {
+    size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
+    if (!ESP.flashRead(src1->address + offset, reinterpret_cast<uint32_t*>(buf1.get()), (readBytes + 3) & ~3)
+     || !src2->read(                           reinterpret_cast<uint8_t*>(buf2.get()), (readBytes + 3) & ~3)
+    ) {
+        return false;
+    }
+    for (i = 0; i < readBytes; ++i) if (buf1[i] != buf2[i]) return false;
+    lengthLeft -= readBytes;
+    offset += readBytes;
+    if( SDMenuProgress ) {
+      progress = 100 * offset / length;
+      if (progressOld != progress) {
+        progressOld = progress;
+        SDMenuProgress( (uint8_t)progress, 100 );
+       }
+    }
+  }
+  return true;
+}
+
+
+bool SDUpdater_Base::copyFsPartition(File* dst, const esp_partition_t* src, size_t length) {
+  //tft.fillRect( 110, 112, 100, 20, 0);
+  size_t lengthLeft = length;
+  const size_t bufSize = SPI_FLASH_SEC_SIZE;
+  std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
+  uint32_t offset = 0;
+  uint32_t progress = 0, progressOld = 1;
+  while( lengthLeft > 0) {
+    size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
+    if (!ESP.flashRead(src->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)
+    ) {
+        return false;
+    }
+    if (dst) dst->write(buf.get(), (readBytes + 3) & ~3);
+    lengthLeft -= readBytes;
+    offset += readBytes;
+    if( SDMenuProgress ) {
+      progress = 100 * offset / length;
+      if (progressOld != progress) {
+        progressOld = progress;
+        SDMenuProgress( (uint8_t)progress, 100 );
+      }
+    }
+  }
+  return true;
+}
+
+
+bool SDUpdater_Base::copyFsPartition( fs::FS &fs, const char* binfilename ) {
+  const esp_partition_t *running = esp_ota_get_running_partition();
+  size_t sksize = ESP.getSketchSize();
+  bool ret = false;
+  fs::File dst = fs.open(binfilename, FILE_WRITE );
+  //tft.drawString("Overwriting " MENU_BIN, 160, 38, 2);
+  if (copyFsPartition( &dst, running, sksize)) {
+    //tft.drawString("Done", 160, 52, 2);
+    ret = true;
+  }
+  dst.close();
+  return ret;
+}
+
+
+
 // rollback helper, save menu.bin meta info in NVS
 void SDUpdater_Base::updateNVS() {
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
@@ -162,15 +238,16 @@ void SDUpdater_Base::tryRollback( String fileName ) {
     }
   }
   if( match ) {
+    log_d("Wil check for rollback capability");
     if( Update.canRollBack() )  {
       displayUpdateUI( "HOT-LOADING " + fileName );
       // animate something
       for( uint8_t i=1; i<50; i++ ) {
-        SDMenuProgress( i, 100 );
+        if( SDMenuProgress) SDMenuProgress( i, 100 );
       }
       Update.rollBack();
       for( uint8_t i=50; i<=100; i++ ) {
-        SDMenuProgress( i, 100 );
+        if( SDMenuProgress) SDMenuProgress( i, 100 );
       }
       Serial.println( "Rollback done, restarting" );
       ESP.restart();

@@ -13,17 +13,25 @@
 #define BTN_HINT_MSG   "SD-Updater Options"
 
 
-#if defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ //|| defined LGFX_ONLY
+#if defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY
 
   #if defined LGFX_ONLY
-    // TODO: consexpr 'tft'
-  #else
-    #ifndef tft
+    // WARN: this library assumes a 'tft' object exists
+    #ifndef SDU_GFX
       #define undef_tft
-      #define tft M5.Lcd
+      static LGFX *SDuGFX = nullptr;
+      #define SDU_GFX reinterpret_cast<LGFX&>(*SDuGFX)
+      static void setSDUGfx( LGFX *gfx )
+      {
+        SDuGFX = gfx;
+      }
+    #endif
+  #else
+    #ifndef SDU_GFX
+      #define undef_tft
+      #define SDU_GFX M5.Lcd // can be either M5.Lcd from M5Core.h, M5Core2.h or ESP32-Chimera-Core.h
     #endif
   #endif
-
 
   #ifdef ARDUINO_ODROID_ESP32 // odroid has 4 buttons under the TFT
     #define BUTTON_WIDTH 60
@@ -35,7 +43,7 @@
     static int16_t SDUButtonsYOffset[4] = {
       0, 0, 0, 0
     };
-  #else
+  #else // assuming landscape mode /w 320x240 display
     #define BUTTON_WIDTH 60
     #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
     #define BUTTON_HEIGHT 28
@@ -48,15 +56,14 @@
   #endif
 
   struct BtnStyle {
-    uint16_t BorderColor,
-             FillColor,
-             TextColor
-    ;
+    uint16_t BorderColor;
+    uint16_t FillColor;
+    uint16_t TextColor;
   };
 
   struct BtnStyles {
-    BtnStyle Load = { TFT_ORANGE,                      tft.color565( 0xaa, 0x00, 0x00), tft.color565( 0xdd, 0xdd, 0xdd) };
-    BtnStyle Skip = { tft.color565( 0x11, 0x11, 0x11), tft.color565( 0x33, 0x88, 0x33), tft.color565( 0xee, 0xee, 0xee) };
+    BtnStyle Load = { TFT_ORANGE,                      SDU_GFX.color565( 0xaa, 0x00, 0x00), SDU_GFX.color565( 0xdd, 0xdd, 0xdd) };
+    BtnStyle Skip = { SDU_GFX.color565( 0x11, 0x11, 0x11), SDU_GFX.color565( 0x33, 0x88, 0x33), SDU_GFX.color565( 0xee, 0xee, 0xee) };
     uint16_t height          = BUTTON_HEIGHT;
     uint16_t width           = BUTTON_WIDTH;
     uint16_t hwidth          = BUTTON_HWIDTH;
@@ -71,7 +78,7 @@
   static void SDMenuProgressUI( int state, int size );
   //static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay = 2000  );
   static void DisplayUpdateUI( const String& label );
-  static void SDMenuProgressUI( int state, int size );
+  //static void SDMenuProgressUI( int state, int size );
 
   static void rollBackUI()
   {
@@ -88,7 +95,7 @@
     } else {
       log_n("Cannot rollback: the other OTA partition doesn't seem to be populated or valid");
       // TODO: better error hint (e.g. message) on the display
-      tft.fillScreen( TFT_RED );
+      SDU_GFX.fillScreen( TFT_RED );
       delay(1000);
     }
   }
@@ -105,22 +112,30 @@
 
   static void freezeTextStyle()
   {
-    SDUTextStyle.textsize    = tft.textsize;
-    SDUTextStyle.textdatum   = tft.textdatum;
-    SDUTextStyle.textcolor   = tft.textcolor;
-    SDUTextStyle.textbgcolor = tft.textbgcolor;
+    #if __has_include(<LovyanGFX.h>)
+      SDUTextStyle.textcolor   = SDU_GFX.getTextStyle().fore_rgb888;
+      SDUTextStyle.textbgcolor = SDU_GFX.getTextStyle().back_rgb888;
+      SDUTextStyle.textdatum   = SDU_GFX.getTextStyle().datum;
+      SDUTextStyle.textsize    = SDU_GFX.getTextStyle().size_x;
+    #else
+      SDUTextStyle.textsize    = SDU_GFX.textsize;
+      SDUTextStyle.textdatum   = SDU_GFX.textdatum;
+      SDUTextStyle.textcolor   = SDU_GFX.textcolor;
+      SDUTextStyle.textbgcolor = SDU_GFX.textbgcolor;
+    #endif
+
     log_d("Froze textStyle, size: %d, datum: %d, color: %d, bgcolor: %d", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
   }
   static void thawTextStyle()
   {
-    tft.setTextSize( SDUTextStyle.textsize);
-    tft.setTextDatum( SDUTextStyle.textdatum );
-    tft.setTextColor( SDUTextStyle.textcolor , SDUTextStyle.textbgcolor );
+    SDU_GFX.setTextSize( SDUTextStyle.textsize);
+    SDU_GFX.setTextDatum( SDUTextStyle.textdatum );
+    SDU_GFX.setTextColor( SDUTextStyle.textcolor , SDUTextStyle.textbgcolor );
     #ifndef  _M5STICKC_H_
-      tft.setFont( nullptr );
+      SDU_GFX.setFont( nullptr );
     #endif
-    tft.setCursor(0,0);
-    tft.fillScreen(TFT_BLACK);
+    SDU_GFX.setCursor(0,0);
+    SDU_GFX.fillScreen(TFT_BLACK);
     log_d("Thawed textStyle, size: %d, datum: %d, color: %d, bgcolor: %d", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
   }
 
@@ -128,27 +143,29 @@
   static void drawSDUMessage()
   {
     BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
-    tft.setTextColor( bs->MsgFontFolor[0], bs->MsgFontFolor[1] );
-    tft.setTextSize( bs->MsgFontSize );
-    tft.setCursor( tft.width()/2, 0 );
-    tft.setTextDatum( TC_DATUM );
-    tft.setTextFont( 0 );
-    tft.drawString( BTN_HINT_MSG, tft.width()/2, 0 );
+    SDU_GFX.setTextColor( bs->MsgFontFolor[0], bs->MsgFontFolor[1] );
+    SDU_GFX.setTextSize( bs->MsgFontSize );
+    //SDU_GFX.setCursor( SDU_GFX.width()/2, 0 );
+    SDU_GFX.setTextDatum( TC_DATUM );
+    SDU_GFX.setTextFont( 0 );
+    SDU_GFX.drawString( BTN_HINT_MSG, SDU_GFX.width()/2, 0 );
   }
   __attribute__((unused))
   static void drawSDUPushButton( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor ) {
     BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
-    tft.setTextColor( textcolor, fillcolor );
-    tft.setTextSize( bs->FontSize );
-    tft.fillRoundRect( SDUButtonsXOffset[position], tft.height() - bs->height - 2 - SDUButtonsYOffset[position], bs->width, bs->height, 3, fillcolor );
-    tft.drawRoundRect( SDUButtonsXOffset[position], tft.height() - bs->height - 2 - SDUButtonsYOffset[position], bs->width, bs->height, 3, outlinecolor );
+    SDU_GFX.setTextColor( textcolor, fillcolor );
+    SDU_GFX.setTextSize( bs->FontSize );
 
-    tft.setTextDatum( TC_DATUM );
-    tft.setCursor( SDUButtonsXOffset[position] + bs->hwidth, tft.height() - bs->height + 4 - SDUButtonsYOffset[position] );
-    tft.setTextFont( 2 );
-    tft.print( label );
+    uint32_t bx = SDUButtonsXOffset[position];
+    uint32_t by = SDU_GFX.height() - bs->height - 2 - SDUButtonsYOffset[position];
 
-    //tft.drawCentreString( label, SDUButtonsXOffset[position] + bs->hwidth, tft.height() - bs->height + 4 - SDUButtonsYOffset[position], 2 );
+    SDU_GFX.fillRoundRect( bx, by, bs->width, bs->height, 3, fillcolor );
+    SDU_GFX.drawRoundRect( bx, by, bs->width, bs->height, 3, outlinecolor );
+
+    SDU_GFX.setTextDatum( MC_DATUM );
+    SDU_GFX.setTextFont( 2 );
+    SDU_GFX.drawString( label, bx+bs->width/2, by+bs->height/2 );
+    //SDU_GFX.drawCentreString( label, SDUButtonsXOffset[position] + bs->hwidth, SDU_GFX.height() - bs->height + 4 - SDUButtonsYOffset[position], 2 );
   }
 
 
@@ -159,7 +176,7 @@
       // Dummy function, see checkSDUpdaterUI() or its caller to override
       return -1;
     }
-  #else
+  #else // M5.BtnA/BtnB/BtnC support
     __attribute__((unused))
     static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
     {
@@ -187,7 +204,7 @@
       // use TFT_eSPI_Touch emulation from M5Core2.h
       #define SDU_TouchButton TFT_eSPI_Button
     #else
-      // use native TouchButton from ESP32-Chimera-Core and methods from LGFX
+      // use TouchButton/LGFX_Button from ESP32-Chimera-Core/LovyanGFX
       #define SDU_TouchButton TouchButton
     #endif
 
@@ -196,20 +213,20 @@
           pady    = 5,                                    // buttons padding Y
           marginx = 4,                                    // buttons margin X
           marginy = 4,                                    // buttons margin Y
-          x1      = marginx + tft.width()/4,              // button 1 X position
-          x2      = marginx+tft.width()-tft.width()/4,    // button 2 X position
-          y       = tft.height()/2,                       // buttons Y position
-          w       = (tft.width()/2)-(marginx*2),          // buttons width
-          h       = tft.height()/4,                       // buttons height
+          x1      = marginx + SDU_GFX.width()/4,              // button 1 X position
+          x2      = marginx+SDU_GFX.width()-SDU_GFX.width()/4,    // button 2 X position
+          y       = SDU_GFX.height()/2,                       // buttons Y position
+          w       = (SDU_GFX.width()/2)-(marginx*2),          // buttons width
+          h       = SDU_GFX.height()/4,                       // buttons height
           icon_x  = marginx+12,                           // icon (button 1) X position
           icon_y  = y-8,                                  // icon (button 1) Y position
-          pgbar_x = tft.width()/2+(marginx*2)+(padx*2)-1, // progressbar X position
+          pgbar_x = SDU_GFX.width()/2+(marginx*2)+(padx*2)-1, // progressbar X position
           pgbar_y = (y+h/2)+(marginy*2)-1,                // progressbar Y position
           pgbar_w = w-(marginx*4)-(padx*4),               // progressbar width
-          btn_fsize = (tft.width()>240?2:1)               // touch buttons font size
+          btn_fsize = (SDU_GFX.width()>240?2:1)               // touch buttons font size
       ;
-      BtnStyle Load = { TFT_ORANGE,                      tft.color565( 0xaa, 0x00, 0x00), tft.color565( 0xdd, 0xdd, 0xdd) };
-      BtnStyle Skip = { tft.color565( 0x11, 0x11, 0x11), tft.color565( 0x33, 0x88, 0x33), tft.color565( 0xee, 0xee, 0xee) };
+      BtnStyle Load = { TFT_ORANGE,                      SDU_GFX.color565( 0xaa, 0x00, 0x00), SDU_GFX.color565( 0xdd, 0xdd, 0xdd) };
+      BtnStyle Skip = { SDU_GFX.color565( 0x11, 0x11, 0x11), SDU_GFX.color565( 0x33, 0x88, 0x33), SDU_GFX.color565( 0xee, 0xee, 0xee) };
     };
 
     struct TouchButtonWrapper
@@ -260,10 +277,10 @@
         if( strcmp( label, LAUNCHER_LABEL ) == 0 || strcmp( label, ROLLBACK_LABEL ) == 0 )
         {
           TouchStyles bs;
-          auto IconSprite = TFT_eSprite( &tft );
+          auto IconSprite = TFT_eSprite( &SDU_GFX );
           IconSprite.createSprite(15,16);
           IconSprite.drawJpg(sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 0,0, 15, 16);
-          IconSprite.pushSprite( bs.icon_x, bs.icon_y, tft.color565( 0x01, 0x00, 0x80 ) );
+          IconSprite.pushSprite( bs.icon_x, bs.icon_y, SDU_GFX.color565( 0x01, 0x00, 0x80 ) );
           IconSprite.deleteSprite();
         }
       }
@@ -287,13 +304,13 @@
       #endif
 
       LoadBtn->initButton(
-        &tft,
+        &SDU_GFX,
         ts.x1, ts.y,  ts.w, ts.h,
         ts.Load.BorderColor, ts.Load.FillColor, ts.Load.TextColor,
         labelLoad, ts.btn_fsize
       );
       SkipBtn->initButton(
-        &tft,
+        &SDU_GFX,
         ts.x2, ts.y,  ts.w, ts.h,
         ts.Skip.BorderColor, ts.Skip.FillColor, ts.Skip.TextColor,
         labelSkip, ts.btn_fsize
@@ -312,7 +329,7 @@
       bool ispressed = false;
       int retval = -1; // return status
 
-      tft.drawFastHLine( ts.pgbar_x, ts.pgbar_y, ts.pgbar_w-1, TFT_WHITE );
+      SDU_GFX.drawFastHLine( ts.pgbar_x, ts.pgbar_y, ts.pgbar_w-1, TFT_WHITE );
 
       auto msectouch = millis();
       do {
@@ -337,15 +354,23 @@
           break;
         }
 
-        ispressed = tft.getTouch(&t_x, &t_y);
+        #if __has_include("lgfx/v1/Touch.hpp") // LovyanGFX
+          lgfx::touch_point_t tp;
+          uint16_t number = SDU_GFX.getTouch(&tp, 1);
+          t_x = tp.x;
+          t_y = tp.y;
+          ispressed = number > 0;
+        #else // M5Core2.h
+          ispressed = SDU_GFX.getTouch(&t_x, &t_y);
+        #endif
 
         float barprogress = float(millis() - msectouch) / float(waitdelay);
         int linewidth = float(ts.pgbar_w) * barprogress;
         if( linewidth > 0 ) {
           int linepos = ts.pgbar_w - ( linewidth +1 );
           uint16_t grayscale = 255 - (192*barprogress);
-          tft.drawFastHLine( ts.pgbar_x,         ts.pgbar_y, ts.pgbar_w-linewidth-1, tft.color565( grayscale, grayscale, grayscale ) );
-          tft.drawFastHLine( ts.pgbar_x+linepos, ts.pgbar_y, 1,                      TFT_BLACK );
+          SDU_GFX.drawFastHLine( ts.pgbar_x,         ts.pgbar_y, ts.pgbar_w-linewidth-1, SDU_GFX.color565( grayscale, grayscale, grayscale ) );
+          SDU_GFX.drawFastHLine( ts.pgbar_x+linepos, ts.pgbar_y, 1,                      TFT_BLACK );
         }
 
       } while (millis() - msectouch < waitdelay);
@@ -364,29 +389,17 @@
       isRollBack = false;
     }
 
-    #if defined HAS_TOUCH || defined _M5Core2_H_
+
+    #if defined HAS_TOUCH || defined _M5Core2_H_ // default touch button support
       if( SDUpdaterAssertTrigger==nullptr ) setAssertTrigger( &assertStartUpdateFromTouchButton );
       // TODO: see if "touch/press" detect on boot is possible (spoil : NO)
       // TODO: read signal from other (external?) buttons
+      bool draw = true;
       if( waitdelay == 0 ) return; // don't check for any touch/button signal if waitDelay = 0
-      freezeTextStyle();
-      drawSDUMessage();
-      // bring up Touch UI as there are no buttons to click with
-      if( SDUpdaterAssertTrigger( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
-        if( isRollBack == false ) {
-          Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
-          updateFromFS( fs, fileName, TFCardCsPin );
-          ESP.restart();
-        } else {
-          Serial.println( SDU_ROLLBACK_MSG );
-          rollBackUI();
-        }
-      }
-      // reset text styles to avoid messing with the overlayed application
-      thawTextStyle();
-    #else
+    #else // default push buttons suppor
       if( !SDUpdaterAssertTrigger ) setAssertTrigger( &assertStartUpdateFromPushButton );
       bool draw = false;
+      if( waitdelay == 0 ) return; // don't check for any touch/button signal if waitDelay = 0
       if( waitdelay <= 100 ) {
         // no UI draw, but attempt to detect "button is pressed on boot"
         // also force some minimal delay
@@ -395,28 +408,30 @@
         // only draw if waitdelay > 0
         draw = true;
       }
-
-      if( draw ) { // bring up the UI
-
-      }
-
-      if ( SDUpdaterAssertTrigger( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
-        if( isRollBack == false ) {
-          Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
-          updateFromFS( fs, fileName, TFCardCsPin );
-          ESP.restart();
-        } else {
-          Serial.println( SDU_ROLLBACK_MSG );
-          rollBackUI();
-        }
-      }
-
-
-      if( draw ) {
-        // reset text styles to avoid messing with the overlayed application
-        thawTextStyle();
-      }
     #endif
+
+    if( draw ) { // bring up the UI
+      // TODO: UI draw callback ?
+      freezeTextStyle();
+      drawSDUMessage();
+    }
+
+    if ( SDUpdaterAssertTrigger( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
+      if( isRollBack == false ) {
+        Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
+        updateFromFS( fs, fileName, TFCardCsPin );
+        ESP.restart();
+      } else {
+        Serial.println( SDU_ROLLBACK_MSG );
+        rollBackUI();
+      }
+    }
+
+    if( draw ) {
+      // reset text styles to avoid messing with the overlayed application
+      thawTextStyle();
+    }
+
   }
 
 
@@ -433,21 +448,21 @@
     SD_UI_Progress = percent;
     int progress_w = 102;
     int progress_h = 20;
-    int progress_x = (tft.width() - progress_w) >> 1;
-    int progress_y = (tft.height()- progress_h) >> 1;
+    int progress_x = (SDU_GFX.width() - progress_w) >> 1;
+    int progress_y = (SDU_GFX.height()- progress_h) >> 1;
     if ( percent >= 0 && percent < 101 ) {
-      tft.fillRect( progress_x+1, progress_y+1, percent, 18, TFT_GREEN );
-      tft.fillRect( progress_x+1+percent, progress_y+1, 100-percent, 18, TFT_BLACK );
+      SDU_GFX.fillRect( progress_x+1, progress_y+1, percent, 18, TFT_GREEN );
+      SDU_GFX.fillRect( progress_x+1+percent, progress_y+1, 100-percent, 18, TFT_BLACK );
       Serial.print( "." );
     } else {
-      tft.fillRect( progress_x+1, progress_y+1, 100, 18, TFT_BLACK );
+      SDU_GFX.fillRect( progress_x+1, progress_y+1, 100, 18, TFT_BLACK );
       Serial.println();
     }
     String percentStr = " " + String( percent ) + "% ";
-    tft.setTextDatum( TC_DATUM );
-    tft.setCursor( tft.width() >> 1, progress_y+progress_h+5 );
-    tft.setTextFont( 0 );
-    tft.print( percentStr );
+    SDU_GFX.setTextDatum( TC_DATUM );
+    SDU_GFX.setCursor( SDU_GFX.width() >> 1, progress_y+progress_h+5 );
+    SDU_GFX.setTextFont( 0 );
+    SDU_GFX.print( percentStr );
     if ( percent >= 0 && percent < 101 ) {
       Serial.print( "." );
     } else {
@@ -460,19 +475,19 @@
   static void DisplayUpdateUI( const String& label )
   {
     /* auto &tft = M5.Lcd; */
-    if (tft.width() < tft.height()) tft.setRotation(tft.getRotation() ^ 1);
+    if (SDU_GFX.width() < SDU_GFX.height()) SDU_GFX.setRotation(SDU_GFX.getRotation() ^ 1);
 
-    tft.fillScreen( TFT_BLACK );
-    tft.setTextColor( TFT_WHITE, TFT_BLACK );
-    tft.setTextFont( 0 );
-    tft.setTextSize( 2 );
-    tft.setTextDatum( ML_DATUM );
+    SDU_GFX.fillScreen( TFT_BLACK );
+    SDU_GFX.setTextColor( TFT_WHITE, TFT_BLACK );
+    SDU_GFX.setTextFont( 0 );
+    SDU_GFX.setTextSize( 2 );
+    SDU_GFX.setTextDatum( ML_DATUM );
     // attemtp to center the text
-    int16_t xpos = ( tft.width() / 2) - ( tft.textWidth( label ) / 2 );
+    int16_t xpos = ( SDU_GFX.width() / 2) - ( SDU_GFX.textWidth( label ) / 2 );
     if ( xpos < 0 ) {
       // try with smaller size
-      tft.setTextSize(1);
-      xpos = ( tft.width() / 2 ) - ( tft.textWidth( label ) / 2 );
+      SDU_GFX.setTextSize(1);
+      xpos = ( SDU_GFX.width() / 2 ) - ( SDU_GFX.textWidth( label ) / 2 );
       if( xpos < 0 ) {
         // give up
         xpos = 0 ;
@@ -480,16 +495,16 @@
     }
     int progress_w = 102;
     int progress_h = 20;
-    int progress_x = (tft.width() - progress_w) >> 1;
-    int progress_y = (tft.height()- progress_h) >> 1;
-    tft.setCursor( xpos, progress_y - 20 );
-    tft.print( label );
-    tft.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
+    int progress_x = (SDU_GFX.width() - progress_w) >> 1;
+    int progress_y = (SDU_GFX.height()- progress_h) >> 1;
+    SDU_GFX.setCursor( xpos, progress_y - 20 );
+    SDU_GFX.print( label );
+    SDU_GFX.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
   }
 
   // release 'tft' temporary define
   #if defined undef_tft
-    #undef tft
+    #undef SDU_GFX
   #endif
 
 #else
