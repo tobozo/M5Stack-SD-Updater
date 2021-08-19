@@ -1,8 +1,11 @@
-#include <FS.h>
 #include <SD.h>
-#define LGFX_AUTODETECT
-#define LGFX_USE_V1
-#include <LovyanGFX.h>
+
+//#define LGFX_AUTODETECT
+//#define LGFX_USE_V1
+//#include <LovyanGFX.h>
+
+#include <M5GFX.h>
+#define LGFX M5GFX // just alias to LGFX for SD-Updater
 
 #include "M5Stack_Buttons.h" // stolen from M5Stack Core
 #define TFCARD_CS_PIN 4
@@ -11,7 +14,7 @@
 #include <M5StackUpdater.h>
 
 static LGFX tft;
-static LGFX_Sprite canvas(&tft);
+//static LGFX_Sprite canvas(&tft);
 
 static Button *BtnA;
 static Button *BtnB;
