@@ -12,9 +12,7 @@
 #define SKIP_LABEL     "Skip >>|" // resume normal operations (=no action taken)
 #define BTN_HINT_MSG   "SD-Updater Options"
 
-
 #if defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY
-
   #if defined LGFX_ONLY
     // WARN: this library assumes a 'tft' object exists
     #ifndef SDU_GFX
@@ -24,6 +22,7 @@
       static void setSDUGfx( LGFX *gfx )
       {
         SDuGFX = gfx;
+        SDU.setGfx( gfx );
       }
     #endif
   #else
@@ -62,7 +61,7 @@
   };
 
   struct BtnStyles {
-    BtnStyle Load = { TFT_ORANGE,                      SDU_GFX.color565( 0xaa, 0x00, 0x00), SDU_GFX.color565( 0xdd, 0xdd, 0xdd) };
+    BtnStyle Load = { TFT_ORANGE,                          SDU_GFX.color565( 0xaa, 0x00, 0x00), SDU_GFX.color565( 0xdd, 0xdd, 0xdd) };
     BtnStyle Skip = { SDU_GFX.color565( 0x11, 0x11, 0x11), SDU_GFX.color565( 0x33, 0x88, 0x33), SDU_GFX.color565( 0xee, 0xee, 0xee) };
     uint16_t height          = BUTTON_HEIGHT;
     uint16_t width           = BUTTON_WIDTH;
@@ -72,31 +71,28 @@
     uint16_t MsgFontFolor[2] = {TFT_WHITE, TFT_BLACK}; // foreground, background
   };
 
-  BtnStyles DefaultBtnStyle;
+  static BtnStyles DefaultBtnStyle;
   static BtnStyles *userBtnStyle = nullptr;
 
   static void SDMenuProgressUI( int state, int size );
-  //static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay = 2000  );
   static void DisplayUpdateUI( const String& label );
-  //static void SDMenuProgressUI( int state, int size );
+  static void DisplayErrorUI( const String& msg, unsigned long wait );
 
   static void rollBackUI()
   {
     if( Update.canRollBack() ) {
-      DisplayUpdateUI( "RE-LOADING APP" );
+      SDU.onMessage( "RE-LOADING APP" );
       for( uint8_t i=1; i<50; i++ ) {
-        SDMenuProgressUI( i, 100 );
-      }
-      for( uint8_t i=50; i<=100; i++ ) {
-        SDMenuProgressUI( i, 100 );
+        SDU.onProgress( i, 100 );
       }
       Update.rollBack();
+      for( uint8_t i=50; i<=100; i++ ) {
+        SDU.onProgress( i, 100 );
+      }
       ESP.restart();
     } else {
       log_n("Cannot rollback: the other OTA partition doesn't seem to be populated or valid");
-      // TODO: better error hint (e.g. message) on the display
-      SDU_GFX.fillScreen( TFT_RED );
-      delay(1000);
+      SDU.onError("Cannot rollback", 2000);
     }
   }
 
@@ -107,7 +103,6 @@
     uint32_t textcolor    = 0;
     uint32_t textbgcolor  = 0;
   };
-
   static SDUTextStyle_T SDUTextStyle;
 
   static void freezeTextStyle()
@@ -126,6 +121,7 @@
 
     log_d("Froze textStyle, size: %d, datum: %d, color: %d, bgcolor: %d", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
   }
+
   static void thawTextStyle()
   {
     SDU_GFX.setTextSize( SDUTextStyle.textsize);
@@ -140,7 +136,7 @@
   }
 
   __attribute__((unused))
-  static void drawSDUMessage()
+  static void drawSDUSplashPage( const char* msg )
   {
     BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
     SDU_GFX.setTextColor( bs->MsgFontFolor[0], bs->MsgFontFolor[1] );
@@ -148,10 +144,15 @@
     //SDU_GFX.setCursor( SDU_GFX.width()/2, 0 );
     SDU_GFX.setTextDatum( TC_DATUM );
     SDU_GFX.setTextFont( 0 );
-    SDU_GFX.drawString( BTN_HINT_MSG, SDU_GFX.width()/2, 0 );
+    SDU_GFX.drawString( msg, SDU_GFX.width()/2, 0 );
+    #if defined SDU_APP_NAME
+      SDU_GFX.drawString( SDU_APP_NAME, SDU_GFX.width()/2, 32 );
+    #endif
   }
+
   __attribute__((unused))
-  static void drawSDUPushButton( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor ) {
+  static void drawSDUPushButton( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor )
+  {
     BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
     SDU_GFX.setTextColor( textcolor, fillcolor );
     SDU_GFX.setTextSize( bs->FontSize );
@@ -165,7 +166,6 @@
     SDU_GFX.setTextDatum( MC_DATUM );
     SDU_GFX.setTextFont( 2 );
     SDU_GFX.drawString( label, bx+bs->width/2, by+bs->height/2 );
-    //SDU_GFX.drawCentreString( label, SDUButtonsXOffset[position] + bs->hwidth, SDU_GFX.height() - bs->height + 4 - SDUButtonsYOffset[position], 2 );
   }
 
 
@@ -173,7 +173,7 @@
     __attribute__((unused))
     static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
     {
-      // Dummy function, see checkSDUpdaterUI() or its caller to override
+      // Dummy function, use setAssertTrigger( fn ) to override
       return -1;
     }
   #else // M5.BtnA/BtnB/BtnC support
@@ -181,11 +181,11 @@
     static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
     {
       if( waitdelay > 100 ) {
-        freezeTextStyle();
-        drawSDUMessage();
+        SDU.onBefore();
+        SDU.onSplashPage( BTN_HINT_MSG );
         BtnStyles btns;
-        drawSDUPushButton( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
-        drawSDUPushButton( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+        SDU.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
+        SDU.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
       }
       auto msec = millis();
       do {
@@ -198,190 +198,34 @@
   #endif
 
 
-  #if defined HAS_TOUCH || defined _M5Core2_H_ // ESP32-Chimera-Core (TODO: add LGFX_ONLY) touch support
+  #if defined HAS_TOUCH || defined _M5Core2_H_ // ESP32-Chimera-Core / LGFX / M5Core2 touch support
 
-    #if defined _M5Core2_H_
-      // use TFT_eSPI_Touch emulation from M5Core2.h
-      #define SDU_TouchButton TFT_eSPI_Button
-    #else
-      // use TouchButton/LGFX_Button from ESP32-Chimera-Core/LovyanGFX
-      #define SDU_TouchButton TouchButton
-    #endif
-
-    struct TouchStyles {
-      int padx    = 4,                                    // buttons padding X
-          pady    = 5,                                    // buttons padding Y
-          marginx = 4,                                    // buttons margin X
-          marginy = 4,                                    // buttons margin Y
-          x1      = marginx + SDU_GFX.width()/4,              // button 1 X position
-          x2      = marginx+SDU_GFX.width()-SDU_GFX.width()/4,    // button 2 X position
-          y       = SDU_GFX.height()/2,                       // buttons Y position
-          w       = (SDU_GFX.width()/2)-(marginx*2),          // buttons width
-          h       = SDU_GFX.height()/4,                       // buttons height
-          icon_x  = marginx+12,                           // icon (button 1) X position
-          icon_y  = y-8,                                  // icon (button 1) Y position
-          pgbar_x = SDU_GFX.width()/2+(marginx*2)+(padx*2)-1, // progressbar X position
-          pgbar_y = (y+h/2)+(marginy*2)-1,                // progressbar Y position
-          pgbar_w = w-(marginx*4)-(padx*4),               // progressbar width
-          btn_fsize = (SDU_GFX.width()>240?2:1)               // touch buttons font size
-      ;
-      BtnStyle Load = { TFT_ORANGE,                      SDU_GFX.color565( 0xaa, 0x00, 0x00), SDU_GFX.color565( 0xdd, 0xdd, 0xdd) };
-      BtnStyle Skip = { SDU_GFX.color565( 0x11, 0x11, 0x11), SDU_GFX.color565( 0x33, 0x88, 0x33), SDU_GFX.color565( 0xee, 0xee, 0xee) };
-    };
-
-    struct TouchButtonWrapper
-    {
-      bool iconRendered = false;
-
-      void handlePressed( SDU_TouchButton *btn, bool pressed, uint16_t x, uint16_t y)
-      {
-        if (pressed && btn->contains(x, y)) {
-          log_d("Press at [%d:%d]", x, y );
-          btn->press(true); // tell the button it is pressed
-        } else {
-          if( pressed ) {
-            log_d("Outside Press at [%d:%d]", x, y );
-          }
-          btn->press(false); // tell the button it is NOT pressed
-        }
-      }
-
-      void handleJustPressed( SDU_TouchButton *btn, const char* label )
-      {
-        if ( btn->justPressed() ) {
-          btn->drawButton(true, label);
-          pushIcon( label );
-        }
-      }
-
-      bool justReleased( SDU_TouchButton *btn, bool pressed, const char* label )
-      {
-        bool ret = false;
-        if ( btn->justReleased() && (!pressed)) {
-          // callable
-          ret = true;
-        } else if ( btn->justReleased() && (pressed)) {
-          // state change but not callable
-          ret = false;
-        } else {
-          // no change, no need to draw
-          return false;
-        }
-        btn->drawButton(false, label);
-        pushIcon( label );
-        return ret;
-      }
-
-      void pushIcon(const char* label)
-      {
-        if( strcmp( label, LAUNCHER_LABEL ) == 0 || strcmp( label, ROLLBACK_LABEL ) == 0 )
-        {
-          TouchStyles bs;
-          auto IconSprite = TFT_eSprite( &SDU_GFX );
-          IconSprite.createSprite(15,16);
-          IconSprite.drawJpg(sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 0,0, 15, 16);
-          IconSprite.pushSprite( bs.icon_x, bs.icon_y, SDU_GFX.color565( 0x01, 0x00, 0x80 ) );
-          IconSprite.deleteSprite();
-        }
-      }
-    }; // end struct TouchButtonWrapper
-
-    static int assertStartUpdateFromTouchButton( char* labelLoad, char* labelSkip, unsigned long waitdelay=5000 )
-    {
-      /* auto &tft = M5.Lcd; */
-      if( waitdelay == 0 ) return -1;
-      // chimera core any-touch support + buttons
-
-      static SDU_TouchButton *LoadBtn = new SDU_TouchButton();
-      static SDU_TouchButton *SkipBtn = new SDU_TouchButton();
-
-      TouchButtonWrapper tbWrapper;
-      TouchStyles ts;
-
-      #if defined _M5Core2_H_
-        LoadBtn->setFont(nullptr);
-        SkipBtn->setFont(nullptr);
-      #endif
-
-      LoadBtn->initButton(
-        &SDU_GFX,
-        ts.x1, ts.y,  ts.w, ts.h,
-        ts.Load.BorderColor, ts.Load.FillColor, ts.Load.TextColor,
-        labelLoad, ts.btn_fsize
-      );
-      SkipBtn->initButton(
-        &SDU_GFX,
-        ts.x2, ts.y,  ts.w, ts.h,
-        ts.Skip.BorderColor, ts.Skip.FillColor, ts.Skip.TextColor,
-        labelSkip, ts.btn_fsize
-      );
-
-      LoadBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
-      SkipBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
-
-      LoadBtn->drawButton();
-      SkipBtn->drawButton();
-
-      LoadBtn->press(false);
-      SkipBtn->press(false);
-
-      uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
-      bool ispressed = false;
-      int retval = -1; // return status
-
-      SDU_GFX.drawFastHLine( ts.pgbar_x, ts.pgbar_y, ts.pgbar_w-1, TFT_WHITE );
-
-      auto msectouch = millis();
-      do {
-
-        if( tbWrapper.iconRendered == false ) {
-          tbWrapper.pushIcon( labelLoad );
-          tbWrapper.iconRendered = true;
-        }
-        tbWrapper.handlePressed( LoadBtn, ispressed, t_x, t_y );
-        tbWrapper.handlePressed( SkipBtn, ispressed, t_x, t_y );
-        tbWrapper.handleJustPressed( LoadBtn, labelLoad );
-        tbWrapper.handleJustPressed( SkipBtn, labelSkip );
-
-        if( tbWrapper.justReleased( LoadBtn, ispressed, labelLoad ) ) {
-          retval = 1;
-          log_n("LoadBTN Pressed at [%d:%d]!", t_x, t_y);
-          break;
-        }
-        if( tbWrapper.justReleased( SkipBtn, ispressed, labelSkip ) ) {
-          retval = 0;
-          log_n("SkipBTN Pressed at [%d:%d]!", t_x, t_y);
-          break;
-        }
-
-        #if __has_include("lgfx/v1/Touch.hpp") // LovyanGFX
-          lgfx::touch_point_t tp;
-          uint16_t number = SDU_GFX.getTouch(&tp, 1);
-          t_x = tp.x;
-          t_y = tp.y;
-          ispressed = number > 0;
-        #else // M5Core2.h
-          ispressed = SDU_GFX.getTouch(&t_x, &t_y);
-        #endif
-
-        float barprogress = float(millis() - msectouch) / float(waitdelay);
-        int linewidth = float(ts.pgbar_w) * barprogress;
-        if( linewidth > 0 ) {
-          int linepos = ts.pgbar_w - ( linewidth +1 );
-          uint16_t grayscale = 255 - (192*barprogress);
-          SDU_GFX.drawFastHLine( ts.pgbar_x,         ts.pgbar_y, ts.pgbar_w-linewidth-1, SDU_GFX.color565( grayscale, grayscale, grayscale ) );
-          SDU_GFX.drawFastHLine( ts.pgbar_x+linepos, ts.pgbar_y, 1,                      TFT_BLACK );
-        }
-
-      } while (millis() - msectouch < waitdelay);
-      return retval;
-    }
+    #include "M5StackUpdaterUITouch.h"
 
   #endif // HAS_TOUCH
 
+
+  static void loadCfg()
+  {
+    if( SDU.onProgress == nullptr)      SDU.onProgress      = SDMenuProgressUI;
+    if( SDU.onMessage == nullptr)       SDU.onMessage       = DisplayUpdateUI;
+    if( SDU.onError == nullptr)         SDU.onError         = DisplayErrorUI;
+    if( SDU.onBefore == nullptr)        SDU.onBefore        = freezeTextStyle;
+    if( SDU.onAfter == nullptr)         SDU.onAfter         = thawTextStyle;
+    if( SDU.onSplashPage == nullptr)    SDU.onSplashPage    = drawSDUSplashPage;
+    if( SDU.onButtonDraw == nullptr)    SDU.onButtonDraw    = drawSDUPushButton;
+    //if( SDU.onWaitForAction == nullptr) SDU.onWaitForAction = SDUpdaterAssertTrigger;
+    #if defined HAS_TOUCH || defined _M5Core2_H_ // default touch button support
+      SDU.onWaitForAction = assertStartUpdateFromTouchButton;
+    #else // default momentary button support
+      SDU.onWaitForAction = assertStartUpdateFromPushButton;
+    #endif
+  }
+
+
   static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay, const int TFCardCsPin )
   {
-    /* auto &tft = M5.Lcd; */
+
     log_n("Booting with reset reason: %d", resetReason );
 
     bool isRollBack = true;
@@ -389,20 +233,17 @@
       isRollBack = false;
     }
 
-
     #if defined HAS_TOUCH || defined _M5Core2_H_ // default touch button support
-      if( SDUpdaterAssertTrigger==nullptr ) setAssertTrigger( &assertStartUpdateFromTouchButton );
       // TODO: see if "touch/press" detect on boot is possible (spoil : NO)
       // TODO: read signal from other (external?) buttons
       bool draw = true;
-      if( waitdelay == 0 ) return; // don't check for any touch/button signal if waitDelay = 0
-    #else // default push buttons suppor
-      if( !SDUpdaterAssertTrigger ) setAssertTrigger( &assertStartUpdateFromPushButton );
+      //if( waitdelay == 0 ) return; // don't check for any touch/button signal if waitDelay = 0
+    #else // default push buttons support
       bool draw = false;
-      if( waitdelay == 0 ) return; // don't check for any touch/button signal if waitDelay = 0
+      //if( waitdelay == 0 ) return; // don't check for any touch/button signal if waitDelay = 0
       if( waitdelay <= 100 ) {
-        // no UI draw, but attempt to detect "button is pressed on boot"
-        // also force some minimal delay
+        // no UI draw, but still attempt to detect "button is pressed on boot"
+        // round up to 100ms for button debounce
         waitdelay = 100;
       } else {
         // only draw if waitdelay > 0
@@ -410,13 +251,14 @@
       }
     #endif
 
+    loadCfg();
+
     if( draw ) { // bring up the UI
-      // TODO: UI draw callback ?
-      freezeTextStyle();
-      drawSDUMessage();
+      SDU.onBefore();
+      SDU.onSplashPage( BTN_HINT_MSG );
     }
 
-    if ( SDUpdaterAssertTrigger( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
+    if ( SDU.onWaitForAction( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
       if( isRollBack == false ) {
         Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
         updateFromFS( fs, fileName, TFCardCsPin );
@@ -429,11 +271,10 @@
 
     if( draw ) {
       // reset text styles to avoid messing with the overlayed application
-      thawTextStyle();
+      SDU.onAfter();
     }
 
   }
-
 
 
   static void SDMenuProgressUI( int state, int size )
@@ -474,7 +315,6 @@
 
   static void DisplayUpdateUI( const String& label )
   {
-    /* auto &tft = M5.Lcd; */
     if (SDU_GFX.width() < SDU_GFX.height()) SDU_GFX.setRotation(SDU_GFX.getRotation() ^ 1);
 
     SDU_GFX.fillScreen( TFT_BLACK );
@@ -501,6 +341,21 @@
     SDU_GFX.print( label );
     SDU_GFX.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
   }
+
+
+
+  static void DisplayErrorUI( const String& msg, unsigned long wait )
+  {
+    SDU_GFX.fillScreen( TFT_BLACK );
+    SDU_GFX.setTextColor( TFT_RED, TFT_BLACK );
+    SDU_GFX.setTextFont( 0 );
+    SDU_GFX.setTextSize( 2 );
+    SDU_GFX.setTextDatum( ML_DATUM );
+    SDU_GFX.setCursor( 10, 10 );
+    SDU_GFX.print( msg );
+    delay(wait);
+  }
+
 
   // release 'tft' temporary define
   #if defined undef_tft

@@ -1,7 +1,7 @@
 #ifndef _M5UPDATER_HEADLESS_
 #define _M5UPDATER_HEADLESS_
 
-#include <Arduino.h>
+//#include <Arduino.h>
 
 #define SDU_LOAD_TPL   "Will Load menu binary : %s\n"
 #define SDU_ROLLBACK_MSG "Will Roll back"
@@ -28,7 +28,7 @@ static void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long w
     waitdelay = 100; // at lease give some time for the serial buffer to fill
   }
 
-  if ( assertStartUpdateFromSerial( nullptr, nullptr, waitdelay ) == 1 ) {
+  if ( SDU.onWaitForAction( nullptr, nullptr, waitdelay ) == 1 ) {
     Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
     updateFromFS( fs, fileName, TfCardCsPin_ );
     ESP.restart();

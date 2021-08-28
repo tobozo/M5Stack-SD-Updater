@@ -104,11 +104,11 @@ bool SDUpdater_Base::compareFsPartition(const esp_partition_t* src1, fs::File* s
     for (i = 0; i < readBytes; ++i) if (buf1[i] != buf2[i]) return false;
     lengthLeft -= readBytes;
     offset += readBytes;
-    if( SDMenuProgress ) {
+    if( SDU.onProgress ) {
       progress = 100 * offset / length;
       if (progressOld != progress) {
         progressOld = progress;
-        SDMenuProgress( (uint8_t)progress, 100 );
+        SDU.onProgress( (uint8_t)progress, 100 );
        }
     }
   }
@@ -132,11 +132,11 @@ bool SDUpdater_Base::copyFsPartition(File* dst, const esp_partition_t* src, size
     if (dst) dst->write(buf.get(), (readBytes + 3) & ~3);
     lengthLeft -= readBytes;
     offset += readBytes;
-    if( SDMenuProgress ) {
+    if( SDU.onProgress ) {
       progress = 100 * offset / length;
       if (progressOld != progress) {
         progressOld = progress;
-        SDMenuProgress( (uint8_t)progress, 100 );
+        SDU.onProgress( (uint8_t)progress, 100 );
       }
     }
   }
@@ -175,8 +175,8 @@ void SDUpdater_Base::updateNVS() {
 
 // perform the actual update from a given stream
 void SDUpdater_Base::performUpdate( Stream &updateSource, size_t updateSize, String fileName ) {
-  displayUpdateUI( "LOADING " + fileName );
-  Update.onProgress( SDMenuProgress );
+  if( SDU.onMessage ) SDU.onMessage( "LOADING " + fileName );
+  if( SDU.onProgress ) Update.onProgress( SDU.onProgress );
   if (Update.begin( updateSize )) {
     size_t written = Update.writeStream( updateSource );
     if ( written == updateSize ) {
@@ -199,7 +199,7 @@ void SDUpdater_Base::performUpdate( Stream &updateSource, size_t updateSize, Str
       Serial.println( "Error Occurred. Error #: " + String( Update.getError() ) );
     }
   } else {
-      Serial.println( "Not enough space to begin OTA" );
+    Serial.println( "Not enough space to begin OTA" );
   }
 }
 
@@ -240,14 +240,14 @@ void SDUpdater_Base::tryRollback( String fileName ) {
   if( match ) {
     log_d("Wil check for rollback capability");
     if( Update.canRollBack() )  {
-      displayUpdateUI( "HOT-LOADING " + fileName );
+      if( SDU.onMessage) SDU.onMessage( "HOT-LOADING " + fileName );
       // animate something
       for( uint8_t i=1; i<50; i++ ) {
-        if( SDMenuProgress) SDMenuProgress( i, 100 );
+        if( SDU.onProgress) SDU.onProgress( i, 100 );
       }
       Update.rollBack();
       for( uint8_t i=50; i<=100; i++ ) {
-        if( SDMenuProgress) SDMenuProgress( i, 100 );
+        if( SDU.onProgress) SDU.onProgress( i, 100 );
       }
       Serial.println( "Rollback done, restarting" );
       ESP.restart();
@@ -426,7 +426,7 @@ void SDUpdater_Base::copyFile( String sourceName, fs::FS &sourceFS, String destN
 
 void SDUpdater_Base::copyFile( fs::File &sourceFile, String destName, fs::FS &destinationFS ) {
   String sourceName = fs_file_path(&sourceFile);
-  //displayUpdateUI( String( "MOVINGFILE_MESSAGE" ) + sourceName );
+  //SDU.onMessage( String( "MOVINGFILE_MESSAGE" ) + sourceName );
   size_t fileSize = sourceFile.size();
 
   String basename = gnu_basename( destName );

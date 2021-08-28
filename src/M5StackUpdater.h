@@ -134,29 +134,60 @@ extern "C" {
  #define TFCARD_CS_PIN SS
 #endif
 
+// callback signatures
+typedef void (*onProgressCb)( int state, int size );
+typedef void (*onMessageCb)( const String& label );
+typedef void (*onErrorCb)( const String& message, unsigned long delay );
+typedef void (*onBeforeCb)();
+typedef void (*onAfterCb)();
+typedef void (*onSplashPageCb)( const char* msg );
+typedef void (*onButtonDrawCb)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor );
+typedef int  (*onWaitForActionCb)( char* labelLoad, char* labelSkip, unsigned long waitdelay );
+
+
+struct config_sdu_t
+{
+  void * gfx =  nullptr; // optional pointer for custom callbacks
+  onProgressCb      onProgress      = nullptr;
+  onMessageCb       onMessage       = nullptr;
+  onErrorCb         onError         = nullptr;
+  onBeforeCb        onBefore        = nullptr;
+  onAfterCb         onAfter         = nullptr;
+  onSplashPageCb    onSplashPage    = nullptr;
+  onButtonDrawCb    onButtonDraw    = nullptr;
+  onWaitForActionCb onWaitForAction = nullptr;
+
+  void setGfx( void *param )                      { gfx = param; };
+  void setProgressCb( onProgressCb cb )           { onProgress = cb; }
+  void setMessageCb( onMessageCb cb )             { onMessage = cb; }
+  void setErrorCb( onErrorCb cb )                 { onError = cb; }
+  void setBeforeCb( onBeforeCb cb )               { onBefore = cb; }
+  void setAfterCb( onAfterCb cb )                 { onAfter = cb; }
+  void setSplashPageCb( onSplashPageCb cb )       { onSplashPage = cb; }
+  void setButtonDrawCb( onButtonDrawCb cb )       { onButtonDraw = cb; }
+  void setWaitForActionCb( onWaitForActionCb cb ) { onWaitForAction = cb; }
+
+};
+
+static config_sdu_t SDU;
+
+// legacy imperative function
 static void updateFromFS( fs::FS &fs, const String& fileName, const int TFCardCsPin );
 
+// legacy helper: attach a button/touch event detection
 __attribute__((unused))
-static int (*SDUpdaterAssertTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay ) = nullptr;
-typedef int (*assertTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay );
-
-__attribute__((unused))
-static void (*SDMenuProgress)( int state, int size ) = nullptr;
-typedef void (*progressCb)( int state, int size );
-
-// attach a button/touch event detection
-__attribute__((unused))
-static void setAssertTrigger( assertTrigger tg )
+static void setAssertTrigger( onWaitForActionCb tg )
 {
   log_d("Setting assert trigger");
-  SDUpdaterAssertTrigger = tg;
+  SDU.setWaitForActionCb( tg );
 }
-// attach a custom progress function
+// legacy helper attach a custom progress function
 __attribute__((unused))
-static void setMenuProgressCb( progressCb cb )
+static void setMenuProgressCb( onProgressCb cb )
 {
-  SDMenuProgress = cb;
+  SDU.setProgressCb( cb );
 }
+
 
 #include "M5StackUpdaterHeadless.h"
 #ifdef USE_DISPLAY
@@ -213,7 +244,7 @@ static void setMenuProgressCb( progressCb cb )
 #endif
 
 // backwards compat
-#define M5SDMenuProgress SDMenuProgress
+#define M5SDMenuProgress SDU.onProgress
 
 
 class SDUpdater_Base {
@@ -224,6 +255,9 @@ class SDUpdater_Base {
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
     String SKETCH_NAME = "";
+
+    // TODO: remove SPIFFS or replace by LittleFS
+
     bool enableSPIFFS = false;
     bool SPIFFS_MOUNTED = false;
 
@@ -246,13 +280,12 @@ class SDUpdater_Base {
       bool SPIFFSisEmpty();
     #endif
 
+    // flash to SD binary replication
     static bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
     static bool copyFsPartition(File* dst, const esp_partition_t* src, size_t length);
     static bool copyFsPartition(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} );
 
-    //int (*assertStartUpdate)( char* labelLoad,  char* labelSkip, unsigned long waitdelay );
-    void (*displayUpdateUI)( const String& label );
-    //void (*SDMenuProgress)( int state, int size );
+    // fs::File->name() changed behaviour after esp32 sdk 2.x.x
     const char* fs_file_path( fs::File *file ) {
       #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
         return file->path();
@@ -273,9 +306,9 @@ class SDUpdater_Headless : public SDUpdater_Base {
 
     SDUpdater_Headless( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
       log_d("SDUpdater headless mode");
-      SDMenuProgress  = SDMenuProgressHeadless;
-      displayUpdateUI = DisplayUpdateHeadless;
-      //assertStartUpdate = assertStartUpdateFromSerial;
+      SDU.onProgress      = SDMenuProgressHeadless;
+      SDU.onMessage       = DisplayUpdateHeadless;
+      SDU.onWaitForAction = assertStartUpdateFromSerial;
     };
 
 };
@@ -286,9 +319,7 @@ class SDUpdater_Headless : public SDUpdater_Base {
 
       SDUpdater_Display( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
         log_d("SDUpdater UI mode");
-        SDMenuProgress    = SDMenuProgressUI;
-        displayUpdateUI   = DisplayUpdateUI;
-        //assertStartUpdate = assertStartUpdateFromPushButton;
+        loadCfg();
       };
 
   };
@@ -306,13 +337,13 @@ __attribute__((unused)) static bool copyFsPartition(fs::FS &fs, const char* binf
   return sdUpdater.copyFsPartition( fs, binfilename );
 }
 
-
 // provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater
 __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN, const int TfCardCsPin = TFCARD_CS_PIN )
 {
   SDUpdater sdUpdater( TfCardCsPin );
   sdUpdater.updateFromFS( fs, fileName );
 }
+
 // provide a conditional function to cover more devices, including headless and touch
 __attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 0, const int TfCardCsPin_ = TFCARD_CS_PIN ) {
   if( waitdelay == 0 ) {
