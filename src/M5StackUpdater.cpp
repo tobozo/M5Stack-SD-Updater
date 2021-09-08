@@ -268,7 +268,7 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
   #endif
   Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
 
-  #ifdef _SPIFFS_H_
+  #if defined _SPIFFS_H_ || SD_UPDATER_FS_TYPE==SDUPDATER_SPIFFS_FS
     //#pragma message ("SPIFFS Support detected")
     log_i(" Checking for SPIFFS Support");
     if( &fs == &SPIFFS ) {
@@ -280,11 +280,11 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
       }
     }
   #endif
-  #if defined _SPIFFS_H_ || SD_UPDATER_FS_TYPE==SDUPDATER_LITTLEFS_FS
+  #if defined _LITTLEFS_H_ || SD_UPDATER_FS_TYPE==SDUPDATER_LITTLEFS_FS
     //#pragma message ("LittleFS Support detected")
     log_i("Checking for %s Support", SDU_FS_NAME);
-    if( &fs == &SDUPDATER_FS ) {
-      if( !SDUPDATER_FS.begin() ){
+    if( &fs == &LittleFS ) {
+      if( !LittleFS.begin() ){
         log_n( "%s MOUNT FAILED, ABORTING!!", SDU_FS_NAME );
         return;
       } else {
@@ -292,7 +292,7 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
       }
     }
   #endif
-  #if SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
+  #if defined _SD_H_ || SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
     //#pragma message ("SD Support detected")
     log_i(" Checking for SD Support");
     if( &fs == &SD ) {
@@ -304,7 +304,7 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
       }
     }
   #endif
-  #if SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
+  #if defined _SDMMC_H_ || SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
     //#pragma message ("SD_MMC Support detected")
     log_i(" Checking for SD_MMC Support");
     if( &fs == &SD_MMC ) {
