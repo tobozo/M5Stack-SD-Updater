@@ -281,7 +281,7 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
         return;
       } else {
         log_i( "SPIFFS Successfully mounted");
-        SPIFFS_MOUNTED = true;
+        //SPIFFS_MOUNTED = true;
       }
     }
   #endif

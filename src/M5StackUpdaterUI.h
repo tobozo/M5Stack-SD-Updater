@@ -172,16 +172,16 @@ static void SDMenuProgressHeadless( int state, int size )
     SDU_GFX.setTextDatum( TL_DATUM );
     SDU_GFX.setTextFont( 0 );
     SDU_GFX.setTextColor( TFT_WHITE );
-    SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 0, 15, 16 );
+    //SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 0, 15, 16 );
     SDU_GFX.drawString( msg, 24, 0 );
     #if defined SDU_APP_NAME
       SDU_GFX.setTextColor( TFT_LIGHTGREY );
-      SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 24, 15, 16 );
+      //SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 24, 15, 16 );
       SDU_GFX.drawString( SDU_APP_NAME, 24, 24 );
     #endif
     #if defined SDU_APP_PATH
       SDU_GFX.setTextColor( TFT_DARKGREY );
-      SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 48, 15, 16 );
+      //SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 48, 15, 16 );
       SDU_GFX.drawString( SDU_APP_PATH, 24, 48 );
     #endif
     //SDU_GFX.drawJpg( sdUpdaterIcon32x40_jpg, sdUpdaterIcon32x40_jpg_len, (SDU_GFX.width()/2)-16, (SDU_GFX.height()/2)-20, 32, 40 );
