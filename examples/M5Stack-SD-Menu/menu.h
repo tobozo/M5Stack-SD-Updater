@@ -150,7 +150,8 @@ void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
 void qrRender( String text, float sizeinpixels );
 
-static String heapState() {
+static String heapState()
+{
   log_i("\nRAM SIZE:\t%.2f KB\nFREE RAM:\t%.2f KB\nMAX ALLOC:\t%.2f KB",
     ESP.getHeapSize() / 1024.0,
     ESP.getFreeHeap() / 1024.0,
@@ -159,6 +160,7 @@ static String heapState() {
   return "";
 }
 
+/*
 static const char* sduFSFilePath( fs::File *file ) {
   #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
     return file->path();
@@ -166,9 +168,10 @@ static const char* sduFSFilePath( fs::File *file ) {
     return file->name();
   #endif
 }
+*/
 
-void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t width = tft.width() ) {
-
+void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t width = tft.width() )
+{
   if( scrollText=="" ) return;
 
   sprite.setTextSize( 2 ); // setup text size before it's measured
@@ -241,7 +244,8 @@ void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t wid
 
 
 /* by file info */
-void renderIcon( FileInfo &fileInfo ) {
+void renderIcon( FileInfo &fileInfo )
+{
   if( !fileInfo.hasMeta() || !fileInfo.hasIcon() ) {
     return;
   }
@@ -250,18 +254,20 @@ void renderIcon( FileInfo &fileInfo ) {
 }
 
 /* by menu ID */
-void renderIcon( uint16_t MenuID ) {
+void renderIcon( uint16_t MenuID )
+{
   renderIcon( fileInfo[MenuID] );
 }
 
 /* by file name */
-void renderFace( String face ) {
+void renderFace( String face )
+{
   tft.drawJpgFile( M5_FS, face.c_str(), 5, 85, 120, 120, 0, 0, JPEG_DIV_NONE );
 }
 
 
-void renderMeta( JSONMeta &jsonMeta ) {
-
+void renderMeta( JSONMeta &jsonMeta )
+{
   sprite.setTextSize( 1 );
   sprite.setTextDatum( TL_DATUM );
   sprite.setTextColor( TFT_WHITE, TFT_BLACK );
@@ -291,12 +297,12 @@ void renderMeta( JSONMeta &jsonMeta ) {
   sprite.println( String( fileInfo[MenuID].fileSize ) + String( FILESIZE_UNITS ) );
   sprite.pushSprite( 5, 35, TFT_BLACK );
   sprite.deleteSprite();
-
 }
 
 
 /* give up on redundancy and ECC to produce less and bigger squares */
-uint8_t getLowestQRVersionFromString( String text, uint8_t ecc ) {
+uint8_t getLowestQRVersionFromString( String text, uint8_t ecc )
+{
   if(ecc>3) return 4; // fail fast
   uint16_t len = text.length();
   uint8_t QRMaxLenByECCLevel[4][3] = {
@@ -316,7 +322,8 @@ uint8_t getLowestQRVersionFromString( String text, uint8_t ecc ) {
 }
 
 
-void qrRender( String text, float sizeinpixels ) {
+void qrRender( String text, float sizeinpixels )
+{
   // see https://github.com/Kongduino/M5_QR_Code/blob/master/M5_QRCode_Test.ino
   // Create the QR code
   QRCode qrcode;
@@ -345,7 +352,8 @@ void qrRender( String text, float sizeinpixels ) {
 }
 
 
-void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
+void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
+{
   log_i( DEBUG_DIRNAME, dirName );
   File root = fs.open( dirName );
   if( !root ){
@@ -413,7 +421,8 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
  *  bubble sort filenames
  *  '32' is based on SPIFFS filename limitations
  */
-void aSortFiles( uint8_t depth_level=32 ) {
+void aSortFiles( uint8_t depth_level=32 )
+{
   bool swapped;
   FileInfo temp;
   String name1, name2;
@@ -450,8 +459,8 @@ void aSortFiles( uint8_t depth_level=32 ) {
 }
 
 
-void buildM5Menu() {
-
+void buildM5Menu()
+{
   PageID = 0;
   Pages = appsCount / M5Menu.listPagination;
   if( appsCount % M5Menu.listPagination != 0 ) Pages++;
@@ -467,7 +476,9 @@ void buildM5Menu() {
   }
 }
 
-void drawM5Menu( bool renderButtons = false ) {
+
+void drawM5Menu( bool renderButtons = false )
+{
   const char* paginationTpl = "Page %d / %d";
   char paginationStr[64];
   PageID = MenuID / M5Menu.listPagination;
@@ -480,7 +491,7 @@ void drawM5Menu( bool renderButtons = false ) {
     #else
       M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
     #endif
-    tft.drawJpg(sd_updater15x16_jpg, sd_updater15x16_jpg_len, 296, 6, 15, 16);
+    tft.drawJpg(sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 296, 6, 15, 16);
     #if defined USE_DOWNLOADER
       drawSDUpdaterChannel();
     #endif
@@ -492,7 +503,8 @@ void drawM5Menu( bool renderButtons = false ) {
 }
 
 
-void pageDown() {
+void pageDown()
+{
   if( PageID < Pages -1 ) {
     PageID++;
     MenuID = (PageID * M5Menu.listPagination) -1;
@@ -507,7 +519,9 @@ void pageDown() {
   drawM5Menu( inInfoMenu );
 }
 
-void pageUp() {
+
+void pageUp()
+{
   if( PageID > 0 ) {
     PageID--;
     MenuID -= M5Menu.listPagination;
@@ -518,7 +532,8 @@ void pageUp() {
 
 
 
-void menuUp() {
+void menuUp()
+{
   MenuID = M5Menu.getListID();
   if( MenuID > 0 ) {
     if( (MenuID - 1)%M5Menu.listPagination==0 ) {
@@ -534,7 +549,8 @@ void menuUp() {
 }
 
 
-void menuDown( int jumpSize = 1 ) {
+void menuDown( int jumpSize = 1 )
+{
   if(MenuID<appsCount-1){
     if( (MenuID + 1)%M5Menu.listPagination==0 ) {
       MenuID -= (M5Menu.listPagination-1);
@@ -549,7 +565,8 @@ void menuDown( int jumpSize = 1 ) {
 }
 
 
-void menuInfo() {
+void menuInfo()
+{
   inInfoMenu = true;
   M5Menu.windowClr();
 
@@ -577,7 +594,8 @@ void menuInfo() {
 }
 
 
-void checkMenuTimeStamp() {
+void checkMenuTimeStamp()
+{
   File menu = M5_FS.open( MENU_BIN );
   time_t lastWrite;
   if( menu ) {
@@ -619,13 +637,12 @@ void checkMenuTimeStamp() {
 
   Serial.printf("[Hobo style] Clock set to %s source (%s): ", timeStatus.c_str(), timeSource.c_str());
   Serial.println(&now,"%B %d %Y %H:%M:%S (%A)");
-
 }
 
 #if defined USE_DOWNLOADER
 
-void downloaderMenu() {
-
+void downloaderMenu()
+{
   int resp = modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, "WiFi" );
   // choose between updating the JSON or changing the default channel
   switch( resp ) {
@@ -669,7 +686,8 @@ void downloaderMenu() {
 }
 
 
-void updateApp( FileInfo &info ) {
+void updateApp( FileInfo &info )
+{
   String appName = info.shortName();
   //appName.replace(".bin", "");
   //appName.replace(".BIN", "");
@@ -682,7 +700,8 @@ void updateApp( FileInfo &info ) {
 #endif
 
 
-void launchApp( FileInfo &info ) {
+void launchApp( FileInfo &info )
+{
   #if defined USE_DOWNLOADER
     if( info.fileName == String( DOWNLOADER_BIN ) ) {
       if( modalConfirm( "launchapp", DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) == HID_SELECT ) {
@@ -707,8 +726,8 @@ void launchApp( FileInfo &info ) {
 }
 
 
-void UISetup() {
-
+void UISetup()
+{
   HIDInit();
   // make sure you're using the latest from https://github.com/tobozo/M5StackSAM/
   M5Menu.listMaxLabelSize = 32; // list labels will be trimmed
@@ -832,7 +851,8 @@ void UISetup() {
 }
 
 
-void doFSChecks() {
+void doFSChecks()
+{
   tft.setTextColor( TFT_WHITE );
   tft.setTextSize( 1 );
   tft.clear();
@@ -847,7 +867,6 @@ void doFSChecks() {
   scanDataFolder(); // do SD / SPIFFS health checks
 
   #if defined USE_DOWNLOADER
-
     Registry = registryInit(); // load registry profile
 
     if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
@@ -868,7 +887,8 @@ void doFSChecks() {
 }
 
 
-void doFSInventory() {
+void doFSInventory()
+{
   tft.setTextColor( TFT_WHITE );
   tft.setTextSize( 1 );
   tft.clear();
@@ -877,7 +897,7 @@ void doFSInventory() {
   listDir(M5_FS, "/", 0, false); // count valid files first so a progress meter can be displayed
   appsCountProgress = appsCount;
   appsCount = 0;
-  tft.drawJpg(sd_updater32x40_jpg, sd_updater32x40_jpg_len, (tft.width()-32)/2, 40);
+  tft.drawJpg(sdUpdaterIcon32x40_jpg, sdUpdaterIcon32x40_jpg_len, (tft.width()-32)/2, 40);
   tft.setTextDatum(MC_DATUM);
   tft.drawString("Scanning SD Card", 160, 95, 2);
   listDir(M5_FS, "/", 0, true); // now retrieve files meta

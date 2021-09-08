@@ -111,7 +111,8 @@ extern SDUpdater sdUpdater;
 
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
-bool comparePartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length) {
+bool comparePartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length)
+{
   size_t lengthLeft = length;
   const size_t bufSize = SPI_FLASH_SEC_SIZE;
   std::unique_ptr<uint8_t[]> buf1(new uint8_t[bufSize]);
@@ -132,7 +133,8 @@ bool comparePartition(const esp_partition_t* src1, const esp_partition_t* src2, 
 }
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
-bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* src, size_t length) {
+bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* src, size_t length)
+{
   tft.fillRect( 110, 112, 100, 20, 0);
   size_t lengthLeft = length;
   const size_t bufSize = SPI_FLASH_SEC_SIZE;
@@ -159,7 +161,8 @@ bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* 
 }
 
 
-void copyPartition( const char* binfilename = PROGMEM {MENU_BIN} ) {
+void copyPartition( const char* binfilename = PROGMEM {MENU_BIN} )
+{
   const esp_partition_t *running = esp_ota_get_running_partition();
   const esp_partition_t *nextupdate = esp_ota_get_next_update_partition(NULL);
   //const char* menubinfilename PROGMEM {MENU_BIN} ;
@@ -178,7 +181,8 @@ void copyPartition( const char* binfilename = PROGMEM {MENU_BIN} ) {
 
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
-void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} ) {
+void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} )
+{
   const esp_partition_t *running = esp_ota_get_running_partition();
   const esp_partition_t *nextupdate = esp_ota_get_next_update_partition(NULL);
   //const char* menubinfilename PROGMEM {MENU_BIN} ;

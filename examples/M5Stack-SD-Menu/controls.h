@@ -4,7 +4,8 @@
 /*
  * Mandatory and optional controls for the menu to be usable
  */
-enum HIDSignal {
+enum HIDSignal
+{
   HID_INERT      = 0, // when nothing happens
   HID_UP         = 1, // optional
   HID_DOWN       = 2,
@@ -34,7 +35,8 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
   // enable M5Core2's haptic feedback !
   static bool isVibrating = false;
 
-  static void vibrateTask( void * param ) {
+  static void vibrateTask( void * param )
+  {
     if( !isVibrating ) {
       isVibrating = true;
       int ms = *((int*)param); // dafuq
@@ -46,7 +48,8 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
     vTaskDelete( NULL );
   }
 
-  static void HIDFeedback( int ms ) {
+  static void HIDFeedback( int ms )
+  {
     xTaskCreatePinnedToCore( vibrateTask, "vibrateTask", 2048, (void*)&ms, 16, NULL , 1 );
   }
 
@@ -82,17 +85,20 @@ static bool M5FacesEnabled = false;
   unsigned long M5FacesI2CQueryDelay = 50; // some debounce
   static bool M5FacesPressed = false;
 
-  void IRAM_ATTR M5FacesIsr() {
+  void IRAM_ATTR M5FacesIsr()
+  {
     M5FacesPressed = true;
   }
 
-  HIDSignal M5FacesOnKeyPushed( HIDSignal signal ) {
+  HIDSignal M5FacesOnKeyPushed( HIDSignal signal )
+  {
     log_d("Key %d pushed", signal );
     M5FacesLastReleasedKey = GAMEBOY_KEY_NONE;
     return signal;
   }
 
-  HIDSignal extKey() {
+  HIDSignal extKey()
+  {
     if( ! M5FacesPressed ) {
       // interrupt wasn't called
       return HID_INERT;
@@ -135,7 +141,8 @@ static bool M5FacesEnabled = false;
 #endif
 
 
-void HIDInit() {
+void HIDInit()
+{
   #if defined CAN_I_HAZ_M5FACES
     Wire.begin(SDA, SCL);
     M5FacesEnabled = Faces.canControlFaces();
@@ -149,7 +156,8 @@ void HIDInit() {
 
 
 
-HIDSignal HIDFeedback( HIDSignal signal, int ms = 100 ) {
+HIDSignal HIDFeedback( HIDSignal signal, int ms = 100 )
+{
   if( signal != HID_INERT ) {
     HIDFeedback( ms );
   }
@@ -157,7 +165,8 @@ HIDSignal HIDFeedback( HIDSignal signal, int ms = 100 ) {
 }
 
 
-HIDSignal getControls() {
+HIDSignal getControls()
+{
   // no buttons? no problemo! (c) Arnold S.
   if( Serial.available() ) {
     char command = Serial.read(); // read one char

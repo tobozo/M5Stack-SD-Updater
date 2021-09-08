@@ -83,12 +83,12 @@ void M5SAM::nextList( bool renderAfter ){
 }
 
 void M5SAM::drawListItem(byte inIDX, byte postIDX){
-      if(inIDX==list_idx){
-        M5.Lcd.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
-        M5.Lcd.drawString(">",3,listPageLabelsOffset+(postIDX*20),2);
-      }else{
-        M5.Lcd.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
-      }
+  if(inIDX==list_idx){
+    M5.Lcd.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
+    M5.Lcd.drawString(">",3,listPageLabelsOffset+(postIDX*20),2);
+  }else{
+    M5.Lcd.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
+  }
 }
 
 void M5SAM::showList(){

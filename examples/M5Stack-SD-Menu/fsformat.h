@@ -30,7 +30,7 @@
 
 
 extern SDUpdater sdUpdater; // used for menu progress
-static const char* sduFSFilePath( fs::File *file );
+//static const char* sduFSFilePath( fs::File *file );
 
 
 /*
@@ -43,7 +43,8 @@ static const char* sduFSFilePath( fs::File *file );
 bool migrateSPIFFS = false;
 
 const uint8_t extensionsCount = 6; // change this if you add / remove an extension
-String allowedExtensions[extensionsCount] = {
+String allowedExtensions[extensionsCount] =
+{
     // do NOT remove jpg and json or the menu will crash !!!
     "jpg", "bmp", "json", "mod", "mp3", "cert"
 };
@@ -55,11 +56,13 @@ const String appRegistryFolder = "/.registry";
 const String appRegistryDefaultName = "default.json";
 
 
-bool isBinFile( const char* fileName ) {
+bool isBinFile( const char* fileName )
+{
   return String( fileName ).endsWith( ".bin" ) || String( fileName ).endsWith( ".BIN" );
 }
 
-bool isValidAppName( const char* fileName ) {
+bool isValidAppName( const char* fileName )
+{
   if( String( fileName )!=MENU_BIN // ignore menu
      && ( isBinFile( fileName ) ) // ignore files not ending in ".bin"
      #if !defined USE_DOWNLOADER
@@ -72,19 +75,20 @@ bool isValidAppName( const char* fileName ) {
 }
 
 
-bool iFile_exists( fs::FS &fs, String &fname ) {
-  if( fs.exists( fname.c_str() ) ) {
+bool iFile_exists( fs::FS *fs, String &fname )
+{
+  if( fs->exists( fname.c_str() ) ) {
     return true;
   }
   String locasename = fname;
   String hicasename = fname;
   locasename.toLowerCase();
   hicasename.toUpperCase();
-  if( fs.exists( locasename.c_str() ) ) {
+  if( fs->exists( locasename.c_str() ) ) {
     fname = locasename;
     return true;
   }
-  if( fs.exists( hicasename.c_str() ) ) {
+  if( fs->exists( hicasename.c_str() ) ) {
     fname = hicasename;
     return true;
   }
@@ -93,7 +97,8 @@ bool iFile_exists( fs::FS &fs, String &fname ) {
 
 
 /* Storing json meta file information r */
-struct JSONMeta {
+struct JSONMeta
+{
   int width; // app image width
   int height; // app image height
   String authorName = "";
@@ -103,7 +108,8 @@ struct JSONMeta {
 };
 
 /* filenames cache structure */
-struct FileInfo {
+struct FileInfo
+{
   String fileName;  // path to the binary file
   String metaName;  // a json file with all meta info on the binary
   String iconName;  // a jpeg image representing the binary
@@ -125,7 +131,7 @@ struct FileInfo {
   bool hasIcon() {
     String currentIconFile = shortName();
     currentIconFile = "/jpg/" + shortName() + ".jpg";
-    if( iFile_exists( M5_FS, currentIconFile ) ) {
+    if( iFile_exists( &M5_FS, currentIconFile ) ) {
       iconName = currentIconFile;
       return true;
     }
@@ -135,7 +141,7 @@ struct FileInfo {
   bool hasFace() {
     String currentIconFile = shortName();
     currentIconFile = "/jpg/" + shortName() + "_gh.jpg";
-    if( iFile_exists( M5_FS, currentIconFile ) ) {
+    if( iFile_exists( &M5_FS, currentIconFile ) ) {
       faceName = currentIconFile;
       return true;
     }
@@ -152,7 +158,7 @@ struct FileInfo {
       currentMetaFile.replace("--", "");
     }
     currentMetaFile = "/json/" + shortName() + ".json";
-    if( iFile_exists( M5_FS, currentMetaFile ) ) {
+    if( iFile_exists( &M5_FS, currentMetaFile ) ) {
       metaName = currentMetaFile;
       return true;
     }
@@ -164,7 +170,8 @@ struct FileInfo {
 };
 
 
-void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta ) {
+void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta )
+{
   File file = fs.open( metaFileName );
   StaticJsonDocument<512> jsonMetaBuffer;
   DeserializationError error = deserializeJson( jsonMetaBuffer, file );
@@ -180,10 +187,11 @@ void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta ) {
 }
 
 
-void getFileInfo( FileInfo &fileInfo, fs::FS &fs, File &file, const char* binext=".bin" ) {
+void getFileInfo( FileInfo &fileInfo, fs::FS &fs, File &file, const char* binext=".bin" )
+{
   String BINEXT = binext;
   BINEXT.toUpperCase();
-  String fileName   = sduFSFilePath( &file ); //.name();
+  String fileName   = sdUpdater.fs_file_path( &file ); //.name();
   uint32_t fileSize = file.size();
   time_t lastWrite = file.getLastWrite();
   struct tm * tmstruct = localtime(&lastWrite);
@@ -221,7 +229,8 @@ void getFileInfo( FileInfo &fileInfo, fs::FS &fs, File &file, const char* binext
  *  Scan SPIFFS for binaries and move them onto the SD Card
  *  TODO: create an app manager for the SD Card
  */
-void scanDataFolder() {
+void scanDataFolder()
+{
   // check if mandatory folders exists and create if necessary
   if( !M5_FS.exists( appDataFolder ) ) {
     M5_FS.mkdir( appDataFolder );
@@ -298,7 +307,8 @@ void scanDataFolder() {
 } // nooooooooooooooes!!
 
 
-bool replaceItem( fs::FS &fs, String SourceName, String  DestName) {
+bool replaceItem( fs::FS &fs, String SourceName, String  DestName)
+{
   if( !fs.exists( SourceName ) ) {
     log_e("Source file %s does not exists !\n", SourceName.c_str() );
     return false;
@@ -332,7 +342,8 @@ bool replaceItem( fs::FS &fs, String SourceName, String  DestName) {
 }
 
 
-bool replaceLauncher( fs::FS &fs, FileInfo &info) {
+bool replaceLauncher( fs::FS &fs, FileInfo &info)
+{
   if(!replaceItem( fs, info.fileName, String(MENU_BIN) ) ) {
     return false;
   }

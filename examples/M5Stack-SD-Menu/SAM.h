@@ -14,7 +14,7 @@
 #define M5SAM_MAX_SUBMENUS 8
 
 #ifndef M5SAM_LIST_MAX_COUNT
-#define M5SAM_LIST_MAX_COUNT 128
+#define M5SAM_LIST_MAX_COUNT 96
 #endif
 
 #define M5SAM_LIST_MAX_LABEL_SIZE 36 // list labels will be trimmed
@@ -74,7 +74,8 @@ class M5SAM {
     #ifdef ARDUINO_ODROID_ESP32
     void drawMenu(String inmenuttl, String inbtnAttl, String intSpeakerttl, String inbtnBttl, String inbtnCttl, uint16_t inmenucolor, uint16_t inwindowcolor, uint16_t intxtcolor);
     #endif
-    struct MenuCommandCallback {
+    struct MenuCommandCallback
+    {
       char title[M5SAM_MENU_TITLE_MAX_SIZE + 1];
       char btnAtitle[M5SAM_BTN_TITLE_MAX_SIZE + 1];
       char btnBtitle[M5SAM_BTN_TITLE_MAX_SIZE + 1];
