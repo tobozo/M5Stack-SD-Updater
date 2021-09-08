@@ -54,6 +54,7 @@
 //#include <ESP32-Chimera-Core.h>
 #include <M5Stack.h>
 #define SDU_APP_NAME "M5Stack SDLoader Snippet"
+// #define SDU_HEADLESS
 #include <M5StackUpdater.h>
 
 void setup() {
