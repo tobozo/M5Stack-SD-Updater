@@ -31,7 +31,7 @@ before_install:
   #- find . -path './.git' -prune -or -type f -print0 | xargs -0 -L1 bash -c 'if test "$(grep --files-with-matches --binary-files=without-match --max-count=1 --regexp='.*' "$0")" && test "$(tail --bytes=1 "$0")"; then echo "No new line at end of $0."; false; fi'
 
   # this repository is broken and won't work as a submodule
-  - git clone https://github.com/matsumo/m5stickc_tiny_menu examples/m5stickc_tiny_menu
+  #- git clone https://github.com/matsumo/m5stickc_tiny_menu examples/m5stickc_tiny_menu
   #- git submodule update --init examples/m5stickc_tiny_menu/
   #- git rm --cached examples/m5stickc_tiny_menu
   #- git submodule sync examples/m5stickc_tiny_menu
@@ -93,10 +93,13 @@ script:
 
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core2" "false" "newest"
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core-esp32" "false" "newest"
-  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stick-c" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5StickC-SPIFFS-Loader-Snippet/M5StickC-SPIFFS-Loader-Snippet.ino" "esp32:esp32:m5stick-c" "false" "newest"
 
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/M5Stack-SD-Menu.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "newest"
-  - build_sketch "${TRAVIS_BUILD_DIR}/examples/m5stickc_tiny_menu/m5stickc_tiny_menu.ino" "esp32:esp32:m5stick-c" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/LGFX-SDLoader-Snippet/LGFX-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/CopySketchToFS/CopySketchToFS.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "newest"
+
+  #- build_sketch "${TRAVIS_BUILD_DIR}/examples/m5stickc_tiny_menu/m5stickc_tiny_menu.ino" "esp32:esp32:m5stick-c" "false" "newest"
 
 after_script:
   # Commit a report of the job results to the CI-reports repository
