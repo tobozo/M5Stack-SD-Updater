@@ -86,10 +86,14 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
  In your sketch, find the line where the core library is included:
 
  ```C
+
     // #include <M5Stack.h>
     // #include <M5Core2.h>
+    // #include <LovyanGFX.h>
+    // #include <M5GFX.h>
     // #include <ESP32-Chimera-Core.h>
     // #include <M5StickC.h>
+
 ```
 
  And add this:
