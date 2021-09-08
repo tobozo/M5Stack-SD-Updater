@@ -1,5 +1,6 @@
 #define LGFX_AUTODETECT
 #define LGFX_USE_V1
+#include <SD.h>
 #include <LovyanGFX.h>
 
 // #include <M5GFX.h>
