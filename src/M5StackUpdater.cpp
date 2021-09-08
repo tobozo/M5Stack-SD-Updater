@@ -31,32 +31,28 @@
 #include "M5StackUpdater.h"
 
 #if defined( ARDUINO_M5Stick_C )
-
   #define SD_PLATFORM_NAME "M5StickC"
-
+#elif defined( ARDUINO_ODROID_ESP32 )
+  #define SD_PLATFORM_NAME "Odroid-GO"
+#elif defined( ARDUINO_M5Stack_Core_ESP32 )
+  #define SD_PLATFORM_NAME "M5Stack"
+#elif defined( ARDUINO_M5STACK_FIRE )
+  #define SD_PLATFORM_NAME "M5Stack-Fire"
+#elif defined( ARDUINO_M5STACK_Core2 )
+  #define SD_PLATFORM_NAME "M5StackCore2"
+#elif defined( ARDUINO_ESP32_WROVER_KIT )
+  #define SD_PLATFORM_NAME "Wrover-Kit"
+#elif defined( ARDUINO_TTGO_T1 )            // TTGO T1
+  #define SD_PLATFORM_NAME "TTGO-T1"
+#elif defined( ARDUINO_LOLIN_D32_PRO )      // LoLin D32 Pro
+  #define SD_PLATFORM_NAME "LoLin D32 Pro"
+#elif defined( ARDUINO_T_Watch )            // TWatch, all models
+  #define SD_PLATFORM_NAME "TTGO TWatch"
 #else
-  #if defined( ARDUINO_ODROID_ESP32 )
-    //#pragma message ("Odroid-GO board detected")
-    #define SD_PLATFORM_NAME "Odroid-GO"
-  #elif defined( ARDUINO_M5Stack_Core_ESP32 )
-    //#pragma message ("M5Stack Classic board detected")
-    #define SD_PLATFORM_NAME "M5Stack"
-  #elif defined( ARDUINO_M5STACK_FIRE )
-    //#pragma message ("M5Stack Fire board detected")
-    #define SD_PLATFORM_NAME "M5Stack-Fire"
-  #elif defined( ARDUINO_M5STACK_Core2 )
-    //#pragma message ("M5Stack Core2 board detected")
-    #define SD_PLATFORM_NAME "M5StackCore2"
-  #elif defined( ARDUINO_ESP32_DEV )
-    //#pragma message ("WROVER KIT board detected")
-    #define SD_PLATFORM_NAME "Wrover-Kit"
-  #else
-    //#pragma message ("Custom ESP32 board detected")
-    // put your custom UI settings here
-    #define SD_PLATFORM_NAME "ESP32"
-
-  #endif
+  //#pragma message ("Custom ESP32 board detected")
+  #define SD_PLATFORM_NAME "ESP32"
 #endif
+
 
 
 esp_image_metadata_t SDUpdater_Base::getSketchMeta( const esp_partition_t* source_partition ) {
@@ -281,7 +277,18 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
         return;
       } else {
         log_i( "SPIFFS Successfully mounted");
-        //SPIFFS_MOUNTED = true;
+      }
+    }
+  #endif
+  #if defined _SPIFFS_H_ || SD_UPDATER_FS_TYPE==SDUPDATER_LITTLEFS_FS
+    //#pragma message ("LittleFS Support detected")
+    log_i("Checking for %s Support", SDU_FS_NAME);
+    if( &fs == &SDUPDATER_FS ) {
+      if( !SDUPDATER_FS.begin() ){
+        log_n( "%s MOUNT FAILED, ABORTING!!", SDU_FS_NAME );
+        return;
+      } else {
+        log_i( "%s Successfully mounted", SDU_FS_NAME);
       }
     }
   #endif
@@ -290,7 +297,7 @@ void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
     log_i(" Checking for SD Support");
     if( &fs == &SD ) {
       if( !SD.begin( cfg->TFCardCsPin /*_TFCardCsPin*/ /*4*/ ) ) {
-        log_n( "SD MOUNT FAILED, ABORTING!!" );
+        log_n( "SD MOUNT FAILED (pin #%d), ABORTING!!", cfg->TFCardCsPin );
         return;
       } else {
         log_i( "SD Successfully mounted");
@@ -372,7 +379,7 @@ void SDUpdater_Base::checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsign
     log_w("No cfg->onWaitForAction was defined!");
   }
 
-  Serial.print("Delay expired, no SD-Update will occur");
+  Serial.println("Delay expired, no SD-Update will occur");
 }
 
 

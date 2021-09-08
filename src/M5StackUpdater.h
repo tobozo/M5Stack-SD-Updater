@@ -115,9 +115,10 @@ extern "C" {
 //   #if defined( ARDUINO_M5STACK_Core2 )
 //   #if defined( ARDUINO_M5Stick_C )
 
-#define SDUPDATER_SD_FS 0
-#define SDUPDATER_SD_MMC_FS 1
-#define SDUPDATER_SPIFFS_FS 2
+#define SDUPDATER_SD_FS       0
+#define SDUPDATER_SD_MMC_FS   1
+#define SDUPDATER_SPIFFS_FS   2
+#define SDUPDATER_LITTLEFS_FS 3
 
 #define ROLLBACK_LABEL "Rollback" // reload app from the "other" OTA partition
 #define LAUNCHER_LABEL "Launcher" // load Launcher (typically menu.bin)
@@ -140,57 +141,81 @@ extern "C" {
 
 #if !defined SDU_HEADLESS && (defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY)
   #define USE_DISPLAY // #undef this to force headless mode
+#else
+  // #warning SD-Updater will run in Headless mode
 #endif
 
-// auto selection of default mode, don't edit this, use either aliased class instead
+
 #define SDUpdater SDUpdater_Base
 
-#if defined( ARDUINO_ODROID_ESP32 )         // Odroid-GO
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_M5Stack_Core_ESP32 ) // M5Stack Classic
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_M5STACK_FIRE )       // M5Stack Fire
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_M5STACK_Core2 )      // M5Core2
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_M5Stick_C )          // M5StickC
-  // TODO: use __has_include to determine is SPIFFS, LITTLEFS, or FFAT
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
-#elif defined( ARDUINO_ESP32_DEV ) || defined( ARDUINO_ESP32_WROVER_KIT ) // ESP32 Wrover Kit
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
-#elif defined( ARDUINO_TTGO_T1 )            // TTGO T1
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
-#elif defined( ARDUINO_LOLIN_D32_PRO )      // LoLin D32 Pro
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#elif defined( ARDUINO_T_Watch )            // TWatch, all model
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-#else
-  #warning "No valid combination of Device+Display+SD detected, inheriting defaults"
-  //#undef USE_DISPLAY // headless setup, progress will be rendered in Serial
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS // default behaviour = use SD
-/*
-  // or your custom board setup
-  #include <FS.h>
-  #include <TFT_eSPI.h>
-  extern TFT_eSPI tft; // make sure 'tft' exists outside this library
-  #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS // bind to SD_MMC
+// auto selection of default mode, don't edit this, use either aliased class instead
+#ifndef SD_UPDATER_FS_TYPE
+  // guess filesystem from includes
+  #if __has_include(<SD.h>)
+    #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+  #elif __has_include(<SD_MMC.h>)
+    #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
+  #elif __has_include(<SPIFFS.h>)
+    #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
+  #elif __has_include(<LittleFS.h>) || __has_include(<LITTLEFS.h>)
+    #define SD_UPDATER_FS_TYPE SDUPDATER_LITTLEFS_FS
+  #else // no include has been made so far, see if it's guessable from known boards
+    #if defined( ARDUINO_ODROID_ESP32 )         // Odroid-GO
+      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+    #elif defined( ARDUINO_M5Stack_Core_ESP32 ) // M5Stack Classic
+      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+    #elif defined( ARDUINO_M5STACK_FIRE )       // M5Stack Fire
+      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+    #elif defined( ARDUINO_M5STACK_Core2 )      // M5Core2
+      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+    #elif defined( ARDUINO_M5Stick_C )          // M5StickC
+      #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
+    #elif defined( ARDUINO_ESP32_WROVER_KIT ) // ESP32 Wrover Kit
+      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
+    #elif defined( ARDUINO_TTGO_T1 )            // TTGO T1
+      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
+    #elif defined( ARDUINO_LOLIN_D32_PRO )      // LoLin D32 Pro
+      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+    #elif defined( ARDUINO_T_Watch )            // TWatch, all model
+      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
+    #else
+      #error "No filesystem detected :-("
+      #error "Either define SD_UPDATER_FS_TYPE ( 0 = sd, 1 = sdmmc, 2 = spiffs, 3 = littlefs) or include one of <SD.h>, <SD_MMC.h>, <SPIFFS.h>, <LittleFS.h>"
+    #endif
 
-*/
+  #endif
+#else
+  //#warning "Custom Filesystem selected, assuming filesystem include has been handled"
 #endif
 
-#if defined( M5STACK_SD )
-  #define SDUPDATER_FS M5STACK_SD
-#elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
+
+#if SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
   #define SDUPDATER_FS SD
+  #define SDU_FS_NAME "SD Card"
   #include <SD.h>
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
   #define SDUPDATER_FS SD_MMC
+  #define SDU_FS_NAME "SD MMC"
   #include <SD_MMC.h>
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SPIFFS_FS
   #define SDUPDATER_FS SPIFFS
+  #define SDU_FS_NAME "SPIFFS"
   #include <SPIFFS.h>
+#elif SD_UPDATER_FS_TYPE==SDUPDATER_LITTLEFS_FS
+  #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(2, 0, 0)
+    #include <LittleFS.h> // littlefs is built-in since sdk 2.0.0
+    #define SDUPDATER_FS LittleFS
+    #define SDU_FS_NAME "LittleFS (builtin)"
+  #else
+    #include <LITTLEFS.h>
+    #define SDUPDATER_FS LITTLEFS // get "littlefs_esp32" from library manager
+    #define SDU_FS_NAME "LittleFS (extlib)"
+  #endif
+#elif defined( M5STACK_SD )
+  #define SDUPDATER_FS M5STACK_SD
+  #define SDU_FS_NAME "M5STACK_SD"
 #else
-  #error "Invalid FS type selected, must be one of: SDUPDATER_SD_FS, SDUPDATER_SD_MMC_FS, SDUPDATER_SPIFFS_FS"
+  #error "Invalid FS type selected, must be one of: SDUPDATER_SD_FS, SDUPDATER_SD_MMC_FS, SDUPDATER_SPIFFS_FS, SDUPDATER_LITTLEFS_FS"
 #endif
 
 // backwards compat
@@ -228,7 +253,7 @@ class SDUpdater_Base
     bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} );
 
     // fs::File->name() changed behaviour after esp32 sdk 2.x.x
-    const char* fs_file_path( fs::File *file ) {
+    static const char* fs_file_path( fs::File *file ) {
       #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
         return file->path();
       #else

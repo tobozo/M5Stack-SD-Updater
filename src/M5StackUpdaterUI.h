@@ -49,7 +49,7 @@ static void SDMenuProgressHeadless( int state, int size )
 
 
 
-#if defined USE_DISPLAY // _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY
+#if defined USE_DISPLAY
   #include "assets.h"
 
   #if defined LGFX_ONLY
