@@ -28,7 +28,7 @@
  *
  */
 
-#define MBEDTLS_ERROR_C
+//#define MBEDTLS_ERROR_C
 #include "certificates.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -41,11 +41,14 @@
   #include "wifi_manager.h"
 #endif
 
-#include "mbedtls/md.h"
+//#include "mbedtls/md.h"
 //#include <ESP32-targz.h>
 
-// #include "sodium/crypto_hash_sha256.h"
-// crypto_hash_sha256_state ctx;
+
+#include "sodium/crypto_hash_sha256.h"
+crypto_hash_sha256_state ctx;
+
+
 
 // registry this launcher is tied to
 #include "registry.h"
@@ -66,8 +69,6 @@ extern uint16_t appsCount;
 extern uint16_t MenuID;
 extern AppRegistry Registry;
 
-#define DOWNLOADER_BIN "/--Downloader--.bin" // Fixme/Hack: a dummy file will be created so it appears in the menu as an app
-#define DOWNLOADER_BIN_VIRTUAL "/Downloader.bin" // old bin name, will be renamed, kept for backwards compat
 #define SD_CERT_PATH      "/cert/" // Filesystem (SD) temporary path where certificates are stored, needs a trailing slash !!
 String UserAgent;
 
@@ -79,9 +80,8 @@ float progress_modulo = 0;
 const uint16_t M5MENU_GREY = M5Menu.getrgb( 128, 128, 128 );
 const uint16_t M5MENU_BLUE = M5Menu.getrgb(   0,   0, 128 );
 
-
-mbedtls_md_context_t ctx;
-mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
+//mbedtls_md_context_t ctx;
+//mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
 byte shaResult[32];
 static String shaResultStr = "f7ff9bcd52fee13ae7ebd6b4e3650a4d9d16f8f23cab370d5cdea291e5b6bba6"; // cheap malloc: any string is good as long as it's 64 chars
 
@@ -115,6 +115,7 @@ bool wifiSetupWorked();
 bool init_tls_or_die( String host );
 static const char* sduFSFilePath( fs::File *file );
 static String heapState();
+void WiFiEvent(WiFiEvent_t event);
 
 struct URLParts {
   String url;
@@ -168,6 +169,13 @@ void registrySave( AppRegistry registry, String appRegistryLocalFile = "" ) {
     log_d("Will attempt to create/save %s", appRegistryLocalFile.c_str() );
     appRegistryLocalFile = String( appRegistryFolder + "/" + urlParts.host + ".json" );
   }
+
+  DynamicJsonDocument jsonRegistryBuffer(2048);
+  if( jsonRegistryBuffer.capacity() == 0 ) {
+    log_e("ArduinoJSON failed to allocate 2kb");
+    return;
+  }
+
   if( M5_FS.exists( appRegistryLocalFile ) ) {
     log_d("Removing %s before writing", appRegistryLocalFile.c_str());
     M5_FS.remove( appRegistryLocalFile );
@@ -178,8 +186,6 @@ void registrySave( AppRegistry registry, String appRegistryLocalFile = "" ) {
     log_e("Failed to create file %s", appRegistryLocalFile.c_str());
     return;
   }
-
-  DynamicJsonDocument jsonRegistryBuffer(2048);
 
   JsonObject channels            = jsonRegistryBuffer.createNestedObject("channels");
   JsonObject masterChannelJson   = channels.createNestedObject("master");
@@ -582,12 +588,14 @@ static void sha256_sum(const char* fileName) {
   tft.drawJpg( checksum_jpg, checksum_jpg_len, 288, 125, 22, 32 );
   uint8_t shabuff[512] = { 0 };
   size_t sizeOfBuff = sizeof(shabuff);
-  mbedtls_md_init(&ctx);
-  mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
-  mbedtls_md_starts(&ctx);
+  //mbedtls_md_init(&ctx);
+  //mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
+  //mbedtls_md_starts(&ctx);
+  crypto_hash_sha256_init(&ctx);
   size_t n;
   while ((n = checkFile.read(shabuff, sizeOfBuff)) > 0) {
-    mbedtls_md_update(&ctx, (const unsigned char *) shabuff, n);
+    //mbedtls_md_update(&ctx, (const unsigned char *) shabuff, n);
+    crypto_hash_sha256_update(&ctx, (const unsigned char *) shabuff, n);
     if( fileSize/10 > sizeOfBuff && fileSize != len ) {
       /*sdUpdater.*/M5SDMenuProgress(fileSize-len, fileSize);
     }
@@ -595,8 +603,9 @@ static void sha256_sum(const char* fileName) {
   }
   tft.fillRect( 288, 125, 22, 32, M5MENU_GREY );
   checkFile.close();
-  mbedtls_md_finish(&ctx, shaResult);
-  mbedtls_md_free(&ctx);
+  //mbedtls_md_finish(&ctx, shaResult);
+  //mbedtls_md_free(&ctx);
+  crypto_hash_sha256_final(&ctx, shaResult);
   sha_sum_to_str();
 }
 
@@ -695,7 +704,7 @@ const char* fetchCert( String host, bool checkWallet = true, bool checkFS = true
     }
   }
   String certPath = String( SD_CERT_PATH ) + host;
-  String certURL = Registry.defaultChannel.api_cert_provider_url_http + host;
+  String certURL = Registry.defaultChannel.api_cert_provider_url_https + host;
   if( !checkFS || !M5_FS.exists( certPath ) ) {
     //log_d("[FETCHING REMOTE CERT] -> ");
     //wget(certURL , certPath );
@@ -717,18 +726,20 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
   }
 
   http.setConnectTimeout( 10000 ); // 10s timeout = 10000
-  if( urlParts.protocol == "https" ) {
+  //if( urlParts.protocol == "https" ) {
     log_d( "[%s:INFO] Synconnect protocol is %s [%d]", sender, urlParts.protocol.c_str(), ESP.getFreeHeap() );
     if( isInWallet( urlParts.host ) ) {
+      //client->setCACert( fetchCert( urlParts.host ) );
       client->setCACert( fetchCert( urlParts.host ) );
     } else {
-      if( !enforceTLS ) {
-        log_e(" [%s:WARNING] An HTTPS URL was called (%s) but no certificate was provided", sender, urlParts.url.c_str() );
-        client->setCACert( NULL ); // disable TLS check
-      } else {
-        log_e(" [%s:ERROR] An HTTPS URL was called (%s) but no certificate was provided", sender, urlParts.url.c_str() );
-        return false;
-      }
+//       if( !enforceTLS ) {
+//         log_e(" [%s:WARNING] An HTTPS URL was called (%s) but no certificate was provided", sender, urlParts.url.c_str() );
+//         client->setCACert( NULL ); // disable TLS check
+//       } else {
+        log_e(" [%s:ERROR] An HTTPS URL was called (%s) but no certificate was provided, trying without cert", sender, urlParts.url.c_str() );
+        client->setInsecure();
+        //return false;
+//      }
     }
     //client->setTimeout( 10 ); // in seconds
     router.endhttp = false;
@@ -741,11 +752,12 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
       return false;
     }
     log_d( "[%s:INFO] TLS SUCCESS [%d]", sender, ESP.getFreeHeap() );
-  } else {
-    log_d(" [%s:INFO] An HTTP (NO TLS) URL was called (%s)", sender, urlParts.url.c_str() );
-    router.endhttp = false;
-    http.begin(*client, urlParts.url );
-  }
+//   } else {
+//     //client->setInsecure();
+//     log_d(" [%s:INFO] An HTTP (NO TLS) URL was called (%s)", sender, urlParts.url.c_str() );
+//     router.endhttp = false;
+//     http.begin(*client, urlParts.url );
+//   }
   log_d( "[%s:INFO] Running http.GET( %s ) [%d]", sender, urlParts.url.c_str(), ESP.getFreeHeap() );
   int httpCode = http.GET();
   log_d( "[%s:INFO] http.GET() SENT [%d]", sender, ESP.getFreeHeap() );
@@ -801,9 +813,10 @@ bool wget( const char* bin_url, const char* outputFile ) {
   unsigned long downwloadstart = millis();
   WiFiClient *stream = http.getStreamPtr();
   *shaResult = {0};
-  mbedtls_md_init(&ctx);
-  mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
-  mbedtls_md_starts(&ctx);
+  // mbedtls_md_init(&ctx);
+  // mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
+  // mbedtls_md_starts(&ctx);
+  crypto_hash_sha256_init( &ctx );
   tft.drawJpg( checksum_jpg, checksum_jpg_len, 288, 125, 22, 32 );
   tft.drawJpg( download_jpg, download_jpg_len, 252, 125, 26, 32 );
   Serial.print("[Download+SHA256 Sum -->][..");
@@ -817,7 +830,8 @@ bool wget( const char* bin_url, const char* outputFile ) {
       // read up to 128 byte
       int c = stream->readBytes(buff, ((size > sizeOfBuff) ? sizeOfBuff : size));
       // hashsum
-      mbedtls_md_update(&ctx, (const unsigned char *) buff, c);
+      //mbedtls_md_update(&ctx, (const unsigned char *) buff, c);
+      crypto_hash_sha256_update(&ctx, (const unsigned char *) buff, c);
       // write it to SD
       myFile.write(buff, c);
       if(len > 0) {
@@ -829,8 +843,9 @@ bool wget( const char* bin_url, const char* outputFile ) {
   myFile.close();
   delete stream;
   Serial.print("]");
-  mbedtls_md_finish(&ctx, shaResult);
-  mbedtls_md_free(&ctx);
+  crypto_hash_sha256_final(&ctx, shaResult);
+  // mbedtls_md_finish(&ctx, shaResult);
+  // mbedtls_md_free(&ctx);
   sha_sum_to_str();
   tft.fillRect( 252, 125, 70, 32, M5MENU_GREY );
   renderDownloadIcon( M5MENU_GREY );
@@ -924,6 +939,12 @@ bool getApp( String appURL ) {
   renderDownloadIcon( M5MENU_GREY );
 
   DynamicJsonDocument jsonAppBuffer( 4096 );
+
+  if( jsonAppBuffer.capacity() == 0 ) {
+    log_e("ArduinoJSON failed to allocate 4Kb");
+    return false;
+  }
+
   DeserializationError error = deserializeJson(jsonAppBuffer, http.getString() );
 
   getAppRouter.dismiss( client, false );
@@ -1021,7 +1042,7 @@ bool getApp( String appURL ) {
 bool init_tls_or_die( String host ) {
   if( fetchLocalCert( host ) == NULL ) {
     String certPath = String( SD_CERT_PATH ) + host;
-    String certURL = Registry.defaultChannel.api_cert_provider_url_http + host;
+    String certURL = Registry.defaultChannel.api_cert_provider_url_https + host;
     if( wget( certURL , certPath ) ) {
       if( fetchLocalCert( host ) != NULL ) {
         log_w( NEW_TLS_CERTIFICATE_INSTALLED );
@@ -1059,14 +1080,22 @@ bool syncAppRegistry( String BASE_URL ) {
 
   renderDownloadIcon( TFT_GREEN, 140, 80, 10.0 );
 
-  DynamicJsonDocument jsonAppBuffer(8192);
-  DeserializationError error = deserializeJson(jsonAppBuffer, http.getString());
-
+  log_d("Heap free before collecting https payload: %d", ESP.getFreeHeap() );
+  payload = http.getString();
   syncAppRouter.dismiss( client, false );
+
+  log_d("Heap free before allocating 8K to DynamicJsonDocument: %d", ESP.getFreeHeap() );
+  DynamicJsonDocument jsonAppBuffer(8192);
+  log_d("jsonAppBuffer.capacity() = %d", jsonAppBuffer.capacity() );
+  log_d("Heap free before JSON deserialization: %d", ESP.getFreeHeap() );
+
+  DeserializationError error = deserializeJson(jsonAppBuffer, payload );
+  //DeserializationError error = deserializeJson(jsonAppBuffer, payload.c_str(), payload.length() );
 
   if (error) {
     downloadererrors++;
-    log_e("\n%s\n", "JSON Parsing failed!");
+    log_e("\nJSON Parsing failed! (err=%s)\n", error.c_str() );
+    Serial.println(payload);
     return false;
   }
   JsonObject root = jsonAppBuffer.as<JsonObject>();
@@ -1101,34 +1130,35 @@ bool syncAppRegistry( String BASE_URL ) {
   return true;
 }
 
-/*
+
 void WiFiEvent(WiFiEvent_t event) {
   log_w("[WiFi-event] event: %d\n", event);
 
   switch (event) {
     case SYSTEM_EVENT_WIFI_READY:
-        log_w("WiFi interface ready");
+        log_d("WiFi interface ready");
         break;
     case SYSTEM_EVENT_SCAN_DONE:
-        log_w("Completed scan for access points");
+        log_d("Completed scan for access points");
         break;
     case SYSTEM_EVENT_STA_START:
-        log_w("WiFi client started");
+        log_d("WiFi client started");
         break;
     case SYSTEM_EVENT_STA_STOP:
-        log_w("WiFi clients stopped");
+        log_d("WiFi clients stopped");
         break;
     case SYSTEM_EVENT_STA_CONNECTED:
-        log_w("Connected to access point");
+        log_d("Connected to access point");
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
-        log_w("Disconnected from WiFi access point");
+        log_i( "STA Disconnected, reconnecting");
+        WiFi.begin();
         break;
     case SYSTEM_EVENT_STA_AUTHMODE_CHANGE:
         log_w("Authentication mode of access point has changed");
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
-        log_w("Obtained IP address: %s", WiFi.localIP());
+        log_w("Obtained IP address: %s", WiFi.localIP().toString().c_str() );
         break;
     case SYSTEM_EVENT_STA_LOST_IP:
         log_w("Lost IP address and IP address is reset to 0");
@@ -1184,7 +1214,7 @@ void WiFiEvent(WiFiEvent_t event) {
     default: break;
   }
 }
-*/
+
 
 
 void enableWiFi() {
@@ -1192,6 +1222,7 @@ void enableWiFi() {
   delay(500);
   WiFi.mode(WIFI_STA);
   Serial.println(WiFi.macAddress());
+  WiFi.onEvent(WiFiEvent);
   WiFi.begin(); // set SSID/PASS from another app (i.e. WiFi Manager) and reload this app
   unsigned long startup = millis();
 
@@ -1282,12 +1313,15 @@ void updateOne(String appName) {
     if( ! getApp( appURL ) ) { // no cert, invalid cert, invalid TLS host or JSON parsin failed ?
       modalConfirm( "getAppFail", MENU_BTN_CANCELED, "Download failed", "Restart?",  DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, MENU_BTN_WFT );
       ESP.restart();
+      // if( resp == HID_SELECT ) ESP.restart();
+      // else if( resp == HID_PAGE_DOWN ) continue;
+      // else cleanDir( SD_CERT_PATH ); // cleanup cached certs
       /*
       if( tlserrors > 0 ) {
         cleanDir( SD_CERT_PATH ); // cleanup cached certs
         URLParts urlParts = parseURL( appURL );
         String certPath = String( SD_CERT_PATH ) + urlParts.host;
-        String certURL = Registry.defaultChannel.api_cert_provider_url_http + urlParts.host;
+        String certURL = Registry.defaultChannel.api_cert_provider_url_https + urlParts.host;
         if( wget( certURL , certPath ) ) {
           modalConfirm( "tlsnew", MENU_BTN_CANCELED, NEW_TLS_CERTIFICATE_INSTALLED, MODAL_RESTART_REQUIRED,  DOWNLOADER_MODAL_REBOOT, DOWNLOADER_MODAL_RESTART, MENU_BTN_WFT );
           ESP.restart();

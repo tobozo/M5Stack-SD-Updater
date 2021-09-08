@@ -105,7 +105,7 @@ void copyFsPartition( fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} )
 */
 
 
-
+extern SDUpdater sdUpdater;
 
 
 
@@ -175,6 +175,7 @@ void copyPartition( const char* binfilename = PROGMEM {MENU_BIN} ) {
   }
   if (flgSD) dst.close();
 }
+
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
 void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} ) {

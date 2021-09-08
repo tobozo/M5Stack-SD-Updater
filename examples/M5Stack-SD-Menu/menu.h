@@ -27,12 +27,17 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
 
+
+// TODO: moved USE_DOWNLOADER features to "Downloader.ino"
 // auto-select board
 #if defined( ARDUINO_M5STACK_Core2 )
   #warning M5STACK Core2 DETECTED !!
   #define PLATFORM_NAME "M5Core2"
   #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #define USE_DOWNLOADER
 #elif defined( ARDUINO_M5Stack_Core_ESP32 )
   #warning M5STACK CLASSIC DETECTED !!
   #define PLATFORM_NAME "M5Stack"
@@ -41,14 +46,17 @@
   #warning M5STACK FIRE DETECTED !!
   #define PLATFORM_NAME "M5Fire"
   #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #define USE_DOWNLOADER
 #elif defined( ARDUINO_ODROID_ESP32 )
   #warning ODROID DETECTED !!
   #define PLATFORM_NAME "Odroid-GO"
   #define DEFAULT_REGISTRY_BOARD "odroid"
+  #define USE_DOWNLOADER
 #elif defined ( ARDUINO_ESP32_DEV ) || defined( ARDUINO_LOLIN_D32_PRO )
   #warning WROVER OR LOLIN_D32_PRO DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
+  #define USE_DOWNLOADER
 #else
   #warning NOTHING DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "lambda"
@@ -65,12 +73,16 @@
   #define M5_FS SD
 #endif
 
+
+
+
+
 #include <sys/time.h>
 #include "compile_time.h"
 //#include <SPIFFS.h>
 
 #include "core.h"
-
+#define SDU_APP_NAME "Application Launcher"
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
 #if defined(_CHIMERA_CORE_)
@@ -93,10 +105,11 @@
 #include "controls.h"        // keypad / joypad / keyboard controls
 #include "fsformat.h"        // filesystem bin formats, functions, helpers
 
-//#define USE_DOWNLOADER // this requires large partition with OTA (https uses more space since esp32-core 2.x.x)
+
 #if defined USE_DOWNLOADER
   #include "downloader.h"      // binaries downloader module A.K.A YOLO Downloader
 #endif
+
 #include "partition_manager.h"
 
 #define MAX_BRIGHTNESS 100
@@ -118,6 +131,7 @@ int16_t scrollPointer = 0; // pointer to the scrollText position
 unsigned long lastScrollRender = micros(); // timer for scrolling
 String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
+
 
 
 SDUpdater sdUpdater;
@@ -538,12 +552,16 @@ void menuDown( int jumpSize = 1 ) {
 void menuInfo() {
   inInfoMenu = true;
   M5Menu.windowClr();
-  if( MenuID == 0 ) {
-    // downloader
-    M5Menu.drawAppMenu( "Apps Downloader", MENU_BTN_LAUNCH, MENU_BTN_SOURCE, MENU_BTN_BACK );
-    lastpush = millis();
-    return;
-  } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
+
+  #ifdef USE_DOWNLOADER
+    if( MenuID == 0 ) {
+      // downloader
+      M5Menu.drawAppMenu( "Apps Downloader", MENU_BTN_LAUNCH, MENU_BTN_SOURCE, MENU_BTN_BACK );
+      lastpush = millis();
+      return;
+    } else
+  #endif
+  if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
     M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
   } else {
     M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
@@ -972,3 +990,5 @@ void sleepTimer() {
     #endif
   }
 }
+
+//#pragma GCC pop_options

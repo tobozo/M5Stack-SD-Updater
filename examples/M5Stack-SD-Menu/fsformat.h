@@ -59,10 +59,12 @@ bool isBinFile( const char* fileName ) {
   return String( fileName ).endsWith( ".bin" ) || String( fileName ).endsWith( ".BIN" );
 }
 
-
 bool isValidAppName( const char* fileName ) {
-  if(   String( fileName )!=MENU_BIN // ignore menu
+  if( String( fileName )!=MENU_BIN // ignore menu
      && ( isBinFile( fileName ) ) // ignore files not ending in ".bin"
+     #if !defined USE_DOWNLOADER
+     && String( DOWNLOADER_BIN ) != String( fileName )  // ignore downloader if no download means are available
+     #endif
      && !String( fileName ).startsWith( "/." ) ) { // ignore dotfiles (thanks to https://twitter.com/micutil)
     return true;
   }
@@ -320,7 +322,7 @@ bool replaceItem( fs::FS &fs, String SourceName, String  DestName) {
     Serial.print(".");
     if(dot++%64==0) {
       Serial.println();
-      /*sdUpdater.*/SDMenuProgress( (dot*4096)-4095, fileSize );
+      if( SDUCfg.onProgress ) SDUCfg.onProgress( (dot*4096)-4095, fileSize );
     }
     dest.write(buf, n);
   }

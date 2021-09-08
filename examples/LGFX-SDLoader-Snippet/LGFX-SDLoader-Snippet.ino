@@ -1,20 +1,18 @@
-#include <SD.h>
+#define LGFX_AUTODETECT
+#define LGFX_USE_V1
+#include <LovyanGFX.h>
 
-//#define LGFX_AUTODETECT
-//#define LGFX_USE_V1
-//#include <LovyanGFX.h>
-
-#include <M5GFX.h>
-#define LGFX M5GFX // just alias to LGFX for SD-Updater
+// #include <M5GFX.h>
+// #define LGFX M5GFX // just alias to LGFX for SD-Updater
 
 #include "M5Stack_Buttons.h" // stolen from M5Stack Core
 #define TFCARD_CS_PIN 4
 
 #define LGFX_ONLY
+#define SDU_APP_NAME "LGFX Loader Snippet"
 #include <M5StackUpdater.h>
 
 static LGFX tft;
-//static LGFX_Sprite canvas(&tft);
 
 static Button *BtnA;
 static Button *BtnB;
@@ -27,24 +25,23 @@ void ButtonUpdate()
   BtnC->read();
 }
 
-static int assertStartUpdateFromButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
+static int myActionTrigger( char* labelLoad, char* labelSkip, unsigned long waitdelay )
 {
-  if( waitdelay > 100 ) {
-    freezeTextStyle();
-    drawSDUMessage();
-    BtnStyles btns;
-    drawSDUPushButton( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
-    drawSDUPushButton( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+  if( waitdelay > 100 ) { // show button labels
+    //SDUCfg.onBefore();
+    SDUCfg.onSplashPage( "SD Updater Options" );
+    BtnStyles btns; // use default theme from library
+    SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
+    SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
   }
   auto msec = millis();
   do {
     ButtonUpdate();
-    if( BtnA->isPressed() ) return 1;
-    if( BtnB->isPressed() ) return 0;
+    if( BtnA->isPressed() ) return 1; // SD-Load menu (or rollback if avaiblable)
+    if( BtnB->isPressed() ) return 0; // skip SD Loader screen
   } while (millis() - msec < waitdelay);
   return -1;
 }
-
 
 void setup()
 {
@@ -57,8 +54,16 @@ void setup()
   BtnC = new Button(37, true, 10);
   ButtonUpdate();
 
+  // SDUCfg.setProgressCb  ( myProgress );       // void (*onProgress)( int state, int size )
+  // SDUCfg.setMessageCb   ( myDrawMsg );        // void (*onMessage)( const String& label )
+  // SDUCfg.setErrorCb     ( myErrorMsg );       // void (*onError)( const String& message, unsigned long delay )
+  // SDUCfg.setBeforeCb    ( myBeforeCb );       // void (*onBefore)()
+  // SDUCfg.setAfterCb     ( myAfterCb );        // void (*onAfter)()
+  // SDUCfg.setSplashPageCb( myDrawSplashPage ); // void (*onSplashPage)( const char* msg )
+  // SDUCfg.setButtonDrawCb( myDrawPushButton ); // void (*onButtonDraw)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor )
+  SDUCfg.setWaitForActionCb( myActionTrigger );  // int  (*onWaitForAction)( char* labelLoad, char* labelSkip, unsigned long waitdelay )
   setSDUGfx( &tft ); // attach LGFX to SD-Updater
-  setAssertTrigger( assertStartUpdateFromButton ); // attach custom button support
+
   checkSDUpdater(
     SD,           // filesystem (default=SD)
     MENU_BIN,     // path to binary (default=/menu.bin, empty string=rollback only)

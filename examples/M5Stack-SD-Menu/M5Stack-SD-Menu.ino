@@ -89,12 +89,10 @@ void setup() {
   #endif
 
   // suggest rollback
-  //checkSDUpdater( M5_FS, "", 2000 );
-  checkSDUpdater(
+  sdUpdater.checkSDUpdaterUI(
     SD,           // filesystem (default=SD)
     "",           // path to binary (default = /menu.bin, empty = rollback only)
-    0,            // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
-    TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
+    0            // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
   );
 
   #if defined(_CHIMERA_CORE_)
@@ -103,32 +101,11 @@ void setup() {
     //M5.I2C.scan();
   #endif
 
-
   //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
   UISetup(); // UI init and check if a SD exists
 
   doFSChecks(); // replicate on SD and app1 partition, scan data folder, load registry
   doFSInventory(); // enumerate apps and render menu
-
-  /*
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextSize(2);
-  tft.setTextColor( TFT_WHITE, TFT_BLACK );
-  //M5.ScreenShot.init( &tft, SD );
-  tft.drawString( "GIF", tft.width()/2, tft.height()/2);
-  M5.ScreenShot.snapGIF("blah", true);
-  delay(1000);
-  tft.drawString( "PNG", tft.width()/2, tft.height()/2);
-  M5.ScreenShot.snapPNG("blah", true);
-  delay(1000);
-  tft.drawString( "JPG", tft.width()/2, tft.height()/2);
-  M5.ScreenShot.snapJPG("blah", true);
-  tft.drawString( "BMP", tft.width()/2, tft.height()/2);
-  M5.ScreenShot.snapBMP("blah", true);
-
-  tft.setTextSize(1);
-  */
-
 
 }
 

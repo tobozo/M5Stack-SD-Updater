@@ -3,6 +3,8 @@
 
 
 #define WELCOME_MESSAGE F("Welcome to the " PLATFORM_NAME " SD Menu Loader!")
+#define DOWNLOADER_BIN "/--Downloader--.bin" // Fixme/Hack: a dummy file will be created so it appears in the menu as an app
+#define DOWNLOADER_BIN_VIRTUAL "/Downloader.bin" // old bin name, will be renamed, kept for backwards compat
 #define INIT_MESSAGE F( PLATFORM_NAME " SD Updater initializing...")
 #define M5_SAM_MENU_SETTINGS "M5StackSam loaded with %d labels per page, max %d items\n"
 #define SD_LOADING_MESSAGE F("Checking SD Card...")
@@ -62,11 +64,6 @@
 #define DOWNLOADER_MODAL_RETRY "RETRY"
 #define DOWNLOADER_MODAL_CHANGE "CHANGE"
 #define MENU_BTN_CANCELED "OPERATION CANCELED"
-
-
-
-
-
 
 #define OVERALL_PROGRESS_TITLE "Overall progress: "
 #define WGET_SKIPPING " [Checksum OK]"
