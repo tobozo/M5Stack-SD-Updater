@@ -69,9 +69,9 @@
  *
  *   checkSDUpdater( SD, MENU_BIN, 2000 );
  *
- * Headless setups can overload SDUpdater::assertStartUpdate
- * (see setAssertTrigger() in M5StackUpdateUI.h) and have
- * their own button/sensor/whatever detection routine
+ * Headless setups can overload SDUCfg.onWaitForAction
+ * See SDUCfg.setWaitForActionCb() in M5StackUpdaterConfig.h
+ * to assign a your own button/sensor/whatever detection routine
  * or even issue the "update" command via serial
  *
  *   if(digitalRead(BUTTON_A_PIN) == 0) {
@@ -107,8 +107,6 @@ extern "C" {
 #include <Preferences.h>
 #define resetReason (int)rtc_get_reset_reason(0)
 
-// #define SD_ENABLE_SPIFFS_COPY // enable SD <=> SPIFFS copy functions, from outside this library
-
 // board selection helpers:
 //   #if defined( ARDUINO_ESP32_DEV )
 //   #if defined( ARDUINO_ODROID_ESP32 )
@@ -121,6 +119,14 @@ extern "C" {
 #define SDUPDATER_SD_MMC_FS 1
 #define SDUPDATER_SPIFFS_FS 2
 
+#define ROLLBACK_LABEL "Rollback" // reload app from the "other" OTA partition
+#define LAUNCHER_LABEL "Launcher" // load Launcher (typically menu.bin)
+#define SKIP_LABEL     "Skip >>|" // resume normal operations (=no action taken)
+#define BTN_HINT_MSG   "SD-Updater Options"
+
+#define SDU_LOAD_TPL   "Will Load menu binary : %s\n"
+#define SDU_ROLLBACK_MSG "Will Roll back"
+
 #ifndef MENU_BIN
   #define MENU_BIN "/menu.bin"
 #endif
@@ -128,71 +134,16 @@ extern "C" {
   #define DATA_DIR "/data"
 #endif
 
-#define USE_DISPLAY // #undef this from your sketch to force headless mode
-
 #if !defined(TFCARD_CS_PIN) // override this from your sketch
  #define TFCARD_CS_PIN SS
 #endif
 
-// callback signatures
-typedef void (*onProgressCb)( int state, int size );
-typedef void (*onMessageCb)( const String& label );
-typedef void (*onErrorCb)( const String& message, unsigned long delay );
-typedef void (*onBeforeCb)();
-typedef void (*onAfterCb)();
-typedef void (*onSplashPageCb)( const char* msg );
-typedef void (*onButtonDrawCb)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor );
-typedef int  (*onWaitForActionCb)( char* labelLoad, char* labelSkip, unsigned long waitdelay );
-
-
-struct config_sdu_t
-{
-  void * gfx =  nullptr; // optional pointer for custom callbacks
-  onProgressCb      onProgress      = nullptr;
-  onMessageCb       onMessage       = nullptr;
-  onErrorCb         onError         = nullptr;
-  onBeforeCb        onBefore        = nullptr;
-  onAfterCb         onAfter         = nullptr;
-  onSplashPageCb    onSplashPage    = nullptr;
-  onButtonDrawCb    onButtonDraw    = nullptr;
-  onWaitForActionCb onWaitForAction = nullptr;
-
-  void setGfx( void *param )                      { gfx = param; };
-  void setProgressCb( onProgressCb cb )           { onProgress = cb; }
-  void setMessageCb( onMessageCb cb )             { onMessage = cb; }
-  void setErrorCb( onErrorCb cb )                 { onError = cb; }
-  void setBeforeCb( onBeforeCb cb )               { onBefore = cb; }
-  void setAfterCb( onAfterCb cb )                 { onAfter = cb; }
-  void setSplashPageCb( onSplashPageCb cb )       { onSplashPage = cb; }
-  void setButtonDrawCb( onButtonDrawCb cb )       { onButtonDraw = cb; }
-  void setWaitForActionCb( onWaitForActionCb cb ) { onWaitForAction = cb; }
-
-};
-
-static config_sdu_t SDU;
-
-// legacy imperative function
-static void updateFromFS( fs::FS &fs, const String& fileName, const int TFCardCsPin );
-
-// legacy helper: attach a button/touch event detection
-__attribute__((unused))
-static void setAssertTrigger( onWaitForActionCb tg )
-{
-  log_d("Setting assert trigger");
-  SDU.setWaitForActionCb( tg );
-}
-// legacy helper attach a custom progress function
-__attribute__((unused))
-static void setMenuProgressCb( onProgressCb cb )
-{
-  SDU.setProgressCb( cb );
-}
-
-
-#include "M5StackUpdaterHeadless.h"
-#ifdef USE_DISPLAY
-  #include "M5StackUpdaterUI.h"
+#if !defined SDU_HEADLESS && (defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY)
+  #define USE_DISPLAY // #undef this to force headless mode
 #endif
+
+// auto selection of default mode, don't edit this, use either aliased class instead
+#define SDUpdater SDUpdater_Base
 
 #if defined( ARDUINO_ODROID_ESP32 )         // Odroid-GO
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
@@ -203,6 +154,7 @@ static void setMenuProgressCb( onProgressCb cb )
 #elif defined( ARDUINO_M5STACK_Core2 )      // M5Core2
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
 #elif defined( ARDUINO_M5Stick_C )          // M5StickC
+  // TODO: use __has_include to determine is SPIFFS, LITTLEFS, or FFAT
   #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
 #elif defined( ARDUINO_ESP32_DEV ) || defined( ARDUINO_ESP32_WROVER_KIT ) // ESP32 Wrover Kit
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
@@ -215,7 +167,6 @@ static void setMenuProgressCb( onProgressCb cb )
 #else
   #warning "No valid combination of Device+Display+SD detected, inheriting defaults"
   //#undef USE_DISPLAY // headless setup, progress will be rendered in Serial
-  #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
   #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS // default behaviour = use SD
 /*
   // or your custom board setup
@@ -237,53 +188,44 @@ static void setMenuProgressCb( onProgressCb cb )
   #include <SD_MMC.h>
 #elif SD_UPDATER_FS_TYPE==SDUPDATER_SPIFFS_FS
   #define SDUPDATER_FS SPIFFS
-  #undef SD_ENABLE_SPIFFS_COPY // disable SD/SD_MMC <=> SPIFFS copy functions
   #include <SPIFFS.h>
 #else
   #error "Invalid FS type selected, must be one of: SDUPDATER_SD_FS, SDUPDATER_SD_MMC_FS, SDUPDATER_SPIFFS_FS"
 #endif
 
 // backwards compat
-#define M5SDMenuProgress SDU.onProgress
+#define M5SDMenuProgress SDUCfg.onProgress
+
+#include "M5StackUpdaterConfig.h"
+#include "M5StackUpdaterUI.h"
 
 
-class SDUpdater_Base {
+class SDUpdater_Base
+{
   public:
-    SDUpdater_Base( const int TFCardCsPin_ = TFCARD_CS_PIN );
-    SDUpdater_Base( const String SPIFFS2SDFolder="" );
+    SDUpdater_Base( config_sdu_t* _cfg ) : cfg(_cfg) {
+      cfg->setSDU( this ); // attach this to SDUCfg.sdUpdater
+      if( SDUCfgLoader ) SDUCfgLoader();
+      else SetupSDMenuConfig();
+    };
+    SDUpdater_Base( const int TFCardCsPin_ = TFCARD_CS_PIN ) {
+      log_d("SDUpdate base mode on CS pin(%d)", TFCardCsPin_ );
+      SDUCfg.setSDU( this ); // attach this to SDUCfg.sdUpdater
+      SDUCfg.setCSPin( TFCardCsPin_ );
+      cfg = &SDUCfg;
+      if( SDUCfgLoader ) SDUCfgLoader();
+      else SetupSDMenuConfig();
+    };
     void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN );
+    void doRollBack( const String& message = "" );
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
     String SKETCH_NAME = "";
 
-    // TODO: remove SPIFFS or replace by LittleFS
-
-    bool enableSPIFFS = false;
-    bool SPIFFS_MOUNTED = false;
-
-    #if defined( SD_ENABLE_SPIFFS_COPY )
-
-      static const int BACKUP_SD_TO_SPIFFS = 1;
-      static const int BACKUP_SPIFFS_TO_SD = 2;
-
-      void copyFile( String sourceName, int dir );
-      void copyFile( String sourceName, fs::FS &sourceFS, int dir );
-      void copyFile( fs::File &sourceFile, int dir );
-      void copyFile( String sourceName, fs::FS &sourceFS, String destName, fs::FS &destinationFS );
-      void copyFile( fs::File &sourceFile, String destName, fs::FS &destinationFS );
-      void copyDir( int direction );
-      void copyDir( const char * dirname, uint8_t levels, int direction );
-      void copyDir(fs::FS &sourceFS, const char * dirname, uint8_t levels, int direction );
-      void makePathToFile( String destName, fs::FS destinationFS );
-      String gnu_basename( String path );
-      bool SPIFFSFormat();
-      bool SPIFFSisEmpty();
-    #endif
-
     // flash to SD binary replication
-    static bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
-    static bool copyFsPartition(File* dst, const esp_partition_t* src, size_t length);
-    static bool copyFsPartition(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} );
+    bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
+    bool copyFsPartition(File* dst, const esp_partition_t* src, size_t length);
+    bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} );
 
     // fs::File->name() changed behaviour after esp32 sdk 2.x.x
     const char* fs_file_path( fs::File *file ) {
@@ -294,48 +236,16 @@ class SDUpdater_Base {
       #endif
     }
 
+    config_sdu_t* cfg;
+
+    void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay );
+    void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay );
+
   private:
-    int _TFCardCsPin = TFCARD_CS_PIN;
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
 };
 
-
-class SDUpdater_Headless : public SDUpdater_Base {
-  public:
-
-    SDUpdater_Headless( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
-      log_d("SDUpdater headless mode");
-      SDU.onProgress      = SDMenuProgressHeadless;
-      SDU.onMessage       = DisplayUpdateHeadless;
-      SDU.onWaitForAction = assertStartUpdateFromSerial;
-    };
-
-};
-
-#if defined USE_DISPLAY
-  class SDUpdater_Display : public SDUpdater_Base {
-    public:
-
-      SDUpdater_Display( const int TFCardCsPin_ = TFCARD_CS_PIN ) : SDUpdater_Base( TFCardCsPin_ ) {
-        log_d("SDUpdater UI mode");
-        loadCfg();
-      };
-
-  };
-  #define SDUpdater SDUpdater_Display
-#else
-  #define SDUpdater SDUpdater_Headless
-#endif
-
-
-
-// copy compiled sketch from flash partition to filesystem binary file
-__attribute__((unused)) static bool copyFsPartition(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN}, const int TfCardCsPin = TFCARD_CS_PIN )
-{
-  SDUpdater sdUpdater( TfCardCsPin );
-  return sdUpdater.copyFsPartition( fs, binfilename );
-}
 
 // provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater
 __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN, const int TfCardCsPin = TFCARD_CS_PIN )
@@ -344,8 +254,26 @@ __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, con
   sdUpdater.updateFromFS( fs, fileName );
 }
 
+
+// copy compiled sketch from flash partition to filesystem binary file
+__attribute__((unused)) static bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN}, const int TfCardCsPin = TFCARD_CS_PIN )
+{
+  SDUpdater sdUpdater( TfCardCsPin );
+  return sdUpdater.saveSketchToFS( fs, binfilename );
+}
+
+
+// provide a rollback function for custom usages
+__attribute__((unused)) static void updateRollBack( String message )
+{
+  SDUpdater sdUpdater;
+  sdUpdater.doRollBack( message );
+}
+
+
 // provide a conditional function to cover more devices, including headless and touch
-__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 0, const int TfCardCsPin_ = TFCARD_CS_PIN ) {
+__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 0, const int TfCardCsPin_ = TFCARD_CS_PIN )
+{
   if( waitdelay == 0 ) {
     // check for reset reset reason
     switch( resetReason ) {
@@ -367,15 +295,18 @@ __attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, S
       default : log_d("NO_MEAN"); waitdelay=100;
     }
   }
+
+  log_n("Booting with reset reason: %d", resetReason );
+
+  SDUCfg.setCSPin( TfCardCsPin_ );
+  SDUpdater sdUpdater( &SDUCfg );
+
   #if defined USE_DISPLAY
-    checkSDUpdaterUI( fs, fileName, waitdelay, TfCardCsPin_ );
+    sdUpdater.checkSDUpdaterUI( fs, fileName, waitdelay );
   #else
-    checkSDUpdaterHeadless( fs, fileName, waitdelay, TfCardCsPin_ );
+    sdUpdater.checkSDUpdaterHeadless( fs, fileName, waitdelay );
   #endif
 }
-
-
-
 
 
 #endif

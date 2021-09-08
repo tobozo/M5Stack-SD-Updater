@@ -3,16 +3,55 @@
 
 // LGFX complains when using old TFT_eSPI syntax
 // but this sketch must be driver agnostic
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+//#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-#include "assets.h"
+// headless methods
+__attribute__((unused))
+static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip, unsigned long waitdelay )
+{
+  int64_t msec = millis();
+  do {
+    if( Serial.available() ) {
+      String out = Serial.readStringUntil('\n');
+      if(      out == "update" ) return 1;
+      else if( out == "rollback") return 0;
+      else if( out == "skip" ) return -1;
+      else Serial.printf("Ignored command: %s\n", out.c_str() );
+    }
+  } while( msec > int64_t( millis() ) - int64_t( waitdelay ) );
+  return -1;
+}
 
-#define ROLLBACK_LABEL "Rollback" // reload app from the "other" OTA partition
-#define LAUNCHER_LABEL "Launcher" // load Launcher (typically menu.bin)
-#define SKIP_LABEL     "Skip >>|" // resume normal operations (=no action taken)
-#define BTN_HINT_MSG   "SD-Updater Options"
 
-#if defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY
+__attribute__((unused))
+static void DisplayUpdateHeadless( const String& label ) {
+  // TODO: draw some fancy serial output
+};
+
+
+__attribute__((unused))
+static void SDMenuProgressHeadless( int state, int size )
+{
+  static int SD_UI_Progress;
+  int percent = ( state * 100 ) / size;
+  if( percent == SD_UI_Progress ) {
+    // don't render twice the same value
+    return;
+  }
+  //Serial.printf("percent = %d\n", percent); // this is spammy
+  SD_UI_Progress = percent;
+  if ( percent >= 0 && percent < 101 ) {
+    Serial.print( "." );
+  } else {
+    Serial.println();
+  }
+};
+
+
+
+#if defined USE_DISPLAY // _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY
+  #include "assets.h"
+
   #if defined LGFX_ONLY
     // WARN: this library assumes a 'tft' object exists
     #ifndef SDU_GFX
@@ -22,7 +61,7 @@
       static void setSDUGfx( LGFX *gfx )
       {
         SDuGFX = gfx;
-        SDU.setGfx( gfx );
+        SDUCfg.setGfx( gfx );
       }
     #endif
   #else
@@ -78,26 +117,9 @@
   static void DisplayUpdateUI( const String& label );
   static void DisplayErrorUI( const String& msg, unsigned long wait );
 
-  static void rollBackUI()
-  {
-    if( Update.canRollBack() ) {
-      SDU.onMessage( "RE-LOADING APP" );
-      for( uint8_t i=1; i<50; i++ ) {
-        SDU.onProgress( i, 100 );
-      }
-      Update.rollBack();
-      for( uint8_t i=50; i<=100; i++ ) {
-        SDU.onProgress( i, 100 );
-      }
-      ESP.restart();
-    } else {
-      log_n("Cannot rollback: the other OTA partition doesn't seem to be populated or valid");
-      SDU.onError("Cannot rollback", 2000);
-    }
-  }
-
   struct SDUTextStyle_T // somehow redundant with LGFX's textstyle_t
   {
+    bool frozen           = false;
     uint8_t textsize      = 0;
     uint8_t textdatum     = 0;
     uint32_t textcolor    = 0;
@@ -107,19 +129,24 @@
 
   static void freezeTextStyle()
   {
+    if( SDUTextStyle.frozen ) {
+      // log_v("can't freeze twice, thaw first !");
+      return;
+    }
     #if defined LGFX_ONLY
       SDUTextStyle.textcolor   = SDU_GFX.getTextStyle().fore_rgb888;
       SDUTextStyle.textbgcolor = SDU_GFX.getTextStyle().back_rgb888;
       SDUTextStyle.textdatum   = SDU_GFX.getTextStyle().datum;
       SDUTextStyle.textsize    = SDU_GFX.getTextStyle().size_x;
-    #else
+    #else // Chimera-Core, TFT_eSPI, M5Stack, M5Core2
       SDUTextStyle.textsize    = SDU_GFX.textsize;
       SDUTextStyle.textdatum   = SDU_GFX.textdatum;
       SDUTextStyle.textcolor   = SDU_GFX.textcolor;
       SDUTextStyle.textbgcolor = SDU_GFX.textbgcolor;
     #endif
 
-    log_d("Froze textStyle, size: %d, datum: %d, color: %d, bgcolor: %d", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
+    SDUTextStyle.frozen = true;
+    log_d("Froze textStyle, size: %d, datum: %d, color: 0x%08x, bgcolor: 0x%08x", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
   }
 
   static void thawTextStyle()
@@ -127,12 +154,13 @@
     SDU_GFX.setTextSize( SDUTextStyle.textsize);
     SDU_GFX.setTextDatum( SDUTextStyle.textdatum );
     SDU_GFX.setTextColor( SDUTextStyle.textcolor , SDUTextStyle.textbgcolor );
-    #ifndef  _M5STICKC_H_
+    #ifndef _M5STICKC_H_
       SDU_GFX.setFont( nullptr );
     #endif
     SDU_GFX.setCursor(0,0);
     SDU_GFX.fillScreen(TFT_BLACK);
-    log_d("Thawed textStyle, size: %d, datum: %d, color: %d, bgcolor: %d", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
+    log_d("Thawed textStyle, size: %d, datum: %d, color: 0x%08x, bgcolor: 0x%08x", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
+    SDUTextStyle.frozen = false;
   }
 
   __attribute__((unused))
@@ -141,13 +169,22 @@
     BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
     SDU_GFX.setTextColor( bs->MsgFontFolor[0], bs->MsgFontFolor[1] );
     SDU_GFX.setTextSize( bs->MsgFontSize );
-    //SDU_GFX.setCursor( SDU_GFX.width()/2, 0 );
-    SDU_GFX.setTextDatum( TC_DATUM );
+    SDU_GFX.setTextDatum( TL_DATUM );
     SDU_GFX.setTextFont( 0 );
-    SDU_GFX.drawString( msg, SDU_GFX.width()/2, 0 );
+    SDU_GFX.setTextColor( TFT_WHITE );
+    SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 0, 15, 16 );
+    SDU_GFX.drawString( msg, 24, 0 );
     #if defined SDU_APP_NAME
-      SDU_GFX.drawString( SDU_APP_NAME, SDU_GFX.width()/2, 32 );
+      SDU_GFX.setTextColor( TFT_LIGHTGREY );
+      SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 24, 15, 16 );
+      SDU_GFX.drawString( SDU_APP_NAME, 24, 24 );
     #endif
+    #if defined SDU_APP_PATH
+      SDU_GFX.setTextColor( TFT_DARKGREY );
+      SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 48, 15, 16 );
+      SDU_GFX.drawString( SDU_APP_PATH, 24, 48 );
+    #endif
+    //SDU_GFX.drawJpg( sdUpdaterIcon32x40_jpg, sdUpdaterIcon32x40_jpg_len, (SDU_GFX.width()/2)-16, (SDU_GFX.height()/2)-20, 32, 40 );
   }
 
   __attribute__((unused))
@@ -173,7 +210,7 @@
     __attribute__((unused))
     static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
     {
-      // Dummy function, use setAssertTrigger( fn ) to override
+      // Dummy function, use SDUCfg.onWaitForAction( fn ) to override
       return -1;
     }
   #else // M5.BtnA/BtnB/BtnC support
@@ -181,11 +218,11 @@
     static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
     {
       if( waitdelay > 100 ) {
-        SDU.onBefore();
-        SDU.onSplashPage( BTN_HINT_MSG );
+        SDUCfg.onBefore();
+        SDUCfg.onSplashPage( BTN_HINT_MSG );
         BtnStyles btns;
-        SDU.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
-        SDU.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+        SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
+        SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
       }
       auto msec = millis();
       do {
@@ -203,78 +240,6 @@
     #include "M5StackUpdaterUITouch.h"
 
   #endif // HAS_TOUCH
-
-
-  static void loadCfg()
-  {
-    if( SDU.onProgress == nullptr)      SDU.onProgress      = SDMenuProgressUI;
-    if( SDU.onMessage == nullptr)       SDU.onMessage       = DisplayUpdateUI;
-    if( SDU.onError == nullptr)         SDU.onError         = DisplayErrorUI;
-    if( SDU.onBefore == nullptr)        SDU.onBefore        = freezeTextStyle;
-    if( SDU.onAfter == nullptr)         SDU.onAfter         = thawTextStyle;
-    if( SDU.onSplashPage == nullptr)    SDU.onSplashPage    = drawSDUSplashPage;
-    if( SDU.onButtonDraw == nullptr)    SDU.onButtonDraw    = drawSDUPushButton;
-    //if( SDU.onWaitForAction == nullptr) SDU.onWaitForAction = SDUpdaterAssertTrigger;
-    #if defined HAS_TOUCH || defined _M5Core2_H_ // default touch button support
-      SDU.onWaitForAction = assertStartUpdateFromTouchButton;
-    #else // default momentary button support
-      SDU.onWaitForAction = assertStartUpdateFromPushButton;
-    #endif
-  }
-
-
-  static void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay, const int TFCardCsPin )
-  {
-
-    log_n("Booting with reset reason: %d", resetReason );
-
-    bool isRollBack = true;
-    if( fileName != "" ) {
-      isRollBack = false;
-    }
-
-    #if defined HAS_TOUCH || defined _M5Core2_H_ // default touch button support
-      // TODO: see if "touch/press" detect on boot is possible (spoil : NO)
-      // TODO: read signal from other (external?) buttons
-      bool draw = true;
-      //if( waitdelay == 0 ) return; // don't check for any touch/button signal if waitDelay = 0
-    #else // default push buttons support
-      bool draw = false;
-      //if( waitdelay == 0 ) return; // don't check for any touch/button signal if waitDelay = 0
-      if( waitdelay <= 100 ) {
-        // no UI draw, but still attempt to detect "button is pressed on boot"
-        // round up to 100ms for button debounce
-        waitdelay = 100;
-      } else {
-        // only draw if waitdelay > 0
-        draw = true;
-      }
-    #endif
-
-    loadCfg();
-
-    if( draw ) { // bring up the UI
-      SDU.onBefore();
-      SDU.onSplashPage( BTN_HINT_MSG );
-    }
-
-    if ( SDU.onWaitForAction( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
-      if( isRollBack == false ) {
-        Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
-        updateFromFS( fs, fileName, TFCardCsPin );
-        ESP.restart();
-      } else {
-        Serial.println( SDU_ROLLBACK_MSG );
-        rollBackUI();
-      }
-    }
-
-    if( draw ) {
-      // reset text styles to avoid messing with the overlayed application
-      SDU.onAfter();
-    }
-
-  }
 
 
   static void SDMenuProgressUI( int state, int size )
@@ -301,9 +266,9 @@
     }
     String percentStr = " " + String( percent ) + "% ";
     SDU_GFX.setTextDatum( TC_DATUM );
-    SDU_GFX.setCursor( SDU_GFX.width() >> 1, progress_y+progress_h+5 );
     SDU_GFX.setTextFont( 0 );
-    SDU_GFX.print( percentStr );
+    SDU_GFX.drawString( percentStr, SDU_GFX.width() >> 1, progress_y+progress_h+5 );
+
     if ( percent >= 0 && percent < 101 ) {
       Serial.print( "." );
     } else {
@@ -315,6 +280,8 @@
 
   static void DisplayUpdateUI( const String& label )
   {
+    log_d("Entering DisplayUpdateUI");
+
     if (SDU_GFX.width() < SDU_GFX.height()) SDU_GFX.setRotation(SDU_GFX.getRotation() ^ 1);
 
     SDU_GFX.fillScreen( TFT_BLACK );
@@ -357,15 +324,45 @@
   }
 
 
+
+  static void SetupSDMenuConfig()
+  {
+    if( SDUCfg.load_defaults ) {
+
+      if( !SDUCfg.onProgress   ) SDUCfg.setProgressCb(   SDMenuProgressUI );  log_d("Attaching onProgress");
+      if( !SDUCfg.onMessage    ) SDUCfg.setMessageCb(    DisplayUpdateUI );   log_d("Attaching onMessage");
+      if( !SDUCfg.onError      ) SDUCfg.setErrorCb(      DisplayErrorUI );    log_d("Attaching onError");
+      if( !SDUCfg.onBefore     ) SDUCfg.setBeforeCb(     freezeTextStyle );   log_d("Attaching onBefore");
+      if( !SDUCfg.onAfter      ) SDUCfg.setAfterCb(      thawTextStyle );     log_d("Attaching onAfter");
+      if( !SDUCfg.onSplashPage ) SDUCfg.setSplashPageCb( drawSDUSplashPage ); log_d("Attaching onSplashPage");
+      if( !SDUCfg.onButtonDraw ) SDUCfg.setButtonDrawCb( drawSDUPushButton ); log_d("Attaching onButtonDraw");
+
+      #if defined HAS_TOUCH || defined _M5Core2_H_ // default touch button support
+        if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromTouchButton ); log_d("Attaching onWaitForAction (touch)");
+      #else // default momentary button support
+        if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromPushButton ); log_d("Attaching onWaitForAction (button)");
+      #endif
+    }
+  }
+
+
   // release 'tft' temporary define
   #if defined undef_tft
     #undef SDU_GFX
   #endif
 
-#else
-  // unknown tft context, go headless
-  #undef USE_DISPLAY
-#endif
+#else // headless
+
+  static void SetupSDMenuConfig()
+  {
+    if( SDUCfg.load_defaults ) {
+      if( !SDUCfg.onProgress      ) { SDUCfg.setProgressCb(      SDMenuProgressHeadless );      log_d("Attaching onProgress"); }
+      if( !SDUCfg.onMessage       ) { SDUCfg.setMessageCb(       DisplayUpdateHeadless );       log_d("Attaching onMessage"); }
+      if( !SDUCfg.onWaitForAction ) { SDUCfg.setWaitForActionCb( assertStartUpdateFromSerial ); log_d("Attaching onWaitForAction (serial)"); }
+    }
+  }
+
+#endif //#ifdef USE_DISPLAY
 
 
 #endif //  _M5UPDATER_UI_
