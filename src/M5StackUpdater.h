@@ -54,7 +54,7 @@
  *
  * And add this:
  *
- *   checkSDUpdater();
+ *   checkSDUpdater( SD );
  *
  * Then do whatever you need to do (button init, timers)
  * in the setup and the loop. Your app will be ready
@@ -83,198 +83,163 @@
  *
  */
 #include "gitTagVersion.h"
-#include <esp_partition.h>
-extern "C" {
-  #include "esp_ota_ops.h"
-  #include "esp_image_format.h"
-}
 #include <FS.h>
 #include <Update.h>
-#if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
-  #if defined CONFIG_IDF_TARGET_ESP32
-    #include <esp32/rom/rtc.h>
-  #elif defined CONFIG_IDF_TARGET_ESP32S2
-    #include <esp32s2/rom/rtc.h>
-  #elif defined CONFIG_IDF_TARGET_ESP32C3
-    #include <esp32c3/rom/rtc.h>
-  #else
-    #error Target CONFIG_IDF_TARGET is not supported
-  #endif
-#else
-  #include <rom/rtc.h>
-#endif
 
-#include <Preferences.h>
-#define resetReason (int)rtc_get_reset_reason(0)
-
-// board selection helpers:
-//   #if defined( ARDUINO_ESP32_DEV )
-//   #if defined( ARDUINO_ODROID_ESP32 )
-//   #if defined( ARDUINO_M5Stack_Core_ESP32 )
-//   #if defined( ARDUINO_M5STACK_FIRE )
-//   #if defined( ARDUINO_M5STACK_Core2 )
-//   #if defined( ARDUINO_M5Stick_C )
-
-#define SDUPDATER_SD_FS       0
-#define SDUPDATER_SD_MMC_FS   1
-#define SDUPDATER_SPIFFS_FS   2
-#define SDUPDATER_LITTLEFS_FS 3
-
-#define ROLLBACK_LABEL "Rollback" // reload app from the "other" OTA partition
-#define LAUNCHER_LABEL "Launcher" // load Launcher (typically menu.bin)
-#define SKIP_LABEL     "Skip >>|" // resume normal operations (=no action taken)
-#define BTN_HINT_MSG   "SD-Updater Options"
-
-#define SDU_LOAD_TPL   "Will Load menu binary : %s\n"
-#define SDU_ROLLBACK_MSG "Will Roll back"
-
-#ifndef MENU_BIN
-  #define MENU_BIN "/menu.bin"
-#endif
-#ifndef DATA_DIR
-  #define DATA_DIR "/data"
-#endif
-
-#if !defined(TFCARD_CS_PIN) // override this from your sketch
- #define TFCARD_CS_PIN SS
-#endif
-
-#if !defined SDU_HEADLESS && (defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY)
-  #define USE_DISPLAY // #undef this to force headless mode
-#else
-  // #warning SD-Updater will run in Headless mode
-#endif
-
-
-#define SDUpdater SDUpdater_Base
-
-// auto selection of default mode, don't edit this, use either aliased class instead
-#ifndef SD_UPDATER_FS_TYPE
-  // guess filesystem from includes
-  #if __has_include(<SD.h>)
-    #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-  #elif __has_include(<SD_MMC.h>)
-    #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
-  #elif __has_include(<SPIFFS.h>)
-    #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
-  #elif __has_include(<LittleFS.h>) || __has_include(<LITTLEFS.h>)
-    #define SD_UPDATER_FS_TYPE SDUPDATER_LITTLEFS_FS
-  #else // no include has been made so far, see if it's guessable from known boards
-    #if defined( ARDUINO_ODROID_ESP32 )         // Odroid-GO
-      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-    #elif defined( ARDUINO_M5Stack_Core_ESP32 ) // M5Stack Classic
-      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-    #elif defined( ARDUINO_M5STACK_FIRE )       // M5Stack Fire
-      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-    #elif defined( ARDUINO_M5STACK_Core2 )      // M5Core2
-      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-    #elif defined( ARDUINO_M5Stick_C )          // M5StickC
-      #define SD_UPDATER_FS_TYPE SDUPDATER_SPIFFS_FS
-    #elif defined( ARDUINO_ESP32_WROVER_KIT ) // ESP32 Wrover Kit
-      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
-    #elif defined( ARDUINO_TTGO_T1 )            // TTGO T1
-      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_MMC_FS
-    #elif defined( ARDUINO_LOLIN_D32_PRO )      // LoLin D32 Pro
-      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-    #elif defined( ARDUINO_T_Watch )            // TWatch, all model
-      #define SD_UPDATER_FS_TYPE SDUPDATER_SD_FS
-    #else
-      #error "No filesystem detected :-("
-      #error "Either define SD_UPDATER_FS_TYPE ( 0 = sd, 1 = sdmmc, 2 = spiffs, 3 = littlefs) or include one of <SD.h>, <SD_MMC.h>, <SPIFFS.h>, <LittleFS.h>"
-    #endif
-
-  #endif
-#else
-  //#warning "Custom Filesystem selected, assuming filesystem include has been handled"
-#endif
-
-
-#if SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
-  #define SDUPDATER_FS SD
-  #define SDU_FS_NAME "SD Card"
+// inherit includes from sketch
+#if __has_include(<SD.h>)
   #include <SD.h>
-#elif SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
-  #define SDUPDATER_FS SD_MMC
-  #define SDU_FS_NAME "SD MMC"
-  #include <SD_MMC.h>
-#elif SD_UPDATER_FS_TYPE==SDUPDATER_SPIFFS_FS
-  #define SDUPDATER_FS SPIFFS
-  #define SDU_FS_NAME "SPIFFS"
-  #include <SPIFFS.h>
-#elif SD_UPDATER_FS_TYPE==SDUPDATER_LITTLEFS_FS
-  #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(2, 0, 0)
-    #include <LittleFS.h> // littlefs is built-in since sdk 2.0.0
-    #define SDUPDATER_FS LittleFS
-    #define SDU_FS_NAME "LittleFS (builtin)"
-  #else
-    #include <LITTLEFS.h>
-    #define SDUPDATER_FS LITTLEFS // get "littlefs_esp32" from library manager
-    #define SDU_FS_NAME "LittleFS (extlib)"
-  #endif
-#elif defined( M5STACK_SD )
-  #define SDUPDATER_FS M5STACK_SD
-  #define SDU_FS_NAME "M5STACK_SD"
-#else
-  #error "Invalid FS type selected, must be one of: SDUPDATER_SD_FS, SDUPDATER_SD_MMC_FS, SDUPDATER_SPIFFS_FS, SDUPDATER_LITTLEFS_FS"
 #endif
-
-// backwards compat
-#define M5SDMenuProgress SDUCfg.onProgress
+#if __has_include(<SD_MMC.h>)
+  #include <SD_MMC.h>
+#endif
+#if __has_include(<SPIFFS.h>)
+  #include <SPIFFS.h>
+#endif
+#if __has_include(<LittleFS.h>)
+  #include <LittleFS.h>
+#endif
+#if __has_include(<LITTLEFS.h>)
+  #include <LITTLEFS.h>
+#endif
+#if __has_include(<PSRamFS.h>)
+  #include <PSRamFS.h>
+#endif
 
 #include "M5StackUpdaterConfig.h"
 #include "M5StackUpdaterUI.h"
 
 
-class SDUpdater_Base
+
+
+class SDUpdater
 {
   public:
-    SDUpdater_Base( config_sdu_t* _cfg ) : cfg(_cfg) {
-      cfg->setSDU( this ); // attach this to SDUCfg.sdUpdater
+    SDUpdater( config_sdu_t* _cfg ) : cfg(_cfg) {
       if( SDUCfgLoader ) SDUCfgLoader();
       else SetupSDMenuConfig();
+      if( cfg->fs == nullptr ) log_w("No filesystem selected!");
     };
-    SDUpdater_Base( const int TFCardCsPin_ = TFCARD_CS_PIN ) {
+    // legacy constructor
+    SDUpdater( const int TFCardCsPin_ = TFCARD_CS_PIN ) {
       log_d("SDUpdate base mode on CS pin(%d)", TFCardCsPin_ );
-      SDUCfg.setSDU( this ); // attach this to SDUCfg.sdUpdater
+      //SDUCfg.setSDU( this ); // attach this to SDUCfg.sdUpdater
       SDUCfg.setCSPin( TFCardCsPin_ );
       cfg = &SDUCfg;
       if( SDUCfgLoader ) SDUCfgLoader();
       else SetupSDMenuConfig();
+      if( cfg->fs == nullptr ) log_w("No filesystem selected!");
     };
-    void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN );
+    // check methods
+    void checkSDUpdaterHeadless( String fileName, unsigned long waitdelay );
+    void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay );
+    void checkSDUpdaterUI( String fileName, unsigned long waitdelay );
+    void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay );
+    // update methods
+    void updateFromFS( const String& fileName );
+    void updateFromFS( fs::FS &fs, const String& fileName = MENU_BIN );
+    void updateFromStream( Stream &stream, size_t updateSize, const String& fileName );
     void doRollBack( const String& message = "" );
-    static void updateNVS();
-    static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
-    String SKETCH_NAME = "";
-
     // flash to SD binary replication
     bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
     bool copyFsPartition(File* dst, const esp_partition_t* src, size_t length);
     bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} );
-
+    // static methods
+    static void updateNVS();
+    static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
     // fs::File->name() changed behaviour after esp32 sdk 2.x.x
     static const char* fs_file_path( fs::File *file ) {
-      #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
+      #if defined ESP_ARDUINO_VERSION && ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(2,0,0)
         return file->path();
       #else
         return file->name();
       #endif
     }
 
-    config_sdu_t* cfg;
-
-    void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay );
-    void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay );
-
   private:
+    config_sdu_t* cfg;
+    const char* MenuBin = MENU_BIN;
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
+    void _error( const String& errMsg, unsigned long waitdelay = 2000 );
+    void _message( const String& label );
+    #if defined HAS_TOUCH || defined _M5Core2_H_ // default touch button support
+      const bool SDUHasTouch = true;
+    #else
+      const bool SDUHasTouch = false;
+    #endif
+    bool _fsBegin()
+    {
+      if( cfg->fs != nullptr ) return _fsBegin( *cfg->fs );
+      _error("No filesystem selected");
+      return false;
+    }
+    bool _fsBegin( fs::FS &fs )
+    {
+      bool mounted = false;
+      size_t tried = 0;
+      #if defined (_SPIFFS_H_)
+        log_i("Checking for SPIFFS Support");
+        if( &fs == &SPIFFS ) {
+          if( !SPIFFS.begin() ){
+            _error( "SPIFFS MOUNT FAILED, ABORTING!!" );
+            return false;
+          } else log_i("SPIFFS Successfully mounted");
+          mounted = true;
+        }
+      #endif
+      #if defined (_LITTLEFS_H_)
+        log_i("Checking for LittleFS Support");
+        if( &fs == &LittleFS ) {
+          if( !LittleFS.begin() ){
+            _error( "LittleFS MOUNT FAILED, ABORTING!!" );
+            return false;
+          } else log_i("LittleFS Successfully mounted");
+          mounted = true;
+        }
+      #endif
+      #if defined (_SD_H_)
+        log_i(" Checking for SD Support (pin #%d)",  cfg->TFCardCsPin );
+        if( &fs == &SD ) {
+          if( !SD.begin( cfg->TFCardCsPin ) ) {
+            _error( "SD MOUNT FAILED (pin #" + String(cfg->TFCardCsPin) + "), ABORTING!!" );
+            return false;
+          } else log_i( "SD Successfully mounted (pin #%d)", cfg->TFCardCsPin );
+          mounted = true;
+        }
+      #endif
+      #if defined (_SDMMC_H_)
+        log_i(" Checking for SD_MMC Support");
+        if( &fs == &SD_MMC ) {
+          if( !SD_MMC.begin() ){
+            _error( "SD_MMC MOUNT FAILED, ABORTING!!" );
+            return false;
+          } else log_i( "SD_MMC Successfully mounted");
+          mounted = true;
+        }
+      #endif
+      #if defined ( _PSRAMFS_H_ )
+        log_i(" Checking for PSRamFS Support");
+        if( &fs == &PSRamFS ) {
+          if( !PSRamFS.begin() ){
+            _error( "PSRamFS MOUNT FAILED, ABORTING!!" );
+            return false;
+          } else log_i( "PSRamFS Successfully mounted");
+          mounted = true;
+        }
+      #endif
+      return mounted;
+    }
 };
 
 
+
+
+
 // provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater
-__attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, const String& fileName = MENU_BIN, const int TfCardCsPin = TFCARD_CS_PIN )
+__attribute__((unused)) static void updateFromFS( fs::FS &fs, const String& fileName = MENU_BIN, const int TfCardCsPin = TFCARD_CS_PIN )
 {
+  SDUCfg.setFS( &fs );
   SDUpdater sdUpdater( TfCardCsPin );
   sdUpdater.updateFromFS( fs, fileName );
 }
@@ -283,6 +248,7 @@ __attribute__((unused)) static void updateFromFS( fs::FS &fs = SDUPDATER_FS, con
 // copy compiled sketch from flash partition to filesystem binary file
 __attribute__((unused)) static bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN}, const int TfCardCsPin = TFCARD_CS_PIN )
 {
+  SDUCfg.setFS( &fs );
   SDUpdater sdUpdater( TfCardCsPin );
   return sdUpdater.saveSketchToFS( fs, binfilename );
 }
@@ -297,7 +263,7 @@ __attribute__((unused)) static void updateRollBack( String message )
 
 
 // provide a conditional function to cover more devices, including headless and touch
-__attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, String fileName = MENU_BIN, unsigned long waitdelay = 0, const int TfCardCsPin_ = TFCARD_CS_PIN )
+__attribute__((unused)) static void checkSDUpdater( fs::FS &fs, String fileName = MENU_BIN, unsigned long waitdelay = 0, const int TfCardCsPin_ = TFCARD_CS_PIN )
 {
   if( waitdelay == 0 ) {
     // check for reset reset reason
@@ -324,12 +290,14 @@ __attribute__((unused)) static void checkSDUpdater( fs::FS &fs = SDUPDATER_FS, S
   log_n("Booting with reset reason: %d", resetReason );
 
   SDUCfg.setCSPin( TfCardCsPin_ );
+  SDUCfg.setFS( &fs );
   SDUpdater sdUpdater( &SDUCfg );
 
   #if defined USE_DISPLAY
-    sdUpdater.checkSDUpdaterUI( fs, fileName, waitdelay );
+    sdUpdater.checkSDUpdaterUI( fileName, waitdelay );
   #else
-    sdUpdater.checkSDUpdaterHeadless( fs, fileName, waitdelay );
+    if( waitdelay <=100 ) waitdelay = 2000;
+    sdUpdater.checkSDUpdaterHeadless( fileName, waitdelay );
   #endif
 }
 

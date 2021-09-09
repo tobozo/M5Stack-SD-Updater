@@ -1,3 +1,32 @@
+/*
+ *
+ * M5Stack SD Updater
+ * Project Page: https://github.com/tobozo/M5Stack-SD-Updater
+ *
+ * Copyright 2018 tobozo http://github.com/tobozo
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files ("M5Stack SD Updater"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
 #ifndef _M5UPDATER_UI_
 #define _M5UPDATER_UI_
 
@@ -52,26 +81,28 @@ static void SDMenuProgressHeadless( int state, int size )
 #if defined USE_DISPLAY
   #include "assets.h"
 
+  // display driver selector
   #if defined LGFX_ONLY
-    // WARN: this library assumes a 'tft' object exists
     #ifndef SDU_GFX
+      // recast from pointer
       #define undef_tft
       static LGFX *SDuGFX = nullptr;
       #define SDU_GFX reinterpret_cast<LGFX&>(*SDuGFX)
       static void setSDUGfx( LGFX *gfx )
       {
         SDuGFX = gfx;
-        SDUCfg.setGfx( gfx );
       }
     #endif
   #else
     #ifndef SDU_GFX
       #define undef_tft
+      // recast from reference, M5.Lcd can be either from Chimera-Core or M5Cores (or even TFT_eSPI)
       #define SDU_GFX M5.Lcd // can be either M5.Lcd from M5Core.h, M5Core2.h or ESP32-Chimera-Core.h
     #endif
   #endif
 
-  #ifdef ARDUINO_ODROID_ESP32 // odroid has 4 buttons under the TFT
+  // theme selector
+  #ifdef ARDUINO_ODROID_ESP32 // Odroid-GO has 4 buttons under the TFT
     #define BUTTON_WIDTH 60
     #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
     #define BUTTON_HEIGHT 28
@@ -245,17 +276,26 @@ static void SDMenuProgressHeadless( int state, int size )
   static void SDMenuProgressUI( int state, int size )
   {
     static int SD_UI_Progress;
+
+    int progress_w = 102;
+    int progress_h = 20;
+    int progress_x = (SDU_GFX.width() - progress_w) >> 1;
+    int progress_y = (SDU_GFX.height()- progress_h) >> 1;
+
+    if( state == -1 && size == -1 ) {
+      // clear progress bar
+      SDU_GFX.fillRect( progress_x, progress_y, progress_w, progress_h, TFT_BLACK );
+    } else {
+      SDU_GFX.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
+    }
+
     int percent = ( state * 100 ) / size;
     if( percent == SD_UI_Progress ) {
       // don't render twice the same value
       return;
     }
-    /* auto &tft = M5.Lcd; */
     SD_UI_Progress = percent;
-    int progress_w = 102;
-    int progress_h = 20;
-    int progress_x = (SDU_GFX.width() - progress_w) >> 1;
-    int progress_y = (SDU_GFX.height()- progress_h) >> 1;
+
     if ( percent >= 0 && percent < 101 ) {
       SDU_GFX.fillRect( progress_x+1, progress_y+1, percent, 18, TFT_GREEN );
       SDU_GFX.fillRect( progress_x+1+percent, progress_y+1, 100-percent, 18, TFT_BLACK );
@@ -280,7 +320,7 @@ static void SDMenuProgressHeadless( int state, int size )
 
   static void DisplayUpdateUI( const String& label )
   {
-    log_d("Entering DisplayUpdateUI");
+    //log_d("Entering DisplayUpdateUI");
 
     if (SDU_GFX.width() < SDU_GFX.height()) SDU_GFX.setRotation(SDU_GFX.getRotation() ^ 1);
 
@@ -306,7 +346,6 @@ static void SDMenuProgressHeadless( int state, int size )
     int progress_y = (SDU_GFX.height()- progress_h) >> 1;
     SDU_GFX.setCursor( xpos, progress_y - 20 );
     SDU_GFX.print( label );
-    SDU_GFX.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
   }
 
 
@@ -343,6 +382,11 @@ static void SDMenuProgressHeadless( int state, int size )
         if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromPushButton ); log_d("Attaching onWaitForAction (button)");
       #endif
     }
+    #if defined LGFX_ONLY
+      if( SDuGFX == nullptr ) {
+        log_e("No LGFX driver found, use setSDUGfx( &tft ) to load it");
+      }
+    #endif
   }
 
 
