@@ -13,6 +13,7 @@ before_install:
 
   # TODO: undo
   # remove submodules, we don't want those to be actually tested for compliance
+  #- git submodule status | git rm --cached `cut -d ' ' -f 3`
   - git submodule status | rm -Rf `cut -d ' ' -f 3`
 
   # Formatting checks:
@@ -29,7 +30,13 @@ before_install:
   # Check for files that don't end in a newline (https://stackoverflow.com/a/25686825)
   #- find . -path './.git' -prune -or -type f -print0 | xargs -0 -L1 bash -c 'if test "$(grep --files-with-matches --binary-files=without-match --max-count=1 --regexp='.*' "$0")" && test "$(tail --bytes=1 "$0")"; then echo "No new line at end of $0."; false; fi'
 
-  - git submodule update --init examples/m5stickc_tiny_menu/
+  # this repository is broken and won't work as a submodule
+  #- git clone https://github.com/matsumo/m5stickc_tiny_menu examples/m5stickc_tiny_menu
+  #- git submodule update --init examples/m5stickc_tiny_menu/
+  #- git rm --cached examples/m5stickc_tiny_menu
+  #- git submodule sync examples/m5stickc_tiny_menu
+  #- git submodule update examples/m5stickc_tiny_menu
+
   - git clone https://github.com/per1234/arduino-ci-script.git "${HOME}/scripts/arduino-ci-script"
   - cd "${HOME}/scripts/arduino-ci-script"
   # Get new tags from the remote
@@ -54,8 +61,8 @@ before_install:
   - install_library "M5Stack"
   - install_library "M5StickC"
   - install_library "ESP32-targz"
-  #- install_library "ESP32-Chimera-Core"
-  - install_library "https://github.com/tobozo/ESP32-Chimera-Core/archive/master.zip"
+  - install_library "ESP32-Chimera-Core"
+  #- install_library "https://github.com/tobozo/ESP32-Chimera-Core/archive/master.zip"
   - install_library "LovyanGFX"
   # make sure chimera-core does not collide with m5core
   #- install_library "https://github.com/M5Stack/M5Core2.git" # "M5Core2" << Official repo slacking on the PR's :-(
@@ -67,29 +74,32 @@ before_install:
   - ls $SKETCHBOOK_FOLDER -la
   - ls $SKETCHBOOK_FOLDER/libraries -la
   - pwd
-  - install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
+  #- install_package "esp32:esp32" "https://dl.espressif.com/dl/package_esp32_index.json" #  # esp32:esp32:m5stack-core-esp32
+  - install_package "esp32:esp32" "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json"
   #- install_package "m5stack:esp32" "https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json"
-  #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "compiler.warning_level=none" --save-prefs   &>/dev/null
-  #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "build.warn_data_percentage=75" --save-prefs   &>/dev/null
-  #- /home/travis/arduino-ide/arduino-1.8.10/arduino --pref "boardsmanager.additional.urls=https://dl.espressif.com/dl/package_esp32_index.json" --save-prefs   &>/dev/null
-  #- /home/travis/arduino-ide/arduino-1.8.10/arduino --install-boards esp32:esp32 &>/dev/null
-  
+
   # load custom boards from chimera-core
-  - cp -R $SKETCHBOOK_FOLDER/libraries/ESP32-Chimera-Core-master/boards/* ~/.arduino15/packages/esp32/hardware/esp32/1.0.4/
+  # - cp -R $SKETCHBOOK_FOLDER/libraries/ESP32-Chimera-Core-master/boards/* ~/.arduino15/packages/esp32/hardware/esp32/1.0.4/
   - pip install pyserial
 
 script:
   # Compile all example sketches included with the library
   # build_sketch arguments: sketch name, fqbn, allow failure, IDE version/list/range
-  - check_library_manager_compliance "$TRAVIS_BUILD_DIR"
+  - cd ${TRAVIS_BUILD_DIR}
+  - rm -Rf "${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/SD-Apps"
+  #- git submodule foreach git fetch && git submodule deinit -f . && git submodule update --init # reload the submodules since 'check_library_manager_compliance' complains about missing files :-(
+  - check_library_manager_compliance "$TRAVIS_BUILD_DIR" # why this fails on submodules for an existing '.exe' file is beyond me ...
   - set_ide_preference "compiler.warning_level=auto"
 
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core2" "false" "newest"
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core-esp32" "false" "newest"
-  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino" "esp32:esp32:m5stick-c" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5StickC-SPIFFS-Loader-Snippet/M5StickC-SPIFFS-Loader-Snippet.ino" "esp32:esp32:m5stick-c" "false" "newest"
 
   - build_sketch "${TRAVIS_BUILD_DIR}/examples/M5Stack-SD-Menu/M5Stack-SD-Menu.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "newest"
-  - build_sketch "${TRAVIS_BUILD_DIR}/examples/m5stickc_tiny_menu/m5stickc_tiny_menu.ino" "esp32:esp32:m5stick-c" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/LGFX-SDLoader-Snippet/LGFX-SDLoader-Snippet.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "newest"
+  - build_sketch "${TRAVIS_BUILD_DIR}/examples/CopySketchToFS/CopySketchToFS.ino" "esp32:esp32:m5stack-core-esp32:FlashFreq=80,UploadSpeed=921600" "false" "newest"
+
+  #- build_sketch "${TRAVIS_BUILD_DIR}/examples/m5stickc_tiny_menu/m5stickc_tiny_menu.ino" "esp32:esp32:m5stick-c" "false" "newest"
 
 after_script:
   # Commit a report of the job results to the CI-reports repository

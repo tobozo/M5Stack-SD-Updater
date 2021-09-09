@@ -51,7 +51,10 @@
   #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
 #endif
 */
-#include <ESP32-Chimera-Core.h>
+//#include <ESP32-Chimera-Core.h>
+#include <M5Stack.h>
+#define SDU_APP_NAME "M5Stack SDLoader Snippet"
+// #define SDU_HEADLESS
 #include <M5StackUpdater.h>
 
 void setup() {
@@ -61,12 +64,30 @@ void setup() {
   Serial.println("Welcome to the SD-Updater minimal example!");
   Serial.println("Now checking if a button was pushed during boot ...");
 
-  checkSDUpdater();
+  // checkSDUpdater( SD );
+  checkSDUpdater(
+    SD,           // filesystem (default=SD)
+    MENU_BIN,     // path to binary (default=/menu.bin, empty string=rollback only)
+    2000,         // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
+    TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
+  );
+
 
   Serial.println("Nope, will run the sketch normally");
 
 }
 
 void loop() {
+
+  // provide means to copy the sketch to filesystem
+  M5.update();
+  if( M5.BtnB.pressedFor( 1000 ) ) {
+    Serial.println("Will copy this sketch to filesystem");
+    if( saveSketchToFS( SD, "/MY_SKETCH.bin", TFCARD_CS_PIN ) ) {
+      Serial.println("Copy successful !");
+    } else {
+      Serial.println("Copy failed !");
+    }
+  }
 
 }

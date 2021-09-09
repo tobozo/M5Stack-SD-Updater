@@ -4,7 +4,8 @@
 /*
  * Mandatory and optional controls for the menu to be usable
  */
-enum HIDSignal {
+enum HIDSignal
+{
   HID_INERT      = 0, // when nothing happens
   HID_UP         = 1, // optional
   HID_DOWN       = 2,
@@ -34,7 +35,8 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
   // enable M5Core2's haptic feedback !
   static bool isVibrating = false;
 
-  static void vibrateTask( void * param ) {
+  static void vibrateTask( void * param )
+  {
     if( !isVibrating ) {
       isVibrating = true;
       int ms = *((int*)param); // dafuq
@@ -46,7 +48,8 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
     vTaskDelete( NULL );
   }
 
-  static void HIDFeedback( int ms ) {
+  static void HIDFeedback( int ms )
+  {
     xTaskCreatePinnedToCore( vibrateTask, "vibrateTask", 2048, (void*)&ms, 16, NULL , 1 );
   }
 
@@ -82,17 +85,20 @@ static bool M5FacesEnabled = false;
   unsigned long M5FacesI2CQueryDelay = 50; // some debounce
   static bool M5FacesPressed = false;
 
-  void IRAM_ATTR M5FacesIsr() {
+  void IRAM_ATTR M5FacesIsr()
+  {
     M5FacesPressed = true;
   }
 
-  HIDSignal M5FacesOnKeyPushed( HIDSignal signal ) {
+  HIDSignal M5FacesOnKeyPushed( HIDSignal signal )
+  {
     log_d("Key %d pushed", signal );
     M5FacesLastReleasedKey = GAMEBOY_KEY_NONE;
     return signal;
   }
 
-  HIDSignal extKey() {
+  HIDSignal extKey()
+  {
     if( ! M5FacesPressed ) {
       // interrupt wasn't called
       return HID_INERT;
@@ -135,7 +141,8 @@ static bool M5FacesEnabled = false;
 #endif
 
 
-void HIDInit() {
+void HIDInit()
+{
   #if defined CAN_I_HAZ_M5FACES
     Wire.begin(SDA, SCL);
     M5FacesEnabled = Faces.canControlFaces();
@@ -149,7 +156,8 @@ void HIDInit() {
 
 
 
-HIDSignal HIDFeedback( HIDSignal signal, int ms = 100 ) {
+HIDSignal HIDFeedback( HIDSignal signal, int ms = 100 )
+{
   if( signal != HID_INERT ) {
     HIDFeedback( ms );
   }
@@ -157,7 +165,8 @@ HIDSignal HIDFeedback( HIDSignal signal, int ms = 100 ) {
 }
 
 
-HIDSignal getControls() {
+HIDSignal getControls()
+{
   // no buttons? no problemo! (c) Arnold S.
   if( Serial.available() ) {
     char command = Serial.read(); // read one char
@@ -173,83 +182,150 @@ HIDSignal getControls() {
     }
   }
 
-#if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
-  // Odroid-Go buttons support ** with repeat delay **
-  if( M5.JOY_Y.pressedFor( fastRepeatDelay ) ) {
-    uint8_t updown = M5.JOY_Y.isAxisPressed();
-    if( JOY_Y_pressed == false || M5.JOY_Y.pressedFor( beforeRepeatDelay ) ) {
-      beforeRepeatDelay += FAST_REPEAT_DELAY;
-      JOY_Y_pressed = true;
-      switch( updown ) {
-        case 1: return HIDFeedback( HID_DOWN );
-        case 2: return HIDFeedback( HID_UP );
-        break;
+  #if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
+    // Odroid-Go buttons support ** with repeat delay **
+    if( M5.JOY_Y.pressedFor( fastRepeatDelay ) ) {
+      uint8_t updown = M5.JOY_Y.isAxisPressed();
+      if( JOY_Y_pressed == false || M5.JOY_Y.pressedFor( beforeRepeatDelay ) ) {
+        beforeRepeatDelay += FAST_REPEAT_DELAY;
+        JOY_Y_pressed = true;
+        switch( updown ) {
+          case 1: return HIDFeedback( HID_DOWN );
+          case 2: return HIDFeedback( HID_UP );
+          break;
+        }
+      }
+      return HID_INERT;
+    } else {
+      if( JOY_Y_pressed == true && M5.JOY_Y.releasedFor( FAST_REPEAT_DELAY ) ) {
+        // button released, reset timers
+        fastRepeatDelay = FAST_REPEAT_DELAY;
+        beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
+        JOY_Y_pressed = false;
       }
     }
-    return HID_INERT;
-  } else {
-    if( JOY_Y_pressed == true && M5.JOY_Y.releasedFor( FAST_REPEAT_DELAY ) ) {
-      // button released, reset timers
-      fastRepeatDelay = FAST_REPEAT_DELAY;
-      beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
-      JOY_Y_pressed = false;
-    }
-  }
 
-  if( M5.JOY_X.pressedFor( fastRepeatDelay ) ) {
-    uint8_t leftright = M5.JOY_X.isAxisPressed();
-    if( JOY_X_pressed == false || M5.JOY_X.pressedFor( beforeRepeatDelay ) ) {
-      beforeRepeatDelay += FAST_REPEAT_DELAY;
-      JOY_X_pressed = true;
-      switch( leftright ) {
-        case 1: return HIDFeedback( HID_PAGE_DOWN );
-        case 2: return HIDFeedback( HID_PAGE_UP );
-        break;
+    if( M5.JOY_X.pressedFor( fastRepeatDelay ) ) {
+      uint8_t leftright = M5.JOY_X.isAxisPressed();
+      if( JOY_X_pressed == false || M5.JOY_X.pressedFor( beforeRepeatDelay ) ) {
+        beforeRepeatDelay += FAST_REPEAT_DELAY;
+        JOY_X_pressed = true;
+        switch( leftright ) {
+          case 1: return HIDFeedback( HID_PAGE_DOWN );
+          case 2: return HIDFeedback( HID_PAGE_UP );
+          break;
+        }
+      }
+      return HID_INERT;
+    } else {
+      if( JOY_X_pressed == true && M5.JOY_X.releasedFor( FAST_REPEAT_DELAY ) ) {
+        // button released, reset timers
+        fastRepeatDelay = FAST_REPEAT_DELAY;
+        beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
+        JOY_X_pressed = false;
       }
     }
-    return HID_INERT;
-  } else {
-    if( JOY_X_pressed == true && M5.JOY_X.releasedFor( FAST_REPEAT_DELAY ) ) {
-      // button released, reset timers
-      fastRepeatDelay = FAST_REPEAT_DELAY;
-      beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
-      JOY_X_pressed = false;
+
+    bool a = M5.BtnMenu.wasPressed() || M5.BtnA.wasPressed(); // acts as "BntA" on M5Stack, leftmost button, alias of "(A)" gameboy button
+    bool b = M5.BtnSelect.wasPressed() || M5.BtnB.wasPressed(); // acts as "BntB" on M5Stack, middle button, alias of "(B)" gameboy button
+    bool c = M5.BtnStart.wasPressed(); // acts as "BntC" on M5Stack, rightmost button, no alias
+    bool d = M5.BtnVolume.wasPressed();
+
+    if( d ) return HIDFeedback( HID_SCREENSHOT );
+    if( b ) return HIDFeedback( HID_PAGE_DOWN );
+    if( c ) return HIDFeedback( HID_DOWN );
+    if( a ) return HIDFeedback( HID_SELECT );
+
+  #else
+
+    // M5Faces support
+    if( M5FacesEnabled ) {
+      HIDSignal M5FacesSignal = extKey();
+      if( M5FacesSignal != HID_INERT ) {
+        return HIDFeedback( M5FacesSignal );
+      }
     }
-  }
 
-  bool a = M5.BtnMenu.wasPressed() || M5.BtnA.wasPressed(); // acts as "BntA" on M5Stack, leftmost button, alias of "(A)" gameboy button
-  bool b = M5.BtnSelect.wasPressed() || M5.BtnB.wasPressed(); // acts as "BntB" on M5Stack, middle button, alias of "(B)" gameboy button
-  bool c = M5.BtnStart.wasPressed(); // acts as "BntC" on M5Stack, rightmost button, no alias
-  bool d = M5.BtnVolume.wasPressed();
+    #if defined ARDUINO_M5STACK_Core2
 
-  if( d ) return HIDFeedback( HID_SCREENSHOT );
-  if( b ) return HIDFeedback( HID_PAGE_DOWN );
-  if( c ) return HIDFeedback( HID_DOWN );
-  if( a ) return HIDFeedback( HID_SELECT );
+      #if __has_include("lgfx/v1/Touch.hpp")
+        // LGFX touch
 
-#else
+        bool a = false;
+        bool b = false;
+        bool c = false;
+        bool d = false;
+        bool e = false;
 
-  // M5Faces support
-  if( M5FacesEnabled ) {
-    HIDSignal M5FacesSignal = extKey();
-    if( M5FacesSignal != HID_INERT ) {
-      return HIDFeedback( M5FacesSignal );
-    }
-  }
+        uint16_t number = 0; // M5Core2 has no multi touch support so this number will always be zero, but the driver requires it
+        uint16_t button_zone_width = ((tft.width()+1)/3); // 1/3rd of the screen per button
+        uint16_t button_marginleft = 15; // dead space in pixels before and after each button to prevent overlap
+        uint16_t button_marginright = button_zone_width-button_marginleft;
+        bool pressed = false; // on release
+        int button_num = -1; // pressed button (0, 1, 2)
+        unsigned long startpress = millis();
+        unsigned long pressedfor = 0;
 
-  // legacy buttons support
-  bool a = M5.BtnA.wasPressed();
-  bool b = M5.BtnB.wasPressed() && !M5.BtnC.isPressed();
-  bool c = M5.BtnC.wasPressed() && !M5.BtnB.isPressed();
-  bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
-  bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
+        lgfx::touch_point_t tp; // touch coordinates will be stored there
+        number = tft.getTouch(&tp, 1);
 
-  if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
-  if( b ) return HIDFeedback( HID_PAGE_DOWN );
-  if( c ) return HIDFeedback( HID_DOWN );
-  if( a ) return HIDFeedback( HID_SELECT );
+        while ( number>0 ) {
+          if( tp.y < tft.height() ) { // inside display area, no buttons there
+            // tft.fillCircle(tp.x, tp.y, 5, TFT_WHITE);
+          } else { // outside display area, find out what button zone is touched
+            uint16_t tpxmod = tp.x%button_zone_width; // convert touch position to button relative coords
+            // assign a button number only if touch position is between button margins
+            if( tpxmod > button_marginleft && tpxmod < button_marginright ) {
+              button_num = tp.x / button_zone_width;
+              pressed = true;
+            }
+          }
+          number = tft.getTouch(&tp, 1);
+        }
 
-#endif
+        if( pressed && button_num > -1 ) {
+          pressedfor = millis() - startpress;
+          // put your logic there e.g. if( button_num == 0 && pressed_for > 700 ) // BtnA longpress
+          if( pressedfor > 100 ) {
+            Serial.printf("M5Core2 Touch Button #%d was pressed for %d ms\n", button_num, (int)pressedfor );
+            switch( button_num ) {
+              case 0: a = true; break;
+              case 1: b = true; break;
+              case 2: c = true; break;
+              case 3: d = true; break; // won't happen
+              case 4: e = true; break; // won't happen
+              default: break;
+            }
+          }
+
+        }
+
+      #else
+        // legacy buttons support
+        bool a = M5.BtnA.wasPressed();
+        bool b = M5.BtnB.wasPressed() && !M5.BtnC.isPressed();
+        bool c = M5.BtnC.wasPressed() && !M5.BtnB.isPressed();
+        bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
+        bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
+      #endif
+
+    #elif defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE
+
+      // legacy buttons support
+      bool a = M5.BtnA.wasPressed();
+      bool b = M5.BtnB.wasPressed() && !M5.BtnC.isPressed();
+      bool c = M5.BtnC.wasPressed() && !M5.BtnB.isPressed();
+      bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
+      bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
+
+    #endif
+
+    if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
+    if( b ) return HIDFeedback( HID_PAGE_DOWN );
+    if( c ) return HIDFeedback( HID_DOWN );
+    if( a ) return HIDFeedback( HID_SELECT );
+
+  #endif
 
   //HIDSignal padValue = HID_INERT;
 

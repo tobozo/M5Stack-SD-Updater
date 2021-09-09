@@ -51,7 +51,7 @@ void setup() {
   pinMode(M5_BUTTON_RST, INPUT);
   if(digitalRead(M5_BUTTON_RST) == 0) {
     Serial.println("Will Load menu binary");
-    updateFromFS();
+    updateFromFS( SPIFFS );
     ESP.restart();
   }
 }

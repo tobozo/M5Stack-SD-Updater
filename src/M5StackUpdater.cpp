@@ -31,48 +31,46 @@
 #include "M5StackUpdater.h"
 
 #if defined( ARDUINO_M5Stick_C )
-
   #define SD_PLATFORM_NAME "M5StickC"
-
+#elif defined( ARDUINO_ODROID_ESP32 )
+  #define SD_PLATFORM_NAME "Odroid-GO"
+#elif defined( ARDUINO_M5Stack_Core_ESP32 )
+  #define SD_PLATFORM_NAME "M5Stack"
+#elif defined( ARDUINO_M5STACK_FIRE )
+  #define SD_PLATFORM_NAME "M5Stack-Fire"
+#elif defined( ARDUINO_M5STACK_Core2 )
+  #define SD_PLATFORM_NAME "M5StackCore2"
+#elif defined( ARDUINO_ESP32_WROVER_KIT )
+  #define SD_PLATFORM_NAME "Wrover-Kit"
+#elif defined( ARDUINO_TTGO_T1 )            // TTGO T1
+  #define SD_PLATFORM_NAME "TTGO-T1"
+#elif defined( ARDUINO_LOLIN_D32_PRO )      // LoLin D32 Pro
+  #define SD_PLATFORM_NAME "LoLin D32 Pro"
+#elif defined( ARDUINO_T_Watch )            // TWatch, all models
+  #define SD_PLATFORM_NAME "TTGO TWatch"
 #else
-  #if defined( ARDUINO_ODROID_ESP32 )
-    //#pragma message ("Odroid-GO board detected")
-    #define SD_PLATFORM_NAME "Odroid-GO"
-  #elif defined( ARDUINO_M5Stack_Core_ESP32 )
-    //#pragma message ("M5Stack Classic board detected")
-    #define SD_PLATFORM_NAME "M5Stack"
-  #elif defined( ARDUINO_M5STACK_FIRE )
-    //#pragma message ("M5Stack Fire board detected")
-    #define SD_PLATFORM_NAME "M5Stack-Fire"
-  #elif defined( ARDUINO_M5STACK_Core2 )
-    //#pragma message ("M5Stack Core2 board detected")
-    #define SD_PLATFORM_NAME "M5StackCore2"
-  #elif defined( ARDUINO_ESP32_DEV )
-    //#pragma message ("WROVER KIT board detected")
-    #define SD_PLATFORM_NAME "Wrover-Kit"
-  #else
-    //#pragma message ("Custom ESP32 board detected")
-    // put your custom UI settings here
-    #define SD_PLATFORM_NAME "ESP32"
-
-  #endif
+  //#pragma message ("Custom ESP32 board detected")
+  #define SD_PLATFORM_NAME "ESP32"
 #endif
 
 
-SDUpdater_Base::SDUpdater_Base( const int TFCardCsPin ) {
-  _TFCardCsPin = TFCardCsPin;
-};
 
-
-// enable SPIFFS persistence by backuping/restoring to/from the SD
-SDUpdater_Base::SDUpdater_Base( const String SPIFFS2SDFolder ) {
-  if( SPIFFS2SDFolder!="" ) {
-    SKETCH_NAME = SPIFFS2SDFolder;
-    enableSPIFFS = true;
-  }
+void SDUpdater::_error( const String& errMsg, unsigned long waitdelay )
+{
+  Serial.print("[ERROR] ");
+  Serial.println( errMsg );
+  if( cfg->onError ) cfg->onError( errMsg, waitdelay );
 }
 
-esp_image_metadata_t SDUpdater_Base::getSketchMeta( const esp_partition_t* source_partition ) {
+void SDUpdater::_message( const String& msg )
+{
+   Serial.println( msg );
+   if( cfg->onMessage ) cfg->onMessage( msg );
+}
+
+
+esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition )
+{
   esp_image_metadata_t data;
   if ( !source_partition ) return data;
   const esp_partition_pos_t source_partition_pos  = {
@@ -84,8 +82,123 @@ esp_image_metadata_t SDUpdater_Base::getSketchMeta( const esp_partition_t* sourc
   return data;//.image_len;
 }
 
+/*
+
+static void SDUpdater::getFactoryPartition()
+{
+  esp_partition_iterator_t pi = esp_partition_find( ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL );
+  if(pi != NULL) {
+    const esp_partition_t* factory = esp_partition_get(pi);
+    esp_partition_iterator_release(pi);
+    if(esp_ota_set_boot_partition(factory) == ESP_OK) {
+      //esp_restart();
+    }
+  }
+}
+
+*/
+
+
+
+bool SDUpdater::compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length)
+{
+  size_t lengthLeft = length;
+  const size_t bufSize = SPI_FLASH_SEC_SIZE;
+  std::unique_ptr<uint8_t[]> buf1(new uint8_t[bufSize]);
+  std::unique_ptr<uint8_t[]> buf2(new uint8_t[bufSize]);
+  uint32_t offset = 0;
+  uint32_t progress = 0, progressOld = 1;
+  size_t i;
+  while( lengthLeft > 0) {
+    size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
+    if (!ESP.flashRead(src1->address + offset, reinterpret_cast<uint32_t*>(buf1.get()), (readBytes + 3) & ~3)
+     || !src2->read(                           reinterpret_cast<uint8_t*>(buf2.get()), (readBytes + 3) & ~3)
+    ) {
+        return false;
+    }
+    for (i = 0; i < readBytes; ++i) if (buf1[i] != buf2[i]) return false;
+    lengthLeft -= readBytes;
+    offset += readBytes;
+    if( cfg->onProgress ) {
+      progress = 100 * offset / length;
+      if (progressOld != progress) {
+        progressOld = progress;
+        cfg->onProgress( (uint8_t)progress, 100 );
+      }
+    }
+  }
+  return true;
+}
+
+
+bool SDUpdater::copyFsPartition(File* dst, const esp_partition_t* src, size_t length)
+{
+  //tft.fillRect( 110, 112, 100, 20, 0);
+  size_t lengthLeft = length;
+  const size_t bufSize = SPI_FLASH_SEC_SIZE;
+  std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
+  uint32_t offset = 0;
+  uint32_t progress = 0, progressOld = 1;
+  while( lengthLeft > 0) {
+    size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
+    if (!ESP.flashRead(src->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)
+    ) {
+        return false;
+    }
+    if (dst) dst->write(buf.get(), (readBytes + 3) & ~3);
+    lengthLeft -= readBytes;
+    offset += readBytes;
+    /*
+    // using progress here messes up with SD
+    if( cfg->onProgress ) {
+      progress = 100 * offset / length;
+      if (progressOld != progress) {
+        progressOld = progress;
+        cfg->onProgress( (uint8_t)progress, 100 );
+      }
+    }
+    */
+  }
+  return true;
+}
+
+
+bool SDUpdater::saveSketchToFS( fs::FS &fs, const char* binfilename )
+{
+  // no rollback possible, start filesystem
+  if( !_fsBegin( fs ) ) {
+    _error( "Unloadable filesystem, aborting" );
+    return false;
+  }
+  if( cfg->onBefore) cfg->onBefore();
+  if( cfg->onProgress ) cfg->onProgress( 0, 100 );
+  const esp_partition_t *running = esp_ota_get_running_partition();
+  size_t sksize = ESP.getSketchSize();
+  bool ret = false;
+  fs::File dst = fs.open(binfilename, FILE_WRITE );
+  if( cfg->onProgress ) cfg->onProgress( 25, 100 );
+  _message( String("Overwriting ") + String(binfilename) );
+
+  if (copyFsPartition( &dst, running, sksize)) {
+    if( cfg->onProgress ) cfg->onProgress( 75, 100 );
+    _message( String("\nDone ") + String(binfilename) );
+    vTaskDelay(1000);
+    ret = true;
+  } else {
+    _error( "Copy failed" );
+  }
+  if( cfg->onProgress ) cfg->onProgress( 100, 100 );
+  dst.close();
+  if( cfg->onAfter) cfg->onAfter();
+
+  return ret;
+}
+
+
+
 // rollback helper, save menu.bin meta info in NVS
-void SDUpdater_Base::updateNVS() {
+void SDUpdater::updateNVS()
+{
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
   esp_image_metadata_t nusketchMeta = getSketchMeta( update_partition );
   uint32_t nuSize = nusketchMeta.image_len;
@@ -98,9 +211,11 @@ void SDUpdater_Base::updateNVS() {
 }
 
 // perform the actual update from a given stream
-void SDUpdater_Base::performUpdate( Stream &updateSource, size_t updateSize, String fileName ) {
-  displayUpdateUI( "LOADING " + fileName );
-  Update.onProgress( SDMenuProgress );
+void SDUpdater::performUpdate( Stream &updateSource, size_t updateSize, String fileName )
+{
+  _message( "LOADING " + fileName );
+  log_i( "Binary size: %d bytes", updateSize );
+  if( cfg->onProgress ) Update.onProgress( cfg->onProgress );
   if (Update.begin( updateSize )) {
     size_t written = Update.writeStream( updateSource );
     if ( written == updateSize ) {
@@ -111,25 +226,53 @@ void SDUpdater_Base::performUpdate( Stream &updateSource, size_t updateSize, Str
     if ( Update.end() ) {
       Serial.println( "OTA done!" );
       if ( Update.isFinished() ) {
-        if( strcmp( MENU_BIN, fileName.c_str() ) == 0 ) {
+        if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
           // maintain NVS signature
-          updateNVS();
+          SDUpdater::updateNVS();
         }
         Serial.println( "Update successfully completed. Rebooting." );
       } else {
         Serial.println( "Update not finished? Something went wrong!" );
       }
     } else {
-      Serial.println( "Error Occurred. Error #: " + String( Update.getError() ) );
+      Serial.println( "Update failed. Error #: " + String( Update.getError() ) );
     }
   } else {
-      Serial.println( "Not enough space to begin OTA" );
+    Serial.println( "Not enough space to begin OTA" );
+  }
+}
+
+// forced rollback (doesn't check NVS digest)
+void SDUpdater::doRollBack( const String& message )
+{
+  log_d("Wil check for rollback capability");
+  if( !cfg->onMessage)   log_d("No message reporting");
+  //if( !cfg->onError )    log_d("No error reporting");
+  if( !cfg->onProgress ) log_d("No progress reporting");
+
+  if( Update.canRollBack() ) {
+    _message( message );
+    for( uint8_t i=1; i<50; i++ ) {
+      if( cfg->onProgress ) cfg->onProgress( i, 100 );
+      vTaskDelay(10);
+    }
+    Update.rollBack();
+    for( uint8_t i=50; i<=100; i++ ) {
+      if( cfg->onProgress ) cfg->onProgress( i, 100 );
+      vTaskDelay(10);
+    }
+    _message( "\nRollback done, restarting" );
+    ESP.restart();
+  } else {
+    _error( "Cannot rollback: the other OTA partition doesn't seem to be populated or valid" );
   }
 }
 
 
+
 // if NVS has info about MENU_BIN flash size and digest, try rollback()
-void SDUpdater_Base::tryRollback( String fileName ) {
+void SDUpdater::tryRollback( String fileName )
+{
   Preferences preferences;
   preferences.begin( "sd-menu" );
   uint32_t menuSize = preferences.getInt( "menusize", 0 );
@@ -139,7 +282,7 @@ void SDUpdater_Base::tryRollback( String fileName ) {
   Serial.println( "Trying rollback" );
 
   if( menuSize == 0 ) {
-    Serial.println( "Failed to get expected menu size from NVS ram, can't check if rollback is worth a try..." );
+    log_d( "Failed to get expected menu size from NVS ram, can't check if rollback is worth a try..." );
     return;
   }
 
@@ -148,7 +291,7 @@ void SDUpdater_Base::tryRollback( String fileName ) {
   uint32_t nuSize = sketchMeta.image_len;
 
   if( nuSize != menuSize ) {
-    Serial.printf( "Cancelling rollback as flash sizes differ, update / current : %d / %d\n",  nuSize, menuSize );
+    log_d( "Cancelling rollback as flash sizes differ, update / current : %d / %d",  nuSize, menuSize );
     return;
   }
 
@@ -162,374 +305,169 @@ void SDUpdater_Base::tryRollback( String fileName ) {
     }
   }
   if( match ) {
-    if( Update.canRollBack() )  {
-      displayUpdateUI( "HOT-LOADING " + fileName );
-      // animate something
-      for( uint8_t i=1; i<50; i++ ) {
-        SDMenuProgress( i, 100 );
-      }
-      Update.rollBack();
-      for( uint8_t i=50; i<=100; i++ ) {
-        SDMenuProgress( i, 100 );
-      }
-      Serial.println( "Rollback done, restarting" );
-      ESP.restart();
-    } else {
-      Serial.println( "Sorry, looks like Updater.h doesn't want to rollback :-(" );
-    }
+    doRollBack( "HOT-LOADING " + fileName );
   }
 }
 
-// check given FS for valid menu.bin and perform update if available
-void SDUpdater_Base::updateFromFS( fs::FS &fs, const String& fileName ) {
-  #ifdef M5_SD_UPDATER_VERSION
-    Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
-  #endif
+
+
+// do perform update
+void SDUpdater::updateFromStream( Stream &stream, size_t updateSize, const String& fileName )
+{
+  if ( updateSize > 0 ) {
+    Serial.println( "Try to start update" );
+    disableCore0WDT(); // disable WDT it as suggested by twitter.com/@lovyan03
+    performUpdate( stream, updateSize, fileName );
+    enableCore0WDT();
+  } else {
+    _error( "Stream is empty" );
+  }
+}
+
+
+
+void SDUpdater::updateFromFS( fs::FS &fs, const String& fileName )
+{
+  cfg->setFS( &fs );
+  updateFromFS( fileName );
+}
+
+void SDUpdater::checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay )
+{
+  cfg->setFS( &fs );
+  checkSDUpdaterHeadless( fileName, waitdelay );
+}
+
+void SDUpdater::checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay )
+{
+  cfg->setFS( &fs );
+  checkSDUpdaterUI( fileName, waitdelay );
+}
+
+
+
+void SDUpdater::updateFromFS( const String& fileName )
+{
+  if( cfg->fs == nullptr ) {
+    _error("No valid filesystem selected!");
+    return;
+  }
+  Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
   #ifdef M5_LIB_VERSION
     Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] M5Stack Core version: %s\n", (char*)M5_LIB_VERSION );
   #endif
   Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
-
-  #ifdef _SPIFFS_H_
-    //#pragma message ("SPIFFS Support detected")
-    log_i(" Checking for SPIFFS Support");
-    if( &fs == &SPIFFS ) {
-      if( !SPIFFS.begin() ){
-        log_n( "SPIFFS MOUNT FAILED, ABORTING!!" );
-        return;
-      } else {
-        log_i( "SPIFFS Successfully mounted");
-        SPIFFS_MOUNTED = true;
-      }
-    }
-    #ifdef SD_ENABLE_SPIFFS_COPY
-      if( enableSPIFFS ) {
-        // firs backup SPIFFS to the SD
-        copyDir( BACKUP_SPIFFS_TO_SD );
-      }
-    #endif
-  #endif
-  #if SD_UPDATER_FS_TYPE==SDUPDATER_SD_FS
-    //#pragma message ("SD Support detected")
-    log_i(" Checking for SD Support");
-    if( &fs == &SD ) {
-      if( !SD.begin( _TFCardCsPin /*4*/ ) ) {
-        log_n( "SD MOUNT FAILED, ABORTING!!" );
-        return;
-      } else {
-        log_i( "SD Successfully mounted");
-      }
-    }
-  #endif
-  #if SD_UPDATER_FS_TYPE==SDUPDATER_SD_MMC_FS
-    //#pragma message ("SD_MMC Support detected")
-    log_i(" Checking for SD_MMC Support");
-    if( &fs == &SD_MMC ) {
-      if( !SD_MMC.begin() ){
-        log_n( "SD_MMC MOUNT FAILED, ABORTING!!" );
-        return;
-      } else {
-        log_i( "SD_MMC Successfully mounted");
-      }
-    }
-  #endif
-
   Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
+
   // try rollback first, it's faster!
-  if( strcmp( MENU_BIN, fileName.c_str() ) == 0 ) {
+  if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
     tryRollback( fileName );
   }
-  File updateBin = fs.open( fileName );
+
+  // no rollback possible, start filesystem
+  if( !_fsBegin() ) {
+    _error( "Unloadable filesystem, aborting" );
+    return;
+  }
+
+  File updateBin = cfg->fs->open( fileName );
   if ( updateBin ) {
-    if( updateBin.isDirectory() ){
-      Serial.println( "Error, this is not a file" );
+
+    if( updateBin.isDirectory() ) {
       updateBin.close();
+      _error( fileName + " is a directory" );
       return;
     }
+
     size_t updateSize = updateBin.size();
-    if ( updateSize > 0 ) {
-      Serial.println( "Try to start update" );
-      // disable WDT it as suggested by twitter.com/@lovyan03
-      disableCore0WDT();
-      performUpdate( updateBin, updateSize, fileName );
-      enableCore0WDT();
-    } else {
-       Serial.println( "Error, file is empty" );
-    }
+
+    log_i("File %s exists (%d bytes)", fileName.c_str(), updateSize );
+
+    updateFromStream( updateBin, updateSize, fileName );
+
     updateBin.close();
+
   } else {
-    Serial.printf( "Could not load %s binary from sd root", fileName.c_str() );
+    _error( "Could not load " + fileName + " binary from sd root" );
   }
 }
 
 
-/*
+// check given FS for valid menu.bin and perform update if available
+void SDUpdater::checkSDUpdaterHeadless( String fileName, unsigned long waitdelay )
+{
+  if( waitdelay == 0 ) {
+    waitdelay = 100; // at least give some time for the serial buffer to fill
+  }
+  Serial.printf("SDUpdater: you have %d milliseconds to send 'update', 'rollback' or 'skip' command\n", (int)waitdelay);
 
-static void SDUpdater_Base::getFactoryPartition() {
-  esp_partition_iterator_t pi = esp_partition_find( ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL );
-  if(pi != NULL) {
-    const esp_partition_t* factory = esp_partition_get(pi);
-    esp_partition_iterator_release(pi);
-    if(esp_ota_set_boot_partition(factory) == ESP_OK) {
-      //esp_restart();
+  if( cfg->onWaitForAction ) {
+    if ( cfg->onWaitForAction( nullptr, nullptr, waitdelay ) == 1 ) {
+      Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
+      updateFromFS( fileName );
+      ESP.restart();
     }
-  }
-}
-
-*/
-
-#if defined( SD_ENABLE_SPIFFS_COPY )
-
-
-String SDUpdater_Base::gnu_basename( String path ) {
-  char *base = strrchr(path.c_str(), '/');
-  return base ? String( base+1) : path;
-}
-
-
-void SDUpdater_Base::copyFile( String sourceName, int dir ) {
-  switch( dir ) {
-    case BACKUP_SD_TO_SPIFFS:
-      copyFile( sourceName, SDUPDATER_FS, dir );
-    break;
-    case BACKUP_SPIFFS_TO_SD:
-      copyFile( sourceName, SPIFFS, dir );
-    break;
-  }
-}
-
-
-void SDUpdater_Base::copyFile( String sourceName, fs::FS &sourceFS, int dir ) {
-  File sourceFile = sourceFS.open( sourceName );
-  if (! sourceFile ) {
-    log_e("Unable to open source file for reading : %s", sourceName );
-    return;
-  }
-  copyFile( sourceFile, dir );
-  sourceFile.close();
-}
-
-
-void SDUpdater_Base::copyFile( fs::File &sourceFile, int dir ) {
-  String destName;
-  String SDAppDataDir = String(DATA_DIR) + "/" + String( SKETCH_NAME );
-  switch( dir ) {
-    case BACKUP_SD_TO_SPIFFS:
-      destName = sourceFile.name();
-      destName.replace( SDAppDataDir, "" );
-      log_i("BACKUP_SD_TO_SPIFFS source: %s, dest: %s", sourceFile.name(), destName.c_str() );
-      if (SPIFFS.totalBytes() - SPIFFS.usedBytes() < sourceFile.size() ) {
-        log_e("not enough space left to copy %s\n", sourceFile.name() );
-        return;
-      }
-      copyFile( sourceFile, destName, SPIFFS );
-    break;
-    case BACKUP_SPIFFS_TO_SD:
-      destName = SDAppDataDir + String( sourceFile.name() );
-      log_i("BACKUP_SPIFFS_TO_SD source: %s, dest: %s", sourceFile.name(), destName.c_str() );
-      copyFile( sourceFile, destName, SD );
-    break;
-  }
-}
-
-
-void SDUpdater_Base::copyFile( String sourceName, fs::FS &sourceFS, String destName, fs::FS &destinationFS ) {
-  File sourceFile = sourceFS.open( sourceName );
-  if (! sourceFile ) {
-    log_e("Unable to open source file for reading : %s", sourceName );
-    return;
-  }
-  copyFile( sourceFile, destName, destinationFS );
-  sourceFile.close();
-}
-
-
-
-#define BUFFER_SIZE 512
-
-void SDUpdater_Base::copyFile( fs::File &sourceFile, String destName, fs::FS &destinationFS ) {
-  String sourceName = sourceFile.name();
-  //displayUpdateUI( String( "MOVINGFILE_MESSAGE" ) + sourceName );
-  size_t fileSize = sourceFile.size();
-
-  String basename = gnu_basename( destName );
-  String basepath = destName.substring( 0, destName.length()-(basename.length()+1) );
-  if( !destinationFS.exists( basepath ) ) {
-    log_i("destination path %s does not exist, will create", basepath.c_str() );
-    makePathToFile( destName, destinationFS );
-  }
-
-  File destFile = destinationFS.open( destName, FILE_WRITE );
-  if( !destFile ){ // for some reason this test is useless
-    log_e( "Unable to open destination file for writing : %s", destName ) ;
-    return;
   } else {
-    log_i("Attempting to copy %s to %s", sourceName.c_str(), destName.c_str() );
-
-    size_t bufferPos = 0;
-    static uint8_t buf[BUFFER_SIZE];
-
-    while (1) {
-      if (bufferPos + BUFFER_SIZE >= fileSize) {
-        // finalize buffer
-        if (sourceFile.read(buf, fileSize - bufferPos) == -1) {
-          break;
-        }
-        if (destFile.write(buf, fileSize - bufferPos) == -1) {
-          break;
-        }
-        break;
-      }
-      bufferPos += BUFFER_SIZE;
-      if (sourceFile.read(buf, BUFFER_SIZE) == -1) {
-        break;
-      }
-      if (destFile.write(buf, BUFFER_SIZE) == -1) {
-        break;
-      }
-      delay(1);
-    }
-
-
-    destFile.close();
-    log_i( "File copy done :-)" );
+    _error( "Missing onWaitForAction!" );
   }
+
+  Serial.println("Delay expired, no SD-Update will occur");
 }
 
 
-void SDUpdater_Base::copyDir( int direction ) {
-  String SDAppDataDir;
+void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
+{
+  if( cfg->fs == nullptr ) {
+    _error("No valid filesystem selected!");
+    return;
+  }
+  bool draw = SDUHasTouch;
+  bool isRollBack = true;
+  if( fileName != "" ) {
+    isRollBack = false;
+  }
 
-  if( !SPIFFS_MOUNTED ) {
-    if( !SPIFFS.begin() ){
-      log_e( "SPIFFS MOUNT FAILED, ABORTING!!" );
-      return;
+  if( !draw ) { // default touch button support
+    if( waitdelay <= 100 ) {
+      // no UI draw, but still attempt to detect "button is pressed on boot"
+      // round up to 100ms for button debounce
+      waitdelay = 100;
     } else {
-      log_i( "SPIFFS Successfully mounted");
-      SPIFFS_MOUNTED = true;
+      // only force draw if waitdelay > 100
+      draw = true;
     }
   }
 
-  switch( direction ) {
-    case BACKUP_SD_TO_SPIFFS:
-      SDAppDataDir = String(DATA_DIR) + "/" + String( SKETCH_NAME );
-      copyDir( SDAppDataDir.c_str(), 4, direction );
-    break;
-    case BACKUP_SPIFFS_TO_SD:
-      copyDir( "/", 4, direction );
-    break;
+  if( draw ) { // bring up the UI
+    if( cfg->onBefore) cfg->onBefore();
+    if( cfg->onSplashPage) cfg->onSplashPage( BTN_HINT_MSG );
   }
-}
 
-
-void SDUpdater_Base::copyDir( const char * dirname, uint8_t levels, int direction ) {
-  switch( direction ) {
-    case BACKUP_SD_TO_SPIFFS:
-      copyDir( SDUPDATER_FS, dirname, levels, direction );
-    break;
-    case BACKUP_SPIFFS_TO_SD:
-      copyDir( SPIFFS, dirname, levels, direction );
-    break;
-  }
-}
-
-
-void SDUpdater_Base::copyDir(fs::FS &sourceFS, const char * dirname, uint8_t levels, int direction ) {
-    log_i("Listing directory: %s\n", dirname);
-
-    File root = sourceFS.open(dirname);
-    if(!root){
-        log_e("Failed to open %s directory", dirname);
-        return;
+  if( cfg->onWaitForAction ) {
+    if ( cfg->onWaitForAction( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
+      if( isRollBack == false ) {
+        Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
+        updateFromFS( fileName );
+        ESP.restart();
+      } else {
+        Serial.println( SDU_ROLLBACK_MSG );
+        doRollBack( SDU_ROLLBACK_MSG );
+      }
     }
-    if(!root.isDirectory()){
-        log_e("%s is not a directory", dirname);
-        return;
-    }
-
-    File sourceFile = root.openNextFile();
-    while(sourceFile){
-        if(sourceFile.isDirectory()){
-            log_i("  DIR : %s", sourceFile.name());
-            if(levels){
-                copyDir(sourceFS, sourceFile.name(), levels -1, direction );
-            }
-        } else {
-            // TODO : copy file
-            log_i("  FILE: %32s - %8d bytes", sourceFile.name(), sourceFile.size());
-            copyFile( sourceFile, direction );
-        }
-        sourceFile = root.openNextFile();
-    }
-}
-
-
-void SDUpdater_Base::makePathToFile( String destName, fs::FS destinationFS ) {
-  String basename = gnu_basename( destName );
-  String basepath = destName.substring( 0, destName.length()-(basename.length()+1) );
-  if( basename == "/" || basename=="") {
-    log_w("root dir or empty dir creation denied");
-    return;
-  }
-  if( basename == destName ) {
-    log_w("basename is equal to destName : %s", basename.c_str() );
-    return;
-  }
-  if( !destinationFS.exists( basepath.c_str() ) ) {
-    log_i("going recursive before creating %s folder", basepath.c_str());
-    makePathToFile( basepath, destinationFS );
-    log_w("creating %s folder after recursion", basepath.c_str());
-    destinationFS.mkdir( basepath.c_str() );
-    if( destinationFS.exists( basepath ) ) {
-       // creation success
-       log_i("folder creation success!");
-     } else {
-       log_i("folder creation failed!");
-     }
   } else {
-    log_i("destination path %s exists", basepath.c_str() );
+    _error( "Missing onWaitForAction!" );
+  }
+
+  if( draw ) {
+    // reset text styles to avoid messing with the overlayed application
+    if( cfg->onAfter ) cfg->onAfter();
   }
 }
 
 
-bool SDUpdater_Base::SPIFFSFormat() {
-  if( !SPIFFS.begin( true ) ){
-    log_e( "SPIFFS Formatting FAILED!!" );
-    return false;
-  } else {
-    SPIFFS.format();
-    log_i( "SPIFFS Successfully formatted");
-    SPIFFS_MOUNTED = true;
-    return true;
-  }
-}
 
 
-bool SDUpdater_Base::SPIFFSisEmpty() {
-  if( !SPIFFS_MOUNTED ) {
-    if( !SPIFFS.begin() ) {
-      log_e( "SPIFFS MOUNT FAILED, ABORTING!!" );
-      return true;
-    } else {
-      log_i( "SPIFFS Successfully mounted");
-      SPIFFS_MOUNTED = true;
-    }
-  }
-  const char* dirname = "/";
-  File root = SPIFFS.open(dirname);
-  if(!root){
-      log_e("Failed to open %s directory", dirname);
-      return true;
-  }
-  if(!root.isDirectory()){
-      log_e("%s is not a directory", dirname);
-      return true;
-  }
-  File sourceFile = root.openNextFile();
-  return sourceFile ? false : true;
-}
 
 
-#endif
 
-//#undef tft
+

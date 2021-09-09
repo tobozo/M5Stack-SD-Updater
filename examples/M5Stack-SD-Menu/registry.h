@@ -42,13 +42,15 @@ typedef struct {
   String catalog_endpoint;
 
   String api_cert_provider_url_http;
+  String api_cert_provider_url_https;
   String api_url_https;
   String api_url_http;
 
   void init() {
-    api_cert_provider_url_http = "http://" + api_host + api_path + api_cert_path;
-    api_url_https              = "https://" + api_host + api_path + updater_path;
-    api_url_http               = "https://" + api_host + api_path + updater_path;
+    api_cert_provider_url_http  = "http://" + api_host + api_path + api_cert_path;
+    api_cert_provider_url_https = "https://" + api_host + api_path + api_cert_path;
+    api_url_https               = "https://" + api_host + api_path + updater_path;
+    api_url_http                = "https://" + api_host + api_path + updater_path;
   }
   void print() {
     log_i("\n\tname: %s\n\tdescription: %s\n\turl: %s\n\tapi_host: %s\n\tapi_path: %s\n\tapi_cert_path: %s\n\tupdater_path: %s\n\tcatalog_endpoint: %s\n\tapi_cert_provider_url_http: %s\n\tapi_url_https: %s\n\tapi_url_http: %s\n\n",
@@ -60,7 +62,7 @@ typedef struct {
       api_cert_path.c_str(),
       updater_path.c_str(),
       catalog_endpoint.c_str(),
-      api_cert_provider_url_http.c_str(),
+      api_cert_provider_url_https.c_str(),
       api_url_https.c_str(),
       api_url_http.c_str()
     );

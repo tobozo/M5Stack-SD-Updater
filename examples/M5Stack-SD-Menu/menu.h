@@ -27,12 +27,17 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
 
+
+// TODO: moved USE_DOWNLOADER features to "Downloader.ino"
 // auto-select board
 #if defined( ARDUINO_M5STACK_Core2 )
   #warning M5STACK Core2 DETECTED !!
   #define PLATFORM_NAME "M5Core2"
   #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #define USE_DOWNLOADER
 #elif defined( ARDUINO_M5Stack_Core_ESP32 )
   #warning M5STACK CLASSIC DETECTED !!
   #define PLATFORM_NAME "M5Stack"
@@ -41,14 +46,17 @@
   #warning M5STACK FIRE DETECTED !!
   #define PLATFORM_NAME "M5Fire"
   #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #define USE_DOWNLOADER
 #elif defined( ARDUINO_ODROID_ESP32 )
   #warning ODROID DETECTED !!
   #define PLATFORM_NAME "Odroid-GO"
   #define DEFAULT_REGISTRY_BOARD "odroid"
-#elif defined ( ARDUINO_ESP32_DEV )
-  #warning WROVER DETECTED !!
+  #define USE_DOWNLOADER
+#elif defined ( ARDUINO_ESP32_DEV ) || defined( ARDUINO_LOLIN_D32_PRO )
+  #warning WROVER OR LOLIN_D32_PRO DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
+  #define USE_DOWNLOADER
 #else
   #warning NOTHING DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "lambda"
@@ -65,12 +73,16 @@
   #define M5_FS SD
 #endif
 
+
+
+
+
 #include <sys/time.h>
 #include "compile_time.h"
-#include <SPIFFS.h>
+//#include <SPIFFS.h>
 
 #include "core.h"
-
+#define SDU_APP_NAME "Application Launcher"
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
 #if defined(_CHIMERA_CORE_)
@@ -92,7 +104,12 @@
 #include "assets.h"          // some artwork for the UI
 #include "controls.h"        // keypad / joypad / keyboard controls
 #include "fsformat.h"        // filesystem bin formats, functions, helpers
-#include "downloader.h"      // binaries downloader module A.K.A YOLO Downloader
+
+
+#if defined USE_DOWNLOADER
+  #include "downloader.h"      // binaries downloader module A.K.A YOLO Downloader
+#endif
+
 #include "partition_manager.h"
 
 #define MAX_BRIGHTNESS 100
@@ -116,9 +133,12 @@ String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
 
 
-SDUpdater sdUpdater;
+
+SDUpdater *sdUpdater;
 M5SAM M5Menu;
-AppRegistry Registry;
+#if defined USE_DOWNLOADER
+  AppRegistry Registry;
+#endif
 TFT_eSprite sprite = TFT_eSprite( &tft );
 
 
@@ -130,10 +150,28 @@ void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
 void qrRender( String text, float sizeinpixels );
 
+static String heapState()
+{
+  log_i("\nRAM SIZE:\t%.2f KB\nFREE RAM:\t%.2f KB\nMAX ALLOC:\t%.2f KB",
+    ESP.getHeapSize() / 1024.0,
+    ESP.getFreeHeap() / 1024.0,
+    ESP.getMaxAllocHeap() / 1024.0
+  );
+  return "";
+}
 
+/*
+static const char* sduFSFilePath( fs::File *file ) {
+  #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
+    return file->path();
+  #else
+    return file->name();
+  #endif
+}
+*/
 
-void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t width = tft.width() ) {
-
+void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t width = tft.width() )
+{
   if( scrollText=="" ) return;
 
   sprite.setTextSize( 2 ); // setup text size before it's measured
@@ -191,10 +229,10 @@ void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t wid
   //scrollMe.remove( scrollMe.length()-1 ); // one last for the ride
   // only draw if things changed
   if( scrollOffset!=lastScrollOffset || scrollMe!=lastScrollMessage ) {
-    sprite.setTextColor( WHITE, BLACK ); // setting background color removes the flickering effect
+    sprite.setTextColor( TFT_WHITE, TFT_BLACK ); // setting background color removes the flickering effect
     sprite.setCursor( scrollOffset, BUTTON_HEIGHT/2 );
     sprite.print( scrollMe );
-    sprite.setTextColor( WHITE );
+    sprite.setTextColor( TFT_WHITE );
     sprite.pushSprite( x, y );
   }
   sprite.deleteSprite();
@@ -206,7 +244,8 @@ void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t wid
 
 
 /* by file info */
-void renderIcon( FileInfo &fileInfo ) {
+void renderIcon( FileInfo &fileInfo )
+{
   if( !fileInfo.hasMeta() || !fileInfo.hasIcon() ) {
     return;
   }
@@ -215,21 +254,23 @@ void renderIcon( FileInfo &fileInfo ) {
 }
 
 /* by menu ID */
-void renderIcon( uint16_t MenuID ) {
+void renderIcon( uint16_t MenuID )
+{
   renderIcon( fileInfo[MenuID] );
 }
 
 /* by file name */
-void renderFace( String face ) {
+void renderFace( String face )
+{
   tft.drawJpgFile( M5_FS, face.c_str(), 5, 85, 120, 120, 0, 0, JPEG_DIV_NONE );
 }
 
 
-void renderMeta( JSONMeta &jsonMeta ) {
-
+void renderMeta( JSONMeta &jsonMeta )
+{
   sprite.setTextSize( 1 );
   sprite.setTextDatum( TL_DATUM );
-  sprite.setTextColor( WHITE, BLACK );
+  sprite.setTextColor( TFT_WHITE, TFT_BLACK );
   sprite.setTextWrap( false );
 
   sprite.setColorDepth( 1 );
@@ -256,12 +297,12 @@ void renderMeta( JSONMeta &jsonMeta ) {
   sprite.println( String( fileInfo[MenuID].fileSize ) + String( FILESIZE_UNITS ) );
   sprite.pushSprite( 5, 35, TFT_BLACK );
   sprite.deleteSprite();
-
 }
 
 
 /* give up on redundancy and ECC to produce less and bigger squares */
-uint8_t getLowestQRVersionFromString( String text, uint8_t ecc ) {
+uint8_t getLowestQRVersionFromString( String text, uint8_t ecc )
+{
   if(ecc>3) return 4; // fail fast
   uint16_t len = text.length();
   uint8_t QRMaxLenByECCLevel[4][3] = {
@@ -281,7 +322,8 @@ uint8_t getLowestQRVersionFromString( String text, uint8_t ecc ) {
 }
 
 
-void qrRender( String text, float sizeinpixels ) {
+void qrRender( String text, float sizeinpixels )
+{
   // see https://github.com/Kongduino/M5_QR_Code/blob/master/M5_QRCode_Test.ino
   // Create the QR code
   QRCode qrcode;
@@ -296,7 +338,7 @@ void qrRender( String text, float sizeinpixels ) {
   uint8_t xOffset = ( ( tft.width() - ( lineLength ) ) / 2 ) + 70;
   uint8_t yOffset =  ( tft.height() - ( lineLength ) ) / 2;
 
-  tft.fillRect( xOffset-5, yOffset-5, lineLength+10, lineLength+10, WHITE );
+  tft.fillRect( xOffset-5, yOffset-5, lineLength+10, lineLength+10, TFT_WHITE );
 
   for ( uint8_t y = 0; y < qrcode.size; y++ ) {
     // Each horizontal module
@@ -310,7 +352,8 @@ void qrRender( String text, float sizeinpixels ) {
 }
 
 
-void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
+void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
+{
   log_i( DEBUG_DIRNAME, dirName );
   File root = fs.open( dirName );
   if( !root ){
@@ -324,12 +367,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
   File file = root.openNextFile();
   while( file ){
     if( file.isDirectory() ){
-      log_d( "%s %s", DEBUG_DIRLABEL, file.name() );
+      log_d( "%s %s", DEBUG_DIRLABEL, sdUpdater->fs_file_path(&file) );
       if( levels ){
-        listDir( fs, file.name(), levels -1, process );
+        listDir( fs, sdUpdater->fs_file_path(&file), levels -1, process );
       }
     } else {
-      if( isValidAppName( file.name() ) ) {
+      if( isValidAppName( sdUpdater->fs_file_path(&file) ) ) {
         if( process ) {
           getFileInfo( fileInfo[appsCount], fs, file );
           if( appsCountProgress > 0 ) {
@@ -341,16 +384,16 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
         }
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
-          //Serial.println( String( DEBUG_IGNORED ) + file.name() );
+          //Serial.println( String( DEBUG_IGNORED ) + sdUpdater->fs_file_path(&file) );
           log_w( "%s", DEBUG_ABORTLISTING );
           break; // don't make M5Stack list explode
         }
       } else {
-        if( String( file.name() ).endsWith(".tmp") || String( file.name() ).endsWith(".pcap") ) {
-          fs.remove( file.name() );
-          log_d( "%s %s", DEBUG_CLEANED, file.name() );
+        if( String( sdUpdater->fs_file_path(&file) ).endsWith(".tmp") || String( sdUpdater->fs_file_path(&file) ).endsWith(".pcap") ) {
+          fs.remove( sdUpdater->fs_file_path(&file) );
+          log_d( "%s %s", DEBUG_CLEANED, sdUpdater->fs_file_path(&file) );
         } else {
-          log_d( "%s %s", DEBUG_IGNORED, file.name() );
+          log_d( "%s %s", DEBUG_IGNORED, sdUpdater->fs_file_path(&file) );
         }
       }
     }
@@ -376,9 +419,10 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process ){
 
 /*
  *  bubble sort filenames
- *  '32' is based on SD Card filename limitations
+ *  '32' is based on SPIFFS filename limitations
  */
-void aSortFiles( uint8_t depth_level=32 ) {
+void aSortFiles( uint8_t depth_level=32 )
+{
   bool swapped;
   FileInfo temp;
   String name1, name2;
@@ -415,8 +459,8 @@ void aSortFiles( uint8_t depth_level=32 ) {
 }
 
 
-void buildM5Menu() {
-
+void buildM5Menu()
+{
   PageID = 0;
   Pages = appsCount / M5Menu.listPagination;
   if( appsCount % M5Menu.listPagination != 0 ) Pages++;
@@ -432,7 +476,9 @@ void buildM5Menu() {
   }
 }
 
-void drawM5Menu( bool renderButtons = false ) {
+
+void drawM5Menu( bool renderButtons = false )
+{
   const char* paginationTpl = "Page %d / %d";
   char paginationStr[64];
   PageID = MenuID / M5Menu.listPagination;
@@ -445,8 +491,10 @@ void drawM5Menu( bool renderButtons = false ) {
     #else
       M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
     #endif
-    tft.drawJpg(sd_updater15x16_jpg, sd_updater15x16_jpg_len, 296, 6, 15, 16);
-    drawSDUpdaterChannel();
+    tft.drawJpg(sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 296, 6, 15, 16);
+    #if defined USE_DOWNLOADER
+      drawSDUpdaterChannel();
+    #endif
   }
   M5Menu.showList();
   renderIcon( MenuID );
@@ -455,7 +503,8 @@ void drawM5Menu( bool renderButtons = false ) {
 }
 
 
-void pageDown() {
+void pageDown()
+{
   if( PageID < Pages -1 ) {
     PageID++;
     MenuID = (PageID * M5Menu.listPagination) -1;
@@ -470,7 +519,9 @@ void pageDown() {
   drawM5Menu( inInfoMenu );
 }
 
-void pageUp() {
+
+void pageUp()
+{
   if( PageID > 0 ) {
     PageID--;
     MenuID -= M5Menu.listPagination;
@@ -481,7 +532,8 @@ void pageUp() {
 
 
 
-void menuUp() {
+void menuUp()
+{
   MenuID = M5Menu.getListID();
   if( MenuID > 0 ) {
     if( (MenuID - 1)%M5Menu.listPagination==0 ) {
@@ -497,7 +549,8 @@ void menuUp() {
 }
 
 
-void menuDown( int jumpSize = 1 ) {
+void menuDown( int jumpSize = 1 )
+{
   if(MenuID<appsCount-1){
     if( (MenuID + 1)%M5Menu.listPagination==0 ) {
       MenuID -= (M5Menu.listPagination-1);
@@ -512,20 +565,27 @@ void menuDown( int jumpSize = 1 ) {
 }
 
 
-void menuInfo() {
+void menuInfo()
+{
   inInfoMenu = true;
   M5Menu.windowClr();
-  if( MenuID == 0 ) {
-    // downloader
-    M5Menu.drawAppMenu( "Apps Downloader", MENU_BTN_LAUNCH, MENU_BTN_SOURCE, MENU_BTN_BACK );
-    lastpush = millis();
-    return;
-  } else if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
+
+  #ifdef USE_DOWNLOADER
+    if( MenuID == 0 ) {
+      // downloader
+      M5Menu.drawAppMenu( "Apps Downloader", MENU_BTN_LAUNCH, MENU_BTN_SOURCE, MENU_BTN_BACK );
+      lastpush = millis();
+      return;
+    } else
+  #endif
+  if( fileInfo[ MenuID ].fileName.endsWith( launcherSignature ) ) {
     M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_SET, MENU_BTN_UPDATE, MENU_BTN_BACK );
   } else {
     M5Menu.drawAppMenu( String(MENU_TITLE), MENU_BTN_LOAD, MENU_BTN_UPDATE, MENU_BTN_BACK );
   }
-  drawSDUpdaterChannel();
+  #if defined USE_DOWNLOADER
+    drawSDUpdaterChannel();
+  #endif
   renderMeta( fileInfo[MenuID].jsonMeta );
   if( fileInfo[MenuID].hasFace() ) {
     renderFace( fileInfo[MenuID].faceName );
@@ -534,7 +594,8 @@ void menuInfo() {
 }
 
 
-void checkMenuTimeStamp() {
+void checkMenuTimeStamp()
+{
   File menu = M5_FS.open( MENU_BIN );
   time_t lastWrite;
   if( menu ) {
@@ -576,13 +637,12 @@ void checkMenuTimeStamp() {
 
   Serial.printf("[Hobo style] Clock set to %s source (%s): ", timeStatus.c_str(), timeSource.c_str());
   Serial.println(&now,"%B %d %Y %H:%M:%S (%A)");
-
 }
 
+#if defined USE_DOWNLOADER
 
-void downloaderMenu() {
-
-
+void downloaderMenu()
+{
   int resp = modalConfirm( "chantool", CHANNEL_TOOL, CHANNEL_TOOL_PROMPT, CHANNEL_TOOL_TEXT, DOWNLOADER_MODAL_CHANGE, MENU_BTN_UPDATE, "WiFi" );
   // choose between updating the JSON or changing the default channel
   switch( resp ) {
@@ -611,12 +671,14 @@ void downloaderMenu() {
     break;
 
     default:
-      resp = modalConfirm( "appDlChooser", "WiFi Setup", "WiFi Manager", "        Start WiFi Manager ?",  "Start", MENU_BTN_CANCEL, MENU_BTN_BACK );
-      if( resp == HID_SELECT ) {
-        wifiManagerSetup();
-        wifiManagerLoop();
-        ESP.restart();
-      }
+      #if defined USE_WIFI_MANAGER
+        resp = modalConfirm( "appDlChooser", "WiFi Setup", "WiFi Manager", "        Start WiFi Manager ?",  "Start", MENU_BTN_CANCEL, MENU_BTN_BACK );
+        if( resp == HID_SELECT ) {
+          wifiManagerSetup();
+          wifiManagerLoop();
+          ESP.restart();
+        }
+      #endif
     break;
 
   }
@@ -624,7 +686,8 @@ void downloaderMenu() {
 }
 
 
-void updateApp( FileInfo &info ) {
+void updateApp( FileInfo &info )
+{
   String appName = info.shortName();
   //appName.replace(".bin", "");
   //appName.replace(".BIN", "");
@@ -634,16 +697,21 @@ void updateApp( FileInfo &info ) {
   drawM5Menu( inInfoMenu );
 }
 
+#endif
 
-void launchApp( FileInfo &info ) {
-  if( info.fileName == String( DOWNLOADER_BIN ) ) {
-    if( modalConfirm( "launchapp", DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) == HID_SELECT ) {
-      updateAll();
+
+void launchApp( FileInfo &info )
+{
+  #if defined USE_DOWNLOADER
+    if( info.fileName == String( DOWNLOADER_BIN ) ) {
+      if( modalConfirm( "launchapp", DOWNLOADER_MODAL_NAME, DOWNLOADER_MODAL_TITLE, DOWNLOADER_MODAL_BODY ) == HID_SELECT ) {
+        updateAll();
+      }
+      // action cancelled or refused by user
+      drawM5Menu( inInfoMenu );
+      return;
     }
-    // action cancelled or refused by user
-    drawM5Menu( inInfoMenu );
-    return;
-  }
+  #endif
   if( info.fileName.endsWith( launcherSignature ) ) {
     log_w("Will overwrite current %s with a copy of %s\n", MENU_BIN, info.fileName.c_str() );
     if( replaceLauncher( M5_FS, info ) ) {
@@ -653,13 +721,13 @@ void launchApp( FileInfo &info ) {
       return;
     }
   }
-  sdUpdater.updateFromFS( M5_FS, fileInfo[MenuID].fileName );
+  sdUpdater->updateFromFS( M5_FS, fileInfo[MenuID].fileName );
   ESP.restart();
 }
 
 
-void UISetup() {
-
+void UISetup()
+{
   HIDInit();
   // make sure you're using the latest from https://github.com/tobozo/M5StackSAM/
   M5Menu.listMaxLabelSize = 32; // list labels will be trimmed
@@ -703,8 +771,10 @@ void UISetup() {
       #ifdef ARDUINO_M5STACK_Core2
         M5.Axp.DeepSleep();
       #else
-        M5.setWakeupButton( BUTTON_B_PIN );
-        M5.powerOFF();
+        #if !defined _CHIMERA_CORE_ || defined HAS_POWER
+          M5.setWakeupButton( BUTTON_B_PIN );
+          M5.powerOFF();
+        #endif
       #endif
     }
   }
@@ -721,64 +791,69 @@ void UISetup() {
     M5.update();
   #endif
 
-  if( M5.BtnB.isPressed() )
-  {
-    unsigned long pushStart = millis();
-    unsigned long pushDuration = 0;
-    drawAppMenu(); // render the menu
-    M5.update();
-    tft.setTextColor( WHITE, M5MENU_GREY );
-    tft.setTextDatum(MC_DATUM);
-    char remainingStr[32];
-    while( M5.BtnB.isPressed() ) {
-      pushDuration = millis() - pushStart;
-      if( pushDuration > longPush ) break;
-      if( pushDuration > shortPush ) {
-        tft.setTextColor( WHITE, RED );
-        tft.drawString( "FULL RESET", 160, 100, 2 );
-        sprintf( remainingStr, "%.2f", (float)(longPush-pushDuration)/1000 );
-      } else {
-        tft.drawString( "TLS RESET", 160, 100, 2 );
-        sprintf( remainingStr, "%.2f", (float)(shortPush-pushDuration)/1000 );
-      }
-      tft.drawString( remainingStr, 160, 120, 2 );
-      delay(100);
+  #if defined USE_DOWNLOADER
+    if( M5.BtnB.isPressed() )
+    {
+      unsigned long pushStart = millis();
+      unsigned long pushDuration = 0;
+      drawAppMenu(); // render the menu
       M5.update();
-    }
-    tft.setTextDatum(TL_DATUM);
-
-    Serial.printf("Push duration : %d\n", (int)pushDuration );
-    if( pushDuration > shortPush ) {
-      // Short push at boot = cleanup /cert/ and /.registry/ folders
-      cleanDir( SD_CERT_PATH );
-      cleanDir( appRegistryFolder.c_str() );
-    }
-    if( pushDuration > longPush ) {
-      int resp = modalConfirm( "cleanup", "DELETE APPS", "CAUTION! This will remove all apps and assets.", "    Obliviate?",  "DELETE", "CANCEL", "NOES!" );
-      if( resp == HID_SELECT ) {
-        checkMenuTimeStamp(); // set the time before cleaning up the folder
-        cleanDir( "/" );
-        cleanDir( "/jpg/" );
-        cleanDir( "/json/" );
-        drawAppMenu(); // render the menu
-        copyPartition(); // restore the menu.bin file
+      tft.setTextColor( TFT_WHITE, M5MENU_GREY );
+      tft.setTextDatum(MC_DATUM);
+      char remainingStr[32];
+      while( M5.BtnB.isPressed() ) {
+        pushDuration = millis() - pushStart;
+        if( pushDuration > longPush ) break;
+        if( pushDuration > shortPush ) {
+          tft.setTextColor( TFT_WHITE, TFT_RED );
+          tft.drawString( "FULL RESET", 160, 100, 2 );
+          sprintf( remainingStr, "%.2f", (float)(longPush-pushDuration)/1000 );
+        } else {
+          tft.drawString( "TLS RESET", 160, 100, 2 );
+          sprintf( remainingStr, "%.2f", (float)(shortPush-pushDuration)/1000 );
+        }
+        tft.drawString( remainingStr, 160, 120, 2 );
+        delay(100);
+        M5.update();
       }
-    }
-    Serial.println( GOTOSLEEP_MESSAGE );
-    #ifdef ARDUINO_M5STACK_Core2
-      M5.Axp.DeepSleep();
-    #else
-      M5.setWakeupButton( BUTTON_B_PIN );
-      M5.powerOFF();
-    #endif
+      tft.setTextDatum(TL_DATUM);
 
-  }
+      Serial.printf("Push duration : %d\n", (int)pushDuration );
+      if( pushDuration > shortPush ) {
+        // Short push at boot = cleanup /cert/ and /.registry/ folders
+        cleanDir( SD_CERT_PATH );
+        cleanDir( appRegistryFolder.c_str() );
+      }
+      if( pushDuration > longPush ) {
+        int resp = modalConfirm( "cleanup", "DELETE APPS", "CAUTION! This will remove all apps and assets.", "    Obliviate?",  "DELETE", "CANCEL", "NOES!" );
+        if( resp == HID_SELECT ) {
+          checkMenuTimeStamp(); // set the time before cleaning up the folder
+          cleanDir( "/" );
+          cleanDir( "/jpg/" );
+          cleanDir( "/json/" );
+          drawAppMenu(); // render the menu
+          copyPartition(); // restore the menu.bin file
+        }
+      }
+      Serial.println( GOTOSLEEP_MESSAGE );
+      #ifdef ARDUINO_M5STACK_Core2
+        M5.Axp.DeepSleep();
+      #else
+        #if !defined _CHIMERA_CORE_ || defined HAS_POWER
+          M5.setWakeupButton( BUTTON_B_PIN );
+          M5.powerOFF();
+        #endif
+      #endif
+
+    }
+  #endif
 
 }
 
 
-void doFSChecks() {
-  tft.setTextColor( WHITE );
+void doFSChecks()
+{
+  tft.setTextColor( TFT_WHITE );
   tft.setTextSize( 1 );
   tft.clear();
 
@@ -790,26 +865,31 @@ void doFSChecks() {
   tft.progressBar( 110, 112, 100, 20, 10);
 
   scanDataFolder(); // do SD / SPIFFS health checks
-  Registry = registryInit(); // load registry profile
 
-  if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
-    if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) { // rename for hoisting in the list
-      M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
-    } else { // create a dummy file to enable the feature
-      fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
-      dummyDownloader.print("Fake Binary");
-      dummyDownloader.close();
+  #if defined USE_DOWNLOADER
+    Registry = registryInit(); // load registry profile
+
+    if( !M5_FS.exists( DOWNLOADER_BIN ) ) {
+      if( M5_FS.exists( DOWNLOADER_BIN_VIRTUAL) ) { // rename for hoisting in the list
+        M5_FS.rename( DOWNLOADER_BIN_VIRTUAL, DOWNLOADER_BIN );
+      } else { // create a dummy file to enable the feature
+        fs::File dummyDownloader = M5_FS.open( DOWNLOADER_BIN, FILE_WRITE);
+        dummyDownloader.print("Fake Binary");
+        dummyDownloader.close();
+      }
+    } else { // cleanup old legacy file if necessary
+      if( M5_FS.exists(DOWNLOADER_BIN_VIRTUAL) ) {
+        M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
+      }
     }
-  } else { // cleanup old legacy file if necessary
-    if( M5_FS.exists(DOWNLOADER_BIN_VIRTUAL) ) {
-      M5_FS.remove( DOWNLOADER_BIN_VIRTUAL );
-    }
-  }
+  #endif
+
 }
 
 
-void doFSInventory() {
-  tft.setTextColor( WHITE );
+void doFSInventory()
+{
+  tft.setTextColor( TFT_WHITE );
   tft.setTextSize( 1 );
   tft.clear();
   tft.progressBar( 110, 112, 100, 20, 20);
@@ -817,7 +897,7 @@ void doFSInventory() {
   listDir(M5_FS, "/", 0, false); // count valid files first so a progress meter can be displayed
   appsCountProgress = appsCount;
   appsCount = 0;
-  tft.drawJpg(sd_updater32x40_jpg, sd_updater32x40_jpg_len, (tft.width()-32)/2, 40);
+  tft.drawJpg(sdUpdaterIcon32x40_jpg, sdUpdaterIcon32x40_jpg_len, (tft.width()-32)/2, 40);
   tft.setTextDatum(MC_DATUM);
   tft.drawString("Scanning SD Card", 160, 95, 2);
   listDir(M5_FS, "/", 0, true); // now retrieve files meta
@@ -869,6 +949,7 @@ void HIDMenuObserve() {
       }
     break;
     case HID_PAGE_DOWN:
+      #if defined USE_DOWNLOADER
       if( inInfoMenu ) {
         // update
         if( fileInfo[MenuID].fileName == String( DOWNLOADER_BIN ) ) {
@@ -879,6 +960,9 @@ void HIDMenuObserve() {
       } else {
         pageDown();
       }
+      #else
+        pageDown();
+      #endif
     break;
     case HID_PAGE_UP:
       if( inInfoMenu ) {
@@ -919,8 +1003,12 @@ void sleepTimer() {
     #ifdef ARDUINO_M5STACK_Core2
       M5.Axp.DeepSleep();
     #else
-      M5.setWakeupButton( BUTTON_B_PIN );
-      M5.powerOFF();
+      #if !defined _CHIMERA_CORE_ || defined HAS_POWER
+        M5.setWakeupButton( BUTTON_B_PIN );
+        M5.powerOFF();
+      #endif
     #endif
   }
 }
+
+//#pragma GCC pop_options
