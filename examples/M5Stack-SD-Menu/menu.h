@@ -134,7 +134,7 @@ int16_t lastScrollOffset; // last scrolling string position
 
 
 
-SDUpdater sdUpdater;
+SDUpdater *sdUpdater;
 M5SAM M5Menu;
 #if defined USE_DOWNLOADER
   AppRegistry Registry;
@@ -367,12 +367,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
   File file = root.openNextFile();
   while( file ){
     if( file.isDirectory() ){
-      log_d( "%s %s", DEBUG_DIRLABEL, sdUpdater.fs_file_path(&file) );
+      log_d( "%s %s", DEBUG_DIRLABEL, sdUpdater->fs_file_path(&file) );
       if( levels ){
-        listDir( fs, sdUpdater.fs_file_path(&file), levels -1, process );
+        listDir( fs, sdUpdater->fs_file_path(&file), levels -1, process );
       }
     } else {
-      if( isValidAppName( sdUpdater.fs_file_path(&file) ) ) {
+      if( isValidAppName( sdUpdater->fs_file_path(&file) ) ) {
         if( process ) {
           getFileInfo( fileInfo[appsCount], fs, file );
           if( appsCountProgress > 0 ) {
@@ -384,16 +384,16 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
         }
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
-          //Serial.println( String( DEBUG_IGNORED ) + sdUpdater.fs_file_path(&file) );
+          //Serial.println( String( DEBUG_IGNORED ) + sdUpdater->fs_file_path(&file) );
           log_w( "%s", DEBUG_ABORTLISTING );
           break; // don't make M5Stack list explode
         }
       } else {
-        if( String( sdUpdater.fs_file_path(&file) ).endsWith(".tmp") || String( sdUpdater.fs_file_path(&file) ).endsWith(".pcap") ) {
-          fs.remove( sdUpdater.fs_file_path(&file) );
-          log_d( "%s %s", DEBUG_CLEANED, sdUpdater.fs_file_path(&file) );
+        if( String( sdUpdater->fs_file_path(&file) ).endsWith(".tmp") || String( sdUpdater->fs_file_path(&file) ).endsWith(".pcap") ) {
+          fs.remove( sdUpdater->fs_file_path(&file) );
+          log_d( "%s %s", DEBUG_CLEANED, sdUpdater->fs_file_path(&file) );
         } else {
-          log_d( "%s %s", DEBUG_IGNORED, sdUpdater.fs_file_path(&file) );
+          log_d( "%s %s", DEBUG_IGNORED, sdUpdater->fs_file_path(&file) );
         }
       }
     }
@@ -721,7 +721,7 @@ void launchApp( FileInfo &info )
       return;
     }
   }
-  sdUpdater.updateFromFS( M5_FS, fileInfo[MenuID].fileName );
+  sdUpdater->updateFromFS( M5_FS, fileInfo[MenuID].fileName );
   ESP.restart();
 }
 

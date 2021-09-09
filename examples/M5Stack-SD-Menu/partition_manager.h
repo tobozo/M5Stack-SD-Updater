@@ -105,7 +105,7 @@ void copyFsPartition( fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} )
 */
 
 
-extern SDUpdater sdUpdater;
+//extern SDUpdater *sdUpdater;
 
 
 

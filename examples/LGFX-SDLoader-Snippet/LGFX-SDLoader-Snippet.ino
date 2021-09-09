@@ -55,6 +55,7 @@ void setup()
   BtnC = new Button(37, true, 10);
   ButtonUpdate();
 
+  setSDUGfx( &tft ); // attach LGFX to SD-Updater
   // SDUCfg.setProgressCb  ( myProgress );       // void (*onProgress)( int state, int size )
   // SDUCfg.setMessageCb   ( myDrawMsg );        // void (*onMessage)( const String& label )
   // SDUCfg.setErrorCb     ( myErrorMsg );       // void (*onError)( const String& message, unsigned long delay )
@@ -63,7 +64,7 @@ void setup()
   // SDUCfg.setSplashPageCb( myDrawSplashPage ); // void (*onSplashPage)( const char* msg )
   // SDUCfg.setButtonDrawCb( myDrawPushButton ); // void (*onButtonDraw)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor )
   SDUCfg.setWaitForActionCb( myActionTrigger );  // int  (*onWaitForAction)( char* labelLoad, char* labelSkip, unsigned long waitdelay )
-  setSDUGfx( &tft ); // attach LGFX to SD-Updater
+
 
   checkSDUpdater(
     SD,           // filesystem (default=SD)

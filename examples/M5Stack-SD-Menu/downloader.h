@@ -57,13 +57,15 @@ crypto_hash_sha256_state ctx;
   #define M5_LIB_VERSION "unknown"
 #endif
 
+// inherit progress bar from SD-Updater library
+#define M5SDMenuProgress SDUCfg.onProgress
 
 long timezone = 0; // UTC
 byte daysavetime = 1; // UTC + 1
 
 HTTPClient http;
 
-extern SDUpdater sdUpdater; // used for menu progress
+//extern SDUpdater *sdUpdater; // used for menu progress
 extern M5SAM M5Menu;
 extern uint16_t appsCount;
 extern uint16_t MenuID;
@@ -113,7 +115,6 @@ bool wget( const char* bin_url, const char* outputFile );
 int modalConfirm( const char* modalName, const char* question, const char* title, const char* body, const char* labelA, const char* labelB, const char* labelC );
 bool wifiSetupWorked();
 bool init_tls_or_die( String host );
-static const char* sduFSFilePath( fs::File *file );
 static String heapState();
 void WiFiEvent(WiFiEvent_t event);
 
@@ -526,10 +527,10 @@ void cleanDir( const char* dir) {
       tft.fillRoundRect( 0, 32, M5.Lcd.width(), M5.Lcd.height()-32-32, 3, M5MENU_GREY );
       tft.setCursor( 8, 36 );
     }
-    Serial.printf( CLEANDIR_REMOVED, sduFSFilePath( &file ) /*file.name()*/ );
+    Serial.printf( CLEANDIR_REMOVED, SDUpdater::fs_file_path( &file ) /*file.name()*/ );
     tft.setCursor( 8, tft.getCursorY() );
-    tft.printf( CLEANDIR_REMOVED, sduFSFilePath( &file ) /*file.name()*/ );
-    M5_FS.remove( sduFSFilePath( &file ) /*file.name()*/ );
+    tft.printf( CLEANDIR_REMOVED, SDUpdater::fs_file_path( &file ) /*file.name()*/ );
+    M5_FS.remove( SDUpdater::fs_file_path( &file ) /*file.name()*/ );
     file = root.openNextFile();
   }
 

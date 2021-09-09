@@ -88,8 +88,9 @@ void setup() {
     M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
   #endif
 
+  sdUpdater = new SDUpdater();
   // suggest rollback
-  sdUpdater.checkSDUpdaterUI(
+  sdUpdater->checkSDUpdaterUI(
     SD,           // filesystem (default=SD)
     "",           // path to binary (default = /menu.bin, empty = rollback only)
     0            // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )

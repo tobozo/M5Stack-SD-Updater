@@ -3,7 +3,7 @@
 
 #define SDU_APP_PATH "/1_test_binary.bin" // path to file on the SD
 #define SDU_APP_NAME "saveSketchToFS() Example" // title for SD-Updater UI
-// #define SDU_HEADLESS
+
 #include <M5StackUpdater.h>
 
 
@@ -22,7 +22,7 @@ void setup()
   M5.begin();
   Serial.println("Welcome to the SD-Updater minimal example!");
   Serial.println("Now checking if a button was pushed during boot ...");
-  // checkSDUpdater();
+  // checkSDUpdater( SD 1);
   checkSDUpdater(
     SD,           // filesystem (default=SD)
     MENU_BIN,     // path to binary (default=/menu.bin, empty string=rollback only)
@@ -54,7 +54,6 @@ void loop()
       centerMessage( "Copy failed !\n", TFT_RED );
     }
   }
-
 
 }
 
