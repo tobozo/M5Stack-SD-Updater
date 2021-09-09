@@ -111,7 +111,7 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
  And add this:
 
 ```C
-    checkSDUpdater();
+    checkSDUpdater( SD );
 ```
 
  Then do whatever you need to do (button init, timers)
