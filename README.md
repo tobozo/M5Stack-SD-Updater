@@ -33,17 +33,18 @@
 <br />
 
 **Micro SD Card (TF Card)** - formatted using FAT32. Max size 32 Gb.
+SDCard is recommended but the SDUpdater supports other filesystems such as SD_MMC, SPIFFS, LittleFS and PSRamFS.
 
 <br />
 
-**Make sure you have the following libraries:** - they should be installed in: ....\Documents\Arduino\libraries
+**Make sure you have the following libraries:** - they should be installed in: `~/Arduino/libraries`
 
-- [M5Stack library](https://github.com/m5stack/M5Stack) or [ESP32-Chimera-Core](https://github.com/tobozo/ESP32-Chimera-Core) - this is probably already installed - if not you can get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+- [M5Stack library](https://github.com/m5stack/M5Stack), [ESP32-Chimera-Core](https://github.com/tobozo/ESP32-Chimera-Core), [LovyanGFX](https://github.com/lovyan03/LovyanGFX) or [M5GFX](https://github.com/m5stack/M5GFX) - this is probably already installed - if not you can get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
 
 - M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
 
-- ArduinoJSON: [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
-- ~~M5StackSAM: [https://github.com/tobozo/M5StackSAM/](https://github.com/tobozo/M5StackSAM/) (modified version until patch is merged)~~ (custom version now bundled with the launcher)
+- ArduinoJSON (Optional, used by SD-Menu): [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
+
 
 <br />
 
@@ -59,7 +60,7 @@ For your own lazyness, you can use @micutil's awesome [M5Burner](https://github.
 ... or customize your own menu and make the installation manually :
 
 
-**1) Open both sketches from the "examples/M5Stack-SD-Update" menu.**
+**1) Open the `examples/M5Stack-SD-Update` sketch from the Arduino ID Examples menu.**
 
 <br />
 
@@ -67,20 +68,20 @@ For your own lazyness, you can use @micutil's awesome [M5Burner](https://github.
 
 <br />
 
-**3) Compile the "M5Stack-SD-Menu.ino" example.** <br />
-This sketch is the menu app. It must be (a) compiled and saved to the root directory of a micro SD card for persistence and (b) flashed onto the M5Stack.
+**3) Compile and flash the `M5Stack-SD-Menu.ino` example.** <br />
+This sketch is the **menu** app. It shoul reside in the root directory of a micro SD card for persistence and also executed once.
 
-(a) In the Arduino IDE, go to Sketch / Export compiled binary , and compile the file. Rename the file "menu.bin" and copy it to the micro SD card. (b) Next, flash "menu.bin" to the M5Stack.
+Once flashed it will **copy itself** on OTA2 partition and on the SDCard, then rolled back and executed from the OTA2 partition.
 
- Note that you won't need to (a) copy it if you previously extracted the SD-Content folder on the SD card.
+Thanks to @Lovyan03 this self-propagation logic is very convenient: by residing on OTA2 the `menu.bin` will always be available for fast re-loading.
+
 
 <br />
 
-**4) Make sketches compatible with the SD-Updater Menu .** <br />
+**4) Make application sketches compatible with the SD-Updater Menu .** <br />
 
 
-The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used to make any Arduino compatible sketch compatible for use with the SD-Updater menu.
-
+The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as a model to make any ESP32 sketch compatible with the SD-Updater menu.
 
 
  In your sketch, find the line where the core library is included:
@@ -96,41 +97,54 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
 
 ```
 
- And add this:
+ And add this after the include:
 
 ```C
     #include <M5StackUpdater.h>
 ```
 
- In your setup() function, find the following statements:
+ In your `setup()` function, find the following statements:
 
-```C
+```C++
     M5.begin();
+    // Serial.begin(115200);
 ```
 
- And add this:
+ And add this after serial is started:
 
 ```C
     checkSDUpdater( SD );
 ```
 
- Then do whatever you need to do (button init, timers)
- in the setup and the loop. Your app will be ready
- to run normally except at boot if the Button A is
- pressed, it will load the "menu.bin" from the sd card.
+ Then do whatever you need to do (button init, timer, network signal) in the setup and the loop. Your app will
+ run normally except at boot (e.g. if the `Button A` is pressed), when it can load the `/menu.bin` binary from
+ the filesystem, or go on with it application duties.
 
- Touch UI has no buttons, this raises the problem of
- detecting a 'pushed' state when the touch is off.
- As a compensation, an UI will be visible for 2 seconds
- after every ESP.restart(), and this visibility can
- be forced in the setup :
+ ⚠️Touch UI has no buttons, this raises the problem of detecting a 'pushed' state when the touch is off.
+ As a compensation, an UI lobby will be visible for 2 seconds after every `ESP.restart()`. The visibility
+ of the lobby can be forced in the setup :
 
 ```C
     checkSDUpdater( SD, MENU_BIN, 2000 );
 ```
 
- Headless setups can overload SDUpdater::assertStartUpdate
- with their own button/sensor/whatever detection routine.
+  Custom SD-Load scenarios can be achieved using non default values:
+
+```C
+
+    M5.begin();
+
+    checkSDUpdater(
+      SD,           // filesystem (SD, SD_MMC, SPIFFS, LittleFS, PSRamFS)
+      MENU_BIN,     // path to binary (default = /menu.bin, empty string = rollback only)
+      0,            // wait delay, (default=0, will be forced to 2000 upon ESP.restart() or with headless build )
+      TFCARD_CS_PIN // optional for SD use only, usually default=4 but your mileage may vary)
+    );
+
+```
+
+
+  Headless setup can bypass `onWaitForAction` lobby option with their own button/sensor/whatever detection routine.
 
 
 ```C
@@ -145,52 +159,165 @@ The brief bit of code in the "M5Stack-SDLoader-Snippet.ino" sketch can be used t
 
 ```
 
-  Custom SD-Load scenarios can be achieved using non default values:
+  Headless setup can also be customized in complex integrations:
 
-```C
+```C++
 
-    M5.begin();
+    Serial.begin( 115200 );
 
-    checkSDUpdater(
-      SD,           // filesystem (default=SD)
-      MENU_BIN,     // path to binary (default = /menu.bin, empty string = rollback only)
-      0,            // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
-      TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
-    );
+    SDUCfg.setCSPin( TFCARD_CS_PIN );
+    SDUCfg.setFS( &SD );
+    SDUCfg.setWaitForActionCb( mySerialActionTrigger ); // set your own serial input trigger
+
+    SDUpdater sdUpdater( &SDUCfg );
+
+    sdUpdater.checkSDUpdaterHeadless( MENU_BIN, 30000 ); // wait 30 seconds for serial input
 
 ```
 
 
-<br />
-
-
-
-
-
-  Export the compiled binary ( on the Arduino IDE menu go to:  Sketch / Export Compiled Binary ).
-
-  (Optional) Rename the file to remove unnecessary additions to the name. The filename will be saved as "filename.ino.esp32.bin". Edit the name so it reads "filename.bin". This is purely for display purposes. The file will work without this change.
-
-  Use one of following methods to get the app on the M5Stack:
-
-  - Manually copy it to the sd card
-
-  - Existing installations (menu.bin already copied and loaded on the M5Stack): clear the content of the [examples/M5Stack-SD-Menu/data](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/data) folder, copy the compiled binary there and use the [ESP32 Sketch Data Uploader](https://github.com/me-no-dev/arduino-esp32fs-plugin) utility (available from the Tools menu in the Arduino IDE).
 
 <br />
 
 
-📚 USAGE:
----------
-When an app is loaded in memory, booting the M5Stack with the BTN_A pushed will flash back the menu.bin into memory.
 
-When the menu is loaded in memory, it will list all available apps on the sdcard and load them on demand.
+  Use one of following methods to get the app on the filesystem:
 
-Booting the M5Stack with the BTN_A pushed will power it off.
+  - Have the app copy itself to filesystem using `saveSketchToFS( SD, "/my_application.bin" );` from an option inside your app.
 
-The [ESP32 Sketch Data Uploader](https://github.com/me-no-dev/arduino-esp32fs-plugin) can be used to send .bin, jpg, json, mod and mp3 files onto the M5Stack. The menu.bin will take care of dumping them on the SD Card.
+  - Manually copy it to the filesystem:
+    - In the Arduino IDE menu go to "Sketch / Export Compiled Binary".
+    - Rename the file to remove unnecessary additions to the name. The filename will be saved as "filename.ino.esp32.bin".
+      Edit the name so it reads "filename.bin". This is purely for display purposes. The file will work without this change.
 
-Some artwork/credits can be added for every uploaded binary, the menu will scan for these file types:
+<br />
+
+
+
+⌾ SD-Updater customizations:
+----------------------------
+
+
+  These callback setters are populated by default but only fit the best scenario (M5Stack with display+buttons).
+
+  ⚠️ If no supported combination of display/buttons exists, it will fall back to headless behaviour and will only accept update/rollback signals from Serial.
+
+  As a result, any atypical setup (e.g. headless+LittleFS) should make use of those callback setters:
+
+```C++
+  SDUCfg.setFS          ( &FS );                // fs::FS* (SD, SD_MMC, SPIFFS, LittleFS, PSRamFS)
+  SDUCfg.setProgressCb  ( myProgress );         // void (*myProgress)( int state, int size )
+  SDUCfg.setMessageCb   ( myDrawMsg );          // void (*myDrawMsg)( const String& label )
+  SDUCfg.setErrorCb     ( myErrorMsg );         // void (*myErrorMsg)( const String& message, unsigned long delay )
+  SDUCfg.setBeforeCb    ( myBeforeCb );         // void (*myBeforeCb)()
+  SDUCfg.setAfterCb     ( myAfterCb );          // void (*myAfterCb)()
+  SDUCfg.setSplashPageCb( myDrawSplashPage );   // void (*myDrawSplashPage)( const char* msg )
+  SDUCfg.setButtonDrawCb( myDrawPushButton );   // void (*myDrawPushButton)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor )
+  SDUCfg.setWaitForActionCb( myActionTrigger ); // int  (*myActionTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay )
+```
+
+
+
+
+Set custom action trigger for `update`, `rollback` and `skip` lobby options:
+```C++
+  // int myActionTrigger( char* labelLoad,  char* labelSkip, unsigned long waitdelay )
+  // return values: 1=update, 0=rollback, -1=skip
+  SDUCfg.setWaitForActionCb( myActionTrigger );
+```
+
+  Example:
+
+```C++
+
+static int myActionTrigger( char* labelLoad,  char* labelSkip, unsigned long waitdelay )
+{
+  int64_t msec = millis();
+  do {
+    if( Serial.available() ) {
+      String out = Serial.readStringUntil('\n');
+      if(      out == "update" )  return  1; // load "/menu.bin"
+      else if( out == "rollback") return  0; // rollback to other OTA partition
+      else if( out == "skip" )    return -1; // do nothing
+      else Serial.printf("Ignored command: %s\n", out.c_str() );
+    }
+  } while( msec > int64_t( millis() ) - int64_t( waitdelay ) );
+  return -1;
+}
+
+void setup()
+{
+  Serial.begin(115200);
+
+  SDUCfg.setWaitForActionCb( myActionTrigger );
+
+  checkSDUpdater( SD );
+
+}
+
+```
+
+Set custom progress (for filesystem operations):
+```C++
+  // void (*myProgress)( int state, int size )
+  SDUCfg.setProgressCb( myProgress );
+```
+
+Set custom notification/warning messages emitter:
+```C++
+  // void (*myDrawMsg)( const String& label )
+  SDUCfg.setMessageCb( myDrawMsg );
+```
+
+Set custom error messages emitter:
+```C++
+  // void (*myErrorMsg)( const String& message, unsigned long delay )
+  SDUCfg.setErrorCb( myErrorMsg );
+```
+
+Set pre-update actions (e.g. capture display styles):
+```C++
+  // void (*myBeforeCb)()
+  SDUCfg.setBeforeCb( myBeforeCb );
+```
+
+Set post-update actions (e.g. restore display styles):
+```C++
+  // void (*myAfterCb)()
+  SDUCfg.setAfterCb( myAfterCb );
+```
+
+Set lobby welcome message (e.g. draw UI welcome screen):
+```C++
+  // void (*myDrawSplashPage)( const char* msg )
+  SDUCfg.setSplashPageCb( myDrawSplashPage );
+```
+
+Set buttons drawing function (useful with Touch displays)
+```C++
+  // void (*myDrawPushButton)( const char* label, uint8_t buttonIndex, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor )
+  SDUCfg.setButtonDrawCb( myDrawPushButton );
+```
+
+<br />
+<br />
+
+📚 SD-Menu loading usage:
+-------------------------
+
+**Default behaviour:** when an app is loaded in memory, booting the M5Stack with the `Button A` pushed will load and run `menu.bin` from the filesystem (or from OTA2 if using persistence).
+
+**Custom behaviour:** the `Button A` push event car be replaced by any other means (Touch, Serial, Network, Sensor).
+
+Ideally that SD-Menu application should list all available apps on the sdcard and provide means to load them on demand.
+
+For example in the SD-Menu application provided with the examples of this repository, booting the M5Stack with the `Button A` pushed will power it off.
+
+The build-in Download utility of the SD-Menu is currently limited to ESP32-Wrover builds as it uses a significant part of memory and flash space.
+While it is being reworked and moved to an external app, moving the files manually is the only solution for non-psram devices.
+
+Along with the default SD-Menu example of this repository, some artwork/credits can be added for every uploaded binary.
+The default SD-Menu application will scan for these file types:
 
   - .bin compiled application binary
 
@@ -200,70 +327,72 @@ Some artwork/credits can be added for every uploaded binary, the menu will scan 
 
   `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://short.url","credits":"** http://very.very.long.url ~~"}`
 
-If no info is provided, it will be pulled from the app's repository public information.
 
 <br />
 
   ⚠️ The jpg/json file names must match the bin file name, case matters!
-  jpg/json files are optional but must both be set if provided.
-  The value for "credits" JSON property will be scrolled on the top of the screen while the value for *projectURL* JSON property will be rendered as a QR Code in the info window. It is better provide a short URL for *projectURL* so the resulting QR Code has more error correction.
+  jpg/json meta files are optional but must both be set if provided.
+  The value for "credits" JSON property will be scrolled on the top of the screen while the value for *projectURL* JSON property
+  will be rendered as a QR Code in the info window. It is better provide a short URL for *projectURL* so the resulting QR Code
+  has more error correction.
 
 <br />
 <br />
+
 
 🚫 LIMITATIONS:
 ---------------
-- SD Library limits file names (including path) to 32 chars, M5StackSAM has a slightly higher limit.
+- SD Library limits file names (including path) to 32 chars but 16 is recommended.
 - Short file names may be treated as 8.3 (e.g 2048.bin becomes 2048.BIN).
 - FAT specifications prevent having more than 512 files on the SD Card, but this menu is limited to 256 Items anyway.
-- Long file names will eventually get covered by the jpg image, better stay under 8 chars (not including the extension).
+- Long file names will eventually get covered by the jpg image, better stay under 16 chars (not including the extension).
 
 <br />
 
 🔘 OPTIONAL:
 ------------
-The default binary name to be loaded can be changed at compilation time by customizing the `MENU_BIN` constant:
+- The default binary name to be loaded (`/menu.bin`) can be changed at compilation time by defining the `MENU_BIN` constant:
 
-    #define MENU_BIN "/my_custom_menu.bin"
-    #include "M5StackUpdater.h"
+```C++
+#define MENU_BIN "/my_custom_menu.bin"
+#include "M5StackUpdater.h"
+```
 
-The M5Stack automatically detects and uses the [M5Stack-Faces](https://github.com/m5stack/faces) addon (gameboy only).
+- The lobby screen at boot can be customized:
 
-The JoyPSP Controls for M5Stack SD Menu necessary code is now disabled in the menu example but the code stays here and can be used as a boilerplate for any other two-wires input device.
+```C++
+#define SDU_APP_NAME "My App"
+#include "M5StackUpdater.h"
+```
 
-The JoyPSP code is optimized for a [4 Wires PSP JoyPad breakout](https://www.google.fr/search?q=psp+joypad+breakout) on Pins 35 and 36, but it shouldn't be a problem to adapt/extend to other analog joystick models.
+- It can also be disabled (although this requires to use the early callback setters):
+
+```C++
+#define SDU_HEADLESS
+#include "M5StackUpdater.h"
+```
+
+- The JoyPSP and [M5Stack-Faces](https://github.com/m5stack/faces) Controls for M5Stack SD Menu necessary code are now disabled in the menu example but the code stays here and can be used as a boilerplate for any other two-wires input device.
+
 
 <br />
 
  ⚠️ KNOWN ISSUES
 ------------
-*qrcode.h not found*, or *duplicate declarations* errors can occur during compilation of M5Stack-SD-Menu.ino.
 
-Reason: M5Stack recently embedded the `qrcode.h` library into their own core.
-If your version of M5stack core is older than 0.1.8, Arduino IDE will probably complain.
+- `SD was not declared in this scope`: make sure your `#include <SD.h>` is made *before* including `<M5StackUpdater.h>`
+- Serial message `[ERROR] No filesystem selected` or `[ERROR] No valid filesystem selected`: try `SDUCfg.setFS( &SD )` prior to calling the SDUpdater
 
-Solution 1: choose between one of the two includes in M5Stack-SD-Menu.ino:
-
-`#include "qrcode.h"` ← use this with M5Stack-Core 0.1.6 and older, comment out the other one
-
-or
-
-`#include "utilities/qrcode.h` ← use this with M5Stack-Core 0.1.7, comment out the other one
-
-Solution 2: in your library manager, downgrade the M5Stack-SD-Menu to an earlier version (0.0.1) until you update M5Stack library
-
-Solution 3: upgrade your M5Stack core version to 0.1.8
-
-Compilation `#pragma` warnings/errors in the Arduino IDE can be solved by setting the debug level to `default` in the Arduino preferences window.
-See [#3](https://github.com/tobozo/M5Stack-SD-Updater/issues/3)
-
-vMicro: currently can't compile at all, see [#5](https://github.com/tobozo/M5Stack-SD-Updater/issues/5). Looking for a solution that works with both vMicro and Arduino IDE.
 
 <br />
 
 🛣 ROADMAP:
 ----------
-Not defined yet, but looking at how fast this [library landed in platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater), there's a possibility it will soon exist in different flavours (i.e. as an ESP-IDF component) or with more [features](https://github.com/m5stack/faces). Contributors welcome!
+- Completely detach the UI/Display/Touch/Buttons from the codebase
+- Support gzipped binaries
+- Migrate Downloader / WiFiManager to external apps
+- esp-idf support
+- Contributors welcome!
 
 <br />
 
