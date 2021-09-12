@@ -54,6 +54,7 @@
 //#include <ESP32-Chimera-Core.h>
 #include <M5Stack.h>
 #define SDU_APP_NAME "M5Stack SDLoader Snippet"
+#define SDU_APP_PATH "/MY_SKETCH.bin"
 // #define SDU_HEADLESS
 #include <M5StackUpdater.h>
 
@@ -83,7 +84,7 @@ void loop() {
   M5.update();
   if( M5.BtnB.pressedFor( 1000 ) ) {
     Serial.println("Will copy this sketch to filesystem");
-    if( saveSketchToFS( SD, "/MY_SKETCH.bin", TFCARD_CS_PIN ) ) {
+    if( saveSketchToFS( SD, SDU_APP_PATH, TFCARD_CS_PIN ) ) {
       Serial.println("Copy successful !");
     } else {
       Serial.println("Copy failed !");

@@ -149,7 +149,7 @@ class SDUpdater
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
     // fs::File->name() changed behaviour after esp32 sdk 2.x.x
     static const char* fs_file_path( fs::File *file ) {
-      #if defined ESP_ARDUINO_VERSION && ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(2,0,0)
+      #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
         return file->path();
       #else
         return file->name();
