@@ -54,7 +54,6 @@
 #endif
 
 
-
 void SDUpdater::_error( const String& errMsg, unsigned long waitdelay )
 {
   Serial.print("[ERROR] ");
@@ -444,7 +443,7 @@ void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
   }
 
   if( cfg->onWaitForAction ) {
-    if ( cfg->onWaitForAction( isRollBack ? (char*)ROLLBACK_LABEL : (char*)LAUNCHER_LABEL,  (char*)SKIP_LABEL, waitdelay ) == 1 ) {
+    if ( cfg->onWaitForAction( isRollBack ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, waitdelay ) == 1 ) {
       if( isRollBack == false ) {
         Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
         updateFromFS( fileName );

@@ -106,7 +106,7 @@
 
       void pushIcon(const char* label)
       {
-        if( strcmp( label, LAUNCHER_LABEL ) == 0 || strcmp( label, ROLLBACK_LABEL ) == 0 )
+        if( strcmp( label, SDUCfg.labelMenu ) == 0 || strcmp( label, SDUCfg.labelRollback ) == 0 )
         {
           TouchStyles bs;
           auto IconSprite = TFT_eSprite( &SDU_GFX );
