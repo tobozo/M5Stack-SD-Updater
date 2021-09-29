@@ -28,6 +28,15 @@
  *
  */
 
+
+#define ROLLBACK_LABEL   "Rollback" // reload app from the "other" OTA partition
+#define LAUNCHER_LABEL   "Launcher" // load Launcher (typically menu.bin)
+#define SKIP_LABEL       "Skip >>|" // resume normal operations (=no action taken)
+#define BTN_HINT_MSG     "SD-Updater Options"
+#define SDU_LOAD_TPL     "Will Load menu binary : %s\n"
+#define SDU_ROLLBACK_MSG "Will Roll back"
+
+
 // callback signatures
 typedef void (*onProgressCb)( int state, int size );
 typedef void (*onMessageCb)( const String& label );
@@ -45,6 +54,9 @@ struct config_sdu_t
   fs::FS *fs = nullptr;
   int TFCardCsPin = -1;
   bool load_defaults = true;
+  const char* labelMenu     = LAUNCHER_LABEL;
+  const char* labelSkip     = SKIP_LABEL;
+  const char* labelRollback = ROLLBACK_LABEL;
 
   onProgressCb      onProgress       = nullptr;
   onMessageCb       onMessage        = nullptr;
@@ -65,6 +77,10 @@ struct config_sdu_t
   void setSplashPageCb( onSplashPageCb cb )       { onSplashPage = cb; }
   void setButtonDrawCb( onButtonDrawCb cb )       { onButtonDraw = cb; }
   void setWaitForActionCb( onWaitForActionCb cb ) { onWaitForAction = cb; }
+
+  void setLabelMenu( const char* label )          { labelMenu = label; }
+  void setLabelSkip( const char* label )          { labelSkip = label; }
+  void setLabelRollback( const char* label )      { labelRollback = label; }
 
 };
 
@@ -98,12 +114,6 @@ extern "C" {
 // required to store the MENU_BIN hash
 #include <Preferences.h>
 
-#define ROLLBACK_LABEL   "Rollback" // reload app from the "other" OTA partition
-#define LAUNCHER_LABEL   "Launcher" // load Launcher (typically menu.bin)
-#define SKIP_LABEL       "Skip >>|" // resume normal operations (=no action taken)
-#define BTN_HINT_MSG     "SD-Updater Options"
-#define SDU_LOAD_TPL     "Will Load menu binary : %s\n"
-#define SDU_ROLLBACK_MSG "Will Roll back"
 
 #ifndef MENU_BIN
   #define MENU_BIN "/menu.bin"
