@@ -138,6 +138,7 @@ static void SDMenuProgressHeadless( int state, int size )
   struct BtnStyles {
     BtnStyle Load = { TFT_ORANGE,                          SDU_GFX.color565( 0xaa, 0x00, 0x00), SDU_GFX.color565( 0xdd, 0xdd, 0xdd) };
     BtnStyle Skip = { SDU_GFX.color565( 0x11, 0x11, 0x11), SDU_GFX.color565( 0x33, 0x88, 0x33), SDU_GFX.color565( 0xee, 0xee, 0xee) };
+    BtnStyle Save = { TFT_ORANGE, TFT_BLACK, TFT_WHITE };
     uint16_t height          = BUTTON_HEIGHT;
     uint16_t width           = BUTTON_WIDTH;
     uint16_t hwidth          = BUTTON_HWIDTH;
