@@ -27,7 +27,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-#if defined HAS_TOUCH || defined _M5Core2_H_
+#if defined HAS_TOUCH
   #ifndef _SDU_TOUCH_UI_
     #define _SDU_TOUCH_UI_
 
@@ -47,9 +47,11 @@
           marginy = 4,                                    // buttons margin Y
           x1      = marginx + SDU_GFX.width()/4,              // button 1 X position
           x2      = marginx+SDU_GFX.width()-SDU_GFX.width()/4,    // button 2 X position
-          y       = SDU_GFX.height()/2,                       // buttons Y position
+          x3      = SDU_GFX.width()/2,                         // button 3 X position
+          y       = SDU_GFX.height()/2.2,                       // buttons Y position
           w       = (SDU_GFX.width()/2)-(marginx*2),          // buttons width
           h       = SDU_GFX.height()/4,                       // buttons height
+          y1      = marginx*3+SDU_GFX.height()-h,               // button3 y position
           icon_x  = marginx+12,                           // icon (button 1) X position
           icon_y  = y-8,                                  // icon (button 1) Y position
           pgbar_x = SDU_GFX.width()/2+(marginx*2)+(padx*2)-1, // progressbar X position
@@ -59,6 +61,7 @@
       ;
       BtnStyle Load = { TFT_ORANGE,                          SDU_GFX.color565( 0xaa, 0x00, 0x00), SDU_GFX.color565( 0xdd, 0xdd, 0xdd) };
       BtnStyle Skip = { SDU_GFX.color565( 0x11, 0x11, 0x11), SDU_GFX.color565( 0x33, 0x88, 0x33), SDU_GFX.color565( 0xee, 0xee, 0xee) };
+      BtnStyle Save = { TFT_ORANGE, TFT_BLACK, TFT_WHITE };
     };
 
     struct TouchButtonWrapper
@@ -118,7 +121,7 @@
       }
     }; // end struct TouchButtonWrapper
 
-    static int assertStartUpdateFromTouchButton( char* labelLoad, char* labelSkip, unsigned long waitdelay=5000 )
+    static int assertStartUpdateFromTouchButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay=5000 )
     {
       /* auto &tft = M5.Lcd; */
       if( waitdelay == 0 ) return -1;
@@ -126,6 +129,7 @@
 
       static SDU_TouchButton *LoadBtn = new SDU_TouchButton();
       static SDU_TouchButton *SkipBtn = new SDU_TouchButton();
+      static SDU_TouchButton *SaveBtn = new SDU_TouchButton();
 
       TouchButtonWrapper tbWrapper;
       TouchStyles ts;
@@ -133,6 +137,9 @@
       #if defined _M5Core2_H_
         LoadBtn->setFont(nullptr);
         SkipBtn->setFont(nullptr);
+        if( SDUCfg.binFileName != nullptr ) {
+          SaveBtn->setFont(nullptr);
+        }
       #endif
 
       LoadBtn->initButton(
@@ -147,6 +154,18 @@
         ts.Skip.BorderColor, ts.Skip.FillColor, ts.Skip.TextColor,
         labelSkip, ts.btn_fsize
       );
+
+      if( SDUCfg.binFileName != nullptr ) {
+        SaveBtn->initButton(
+          &SDU_GFX,
+          ts.x3, ts.y1,  ts.w, ts.h,
+          ts.Save.BorderColor, ts.Save.FillColor, ts.Save.TextColor,
+          labelSave, ts.btn_fsize
+        );
+        SaveBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
+        SaveBtn->drawButton();
+        SaveBtn->press(false);
+      }
 
       LoadBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
       SkipBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
@@ -172,8 +191,14 @@
         }
         tbWrapper.handlePressed( LoadBtn, ispressed, t_x, t_y );
         tbWrapper.handlePressed( SkipBtn, ispressed, t_x, t_y );
+        if( SDUCfg.binFileName != nullptr ) {
+          tbWrapper.handlePressed( SaveBtn, ispressed, t_x, t_y );
+        }
         tbWrapper.handleJustPressed( LoadBtn, labelLoad );
         tbWrapper.handleJustPressed( SkipBtn, labelSkip );
+        if( SDUCfg.binFileName != nullptr ) {
+          tbWrapper.handleJustPressed( SaveBtn, labelSave );
+        }
 
         if( tbWrapper.justReleased( LoadBtn, ispressed, labelLoad ) ) {
           retval = 1;
@@ -184,6 +209,13 @@
           retval = 0;
           log_n("SkipBTN Pressed at [%d:%d]!", t_x, t_y);
           break;
+        }
+        if( SDUCfg.binFileName != nullptr ) {
+          if( tbWrapper.justReleased( SaveBtn, ispressed, labelSave ) ) {
+            retval = 2;
+            log_n("SaveBtn Pressed at [%d:%d]!", t_x, t_y);
+            break;
+          }
         }
 
         #if __has_include("lgfx/v1/Touch.hpp") // LovyanGFX

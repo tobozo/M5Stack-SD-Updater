@@ -36,7 +36,7 @@
 
 // headless methods
 __attribute__((unused))
-static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip, unsigned long waitdelay )
+static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip, char* labelSave, unsigned long waitdelay )
 {
   int64_t msec = millis();
   do {
@@ -45,6 +45,7 @@ static int assertStartUpdateFromSerial( char* labelLoad,  char* labelSkip, unsig
       if(      out == "update" ) return 1;
       else if( out == "rollback") return 0;
       else if( out == "skip" ) return -1;
+      else if( out == "save" ) return 2;
       else Serial.printf("Ignored command: %s\n", out.c_str() );
     }
   } while( msec > int64_t( millis() ) - int64_t( waitdelay ) );
@@ -97,7 +98,11 @@ static void SDMenuProgressHeadless( int state, int size )
     #ifndef SDU_GFX
       #define undef_tft
       // recast from reference, M5.Lcd can be either from Chimera-Core or M5Cores (or even TFT_eSPI)
-      #define SDU_GFX M5.Lcd // can be either M5.Lcd from M5Core.h, M5Core2.h or ESP32-Chimera-Core.h
+      #if defined __M5UNIFIED_HPP__
+        #define SDU_GFX M5.Display // M5Unified has a different namespace but LGFX compatible API
+      #else
+        #define SDU_GFX M5.Lcd // can be either M5.Lcd from M5Core.h, M5Core2.h or ESP32-Chimera-Core.h
+      #endif
     #endif
   #endif
 
@@ -164,7 +169,7 @@ static void SDMenuProgressHeadless( int state, int size )
       // log_v("can't freeze twice, thaw first !");
       return;
     }
-    #if defined LGFX_ONLY
+    #if defined LGFX_ONLY || defined __M5UNIFIED_HPP__
       SDUTextStyle.textcolor   = SDU_GFX.getTextStyle().fore_rgb888;
       SDUTextStyle.textbgcolor = SDU_GFX.getTextStyle().back_rgb888;
       SDUTextStyle.textdatum   = SDU_GFX.getTextStyle().datum;
@@ -200,21 +205,23 @@ static void SDMenuProgressHeadless( int state, int size )
     BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
     SDU_GFX.setTextColor( bs->MsgFontFolor[0], bs->MsgFontFolor[1] );
     SDU_GFX.setTextSize( bs->MsgFontSize );
-    SDU_GFX.setTextDatum( TL_DATUM );
+    SDU_GFX.setTextDatum( TC_DATUM );
     SDU_GFX.setTextFont( 0 );
     SDU_GFX.setTextColor( TFT_WHITE );
     //SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 0, 15, 16 );
-    SDU_GFX.drawString( msg, 24, 0 );
-    #if defined SDU_APP_NAME
+    SDU_GFX.drawString( msg, SDU_GFX.width()/2, 0 );
+    if( SDUCfg.appName != nullptr ) {
       SDU_GFX.setTextColor( TFT_LIGHTGREY );
       //SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 24, 15, 16 );
-      SDU_GFX.drawString( SDU_APP_NAME, 24, 24 );
-    #endif
-    #if defined SDU_APP_PATH
+      SDU_GFX.drawString( SDUCfg.appName, SDU_GFX.width()/2, 24 );
+    }
+    if( SDUCfg.binFileName != nullptr ) {
       SDU_GFX.setTextColor( TFT_DARKGREY );
+      SDU_GFX.setTextSize( bs->FontSize );
+      //SDU_GFX.setTextDatum( TL_DATUM );
       //SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 48, 15, 16 );
-      SDU_GFX.drawString( SDU_APP_PATH, 24, 48 );
-    #endif
+      SDU_GFX.drawString( &SDUCfg.binFileName[1], SDU_GFX.width()/2, 52 );
+    }
     //SDU_GFX.drawJpg( sdUpdaterIcon32x40_jpg, sdUpdaterIcon32x40_jpg_len, (SDU_GFX.width()/2)-16, (SDU_GFX.height()/2)-20, 32, 40 );
   }
 
@@ -239,14 +246,14 @@ static void SDMenuProgressHeadless( int state, int size )
 
   #if defined LGFX_ONLY
     __attribute__((unused))
-    static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
+    static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
     {
       // Dummy function, use SDUCfg.onWaitForAction( fn ) to override
       return -1;
     }
   #else // M5.BtnA/BtnB/BtnC support
     __attribute__((unused))
-    static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, unsigned long waitdelay )
+    static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
     {
       if( waitdelay > 100 ) {
         SDUCfg.onBefore();
@@ -254,19 +261,26 @@ static void SDMenuProgressHeadless( int state, int size )
         BtnStyles btns;
         SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
         SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+        if( SDUCfg.binFileName != nullptr ) {
+          SDUCfg.onButtonDraw( labelSave, 2, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+        }
       }
       auto msec = millis();
       do {
         M5.update();
         if( M5.BtnA.isPressed() ) return 1;
         if( M5.BtnB.isPressed() ) return 0;
+        if( SDUCfg.binFileName != nullptr ) {
+          // copy binary to SD
+          if( M5.BtnC.isPressed() ) return 2; // Force copy bin
+        }
       } while (millis() - msec < waitdelay);
       return -1;
     }
   #endif
 
 
-  #if defined HAS_TOUCH || defined _M5Core2_H_ // ESP32-Chimera-Core / LGFX / M5Core2 touch support
+  #if defined HAS_TOUCH // ESP32-Chimera-Core / LGFX / M5Core2 touch support
 
     #include "M5StackUpdaterUITouch.h"
 
@@ -282,7 +296,7 @@ static void SDMenuProgressHeadless( int state, int size )
     int progress_x = (SDU_GFX.width() - progress_w) >> 1;
     int progress_y = (SDU_GFX.height()- progress_h) >> 1;
 
-    if( state == -1 && size == -1 ) {
+    if( state <=0 || size <=0 ) {
       // clear progress bar
       SDU_GFX.fillRect( progress_x, progress_y, progress_w, progress_h, TFT_BLACK );
     } else {
@@ -376,7 +390,7 @@ static void SDMenuProgressHeadless( int state, int size )
       if( !SDUCfg.onSplashPage ) SDUCfg.setSplashPageCb( drawSDUSplashPage ); log_d("Attaching onSplashPage");
       if( !SDUCfg.onButtonDraw ) SDUCfg.setButtonDrawCb( drawSDUPushButton ); log_d("Attaching onButtonDraw");
 
-      #if defined HAS_TOUCH || defined _M5Core2_H_ // default touch button support
+      #if defined HAS_TOUCH // default touch button support
         if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromTouchButton ); log_d("Attaching onWaitForAction (touch)");
       #else // default momentary button support
         if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromPushButton ); log_d("Attaching onWaitForAction (button)");

@@ -143,7 +143,7 @@ class SDUpdater
     // flash to SD binary replication
     bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
     bool copyFsPartition(File* dst, const esp_partition_t* src, size_t length);
-    bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} );
+    bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN}, bool skipIfExists = false );
     // static methods
     static void updateNVS();
     static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
@@ -163,7 +163,7 @@ class SDUpdater
     void tryRollback( String fileName );
     void _error( const String& errMsg, unsigned long waitdelay = 2000 );
     void _message( const String& label );
-    #if defined HAS_TOUCH || defined _M5Core2_H_ // default touch button support
+    #if defined HAS_TOUCH // default touch button support
       const bool SDUHasTouch = true;
     #else
       const bool SDUHasTouch = false;
