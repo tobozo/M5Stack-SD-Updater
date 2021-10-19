@@ -272,7 +272,9 @@ static void SDMenuProgressHeadless( int state, int size )
         if( M5.BtnB.isPressed() ) return 0;
         if( SDUCfg.binFileName != nullptr ) {
           // copy binary to SD
-          if( M5.BtnC.isPressed() ) return 2; // Force copy bin
+          #ifndef _M5STICKC_H_
+            if( M5.BtnC.isPressed() ) return 2; // Force copy bin
+          #else
         }
       } while (millis() - msec < waitdelay);
       return -1;
