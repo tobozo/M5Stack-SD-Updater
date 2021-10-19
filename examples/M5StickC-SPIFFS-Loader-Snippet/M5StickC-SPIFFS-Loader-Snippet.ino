@@ -40,7 +40,7 @@
  *
  */
 #include <M5StickC.h>
-#include "M5StackUpdater.h"
+#include <M5StackUpdater.h>
 
 void setup() {
   Serial.begin(115200);
