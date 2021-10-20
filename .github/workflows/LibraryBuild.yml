@@ -70,7 +70,7 @@ jobs:
 
       - name: ${{ matrix.matrix-context }}
         #uses: ArminJo/arduino-test-compile@v3
-        uses: ArminJo/arduino-test-compile@0798c5ac6aea96a2f4b9d562c233421f9b00fcdf
+        uses: ArminJo/arduino-test-compile@master
         with:
           platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
@@ -79,4 +79,3 @@ jobs:
           sketch-names: ${{ matrix.sketch-names }}
           build-properties: ${{ toJson(matrix.build-properties) }}
           debug-install: true
-
