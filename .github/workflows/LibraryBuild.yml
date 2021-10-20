@@ -77,4 +77,5 @@ jobs:
           sketch-names: ${{ matrix.sketch-names }}
           #sketches-exclude: "SD-Apps/**"
           build-properties: ${{ toJson(matrix.build-properties) }}
+          debug-install: true
 
