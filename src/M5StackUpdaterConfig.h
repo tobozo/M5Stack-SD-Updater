@@ -33,10 +33,16 @@
 #define LAUNCHER_LABEL   "Launcher" // load Launcher (typically menu.bin)
 #define SKIP_LABEL       "Skip >>|" // resume normal operations (=no action taken)
 #define SAVE_LABEL       "Save"     // copy sketch binary to FS
-#define BTN_HINT_MSG     "SD-Updater Options"
+#define BTN_HINT_MSG     "SD-Updater Lobby"
 #define SDU_LOAD_TPL     "Will Load menu binary : %s\n"
 #define SDU_ROLLBACK_MSG "Will Roll back"
 
+#if !defined SDU_APP_PATH
+  #define SDU_APP_PATH nullptr
+#endif
+#if !defined SDU_APP_NAME
+  #define SDU_APP_NAME nullptr
+#endif
 
 // callback signatures
 typedef void (*onProgressCb)( int state, int size );
@@ -59,16 +65,8 @@ struct config_sdu_t
   const char* labelSkip     = SKIP_LABEL;
   const char* labelRollback = ROLLBACK_LABEL;
   const char* labelSave     = SAVE_LABEL;
-#if defined SDU_APP_PATH
   const char* binFileName   = SDU_APP_PATH;
-#else
-  const char* binFileName   = nullptr;
-#endif
-#if defined SDU_APP_NAME
   const char* appName       = SDU_APP_NAME;
-#else
-  const char* appName       = nullptr;
-#endif
 
   onProgressCb      onProgress       = nullptr;
   onMessageCb       onMessage        = nullptr;
@@ -129,13 +127,20 @@ extern "C" {
 // required to store the MENU_BIN hash
 #include <Preferences.h>
 
-
 #ifndef MENU_BIN
   #define MENU_BIN "/menu.bin"
 #endif
 
-#if !defined(TFCARD_CS_PIN) // override this from your sketch
- #define TFCARD_CS_PIN SS
+#if !defined(TFCARD_CS_PIN) // override this from your sketch if the guess is wrong
+  #if defined( ARDUINO_LOLIN_D32_PRO ) || defined( ARDUINO_M5STACK_Core2  ) || defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE)
+    #define TFCARD_CS_PIN  4
+  #elif defined( ARDUINO_ESP32_WROVER_KIT ) || defined( ARDUINO_ODROID_ESP32 )
+    #define TFCARD_CS_PIN 22
+  #elif defined ARDUINO_TWATCH_BASE || defined ARDUINO_TWATCH_2020_V1 || defined ARDUINO_TWATCH_2020_V2 || defined(ARDUINO_TTGO_T1)
+    #define TFCARD_CS_PIN 13
+  #else
+    #define TFCARD_CS_PIN SS
+  #endif
 #endif
 
 #if !defined SDU_HEADLESS && (defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY || defined __M5UNIFIED_HPP__)

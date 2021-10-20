@@ -163,7 +163,7 @@ class SDUpdater
     void tryRollback( String fileName );
     void _error( const String& errMsg, unsigned long waitdelay = 2000 );
     void _message( const String& label );
-    #if defined HAS_TOUCH // default touch button support
+    #if defined _M5Core2_H_ // enable additional touch button support
       const bool SDUHasTouch = true;
     #else
       const bool SDUHasTouch = false;

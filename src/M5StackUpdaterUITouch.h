@@ -134,7 +134,7 @@
       TouchButtonWrapper tbWrapper;
       TouchStyles ts;
 
-      #if defined _M5Core2_H_
+      #if !defined HAS_LGFX
         LoadBtn->setFont(nullptr);
         SkipBtn->setFont(nullptr);
         if( SDUCfg.binFileName != nullptr ) {
@@ -218,7 +218,7 @@
           }
         }
 
-        #if __has_include("lgfx/v1/Touch.hpp") // LovyanGFX
+        #if defined HAS_LGFX
           lgfx::touch_point_t tp;
           uint16_t number = SDU_GFX.getTouch(&tp, 1);
           t_x = tp.x;

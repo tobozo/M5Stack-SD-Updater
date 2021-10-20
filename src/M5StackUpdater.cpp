@@ -147,8 +147,6 @@ bool SDUpdater::copyFsPartition(File* dst, const esp_partition_t* src, size_t le
     if (dst) dst->write(buf.get(), (readBytes + 3) & ~3);
     lengthLeft -= readBytes;
     offset += readBytes;
-
-    // using progress here messes up with SD
     if( cfg->onProgress ) {
       progress = 100 * offset / length;
       if (progressOld != progress) {
@@ -157,7 +155,6 @@ bool SDUpdater::copyFsPartition(File* dst, const esp_partition_t* src, size_t le
         vTaskDelay(10);
       }
     }
-
   }
   return true;
 }

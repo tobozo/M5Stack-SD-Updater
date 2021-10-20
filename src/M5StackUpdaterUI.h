@@ -30,9 +30,6 @@
 #ifndef _M5UPDATER_UI_
 #define _M5UPDATER_UI_
 
-// LGFX complains when using old TFT_eSPI syntax
-// but this sketch must be driver agnostic
-//#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 // headless methods
 __attribute__((unused))
@@ -93,6 +90,8 @@ static void SDMenuProgressHeadless( int state, int size )
       {
         SDuGFX = gfx;
       }
+      #define HAS_LGFX // LFGX family cores/drivers (ESP32-Chimera-Core, LovyanGFX, M5GFX, M5Unified)
+      #define SDUSprite LGFX_Sprite
     #endif
   #else
     #ifndef SDU_GFX
@@ -100,8 +99,16 @@ static void SDMenuProgressHeadless( int state, int size )
       // recast from reference, M5.Lcd can be either from Chimera-Core or M5Cores (or even TFT_eSPI)
       #if defined __M5UNIFIED_HPP__
         #define SDU_GFX M5.Display // M5Unified has a different namespace but LGFX compatible API
+        #define HAS_LGFX // LFGX family cores/drivers (ESP32-Chimera-Core, LovyanGFX, M5GFX, M5Unified)
+        #define SDUSprite LGFX_Sprite
       #else
-        #define SDU_GFX M5.Lcd // can be either M5.Lcd from M5Core.h, M5Core2.h or ESP32-Chimera-Core.h
+        #define SDU_GFX M5.Lcd // can be either M5.Lcd from M5Core.h, M5Core2.h, M5StickC.h or ESP32-Chimera-Core.h
+        #if defined _CHIMERA_CORE_H_
+          #define HAS_LGFX // LFGX family cores/drivers (ESP32-Chimera-Core, LovyanGFX, M5GFX, M5Unified)
+          #define SDUSprite LGFX_Sprite
+        #else
+          #define SDUSprite TFT_eSprite
+        #endif
       #endif
     #endif
   #endif
@@ -109,7 +116,7 @@ static void SDMenuProgressHeadless( int state, int size )
   // theme selector
   #ifdef ARDUINO_ODROID_ESP32 // Odroid-GO has 4 buttons under the TFT
     #define BUTTON_WIDTH 60
-    #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
+    #define BUTTON_HWIDTH BUTTON_WIDTH/2 // button half width
     #define BUTTON_HEIGHT 28
     static int16_t SDUButtonsXOffset[4] = {
       1, 72, 188, 260
@@ -119,7 +126,7 @@ static void SDMenuProgressHeadless( int state, int size )
     };
   #else // assuming landscape mode /w 320x240 display
     #define BUTTON_WIDTH 60
-    #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
+    #define BUTTON_HWIDTH BUTTON_WIDTH/2 // button half width
     #define BUTTON_HEIGHT 28
     static int16_t SDUButtonsXOffset[3] = {
       31, 126, 221
@@ -129,16 +136,52 @@ static void SDMenuProgressHeadless( int state, int size )
     };
   #endif
 
-  struct BtnStyle {
+
+  struct SplashPageElementStyle
+  {
+    uint16_t textColor;
+    uint16_t bgColor;
+    uint16_t fontSize;
+    uint16_t textDatum;
+    uint16_t colorStart; // gradient color start
+    uint16_t colorEnd;   // gradient color end
+  };
+
+  struct ProgressBarStyle
+  {
+    int      width;
+    int      height;
+    bool     clipText;
+    uint16_t borderColor;
+    uint16_t fillColor;
+    uint8_t  fontNumber;
+    uint8_t  textDatum;
+    uint8_t  textSize;
+    uint16_t textColor;
+    uint16_t bgColor;
+  };
+
+  struct BtnStyle
+  {
     uint16_t BorderColor;
     uint16_t FillColor;
     uint16_t TextColor;
   };
 
-  struct BtnStyles {
+  struct SDUTextStyle_T // somehow redundant with LGFX's textstyle_t
+  {
+    bool frozen           = false;
+    uint8_t textsize      = 0;
+    uint8_t textdatum     = 0;
+    uint32_t textcolor    = 0;
+    uint32_t textbgcolor  = 0;
+  };
+
+  struct BtnStyles
+  {
     BtnStyle Load = { TFT_ORANGE,                          SDU_GFX.color565( 0xaa, 0x00, 0x00), SDU_GFX.color565( 0xdd, 0xdd, 0xdd) };
     BtnStyle Skip = { SDU_GFX.color565( 0x11, 0x11, 0x11), SDU_GFX.color565( 0x33, 0x88, 0x33), SDU_GFX.color565( 0xee, 0xee, 0xee) };
-    BtnStyle Save = { TFT_ORANGE, TFT_BLACK, TFT_WHITE };
+    BtnStyle Save = { TFT_ORANGE,                          TFT_BLACK,                           TFT_WHITE };
     uint16_t height          = BUTTON_HEIGHT;
     uint16_t width           = BUTTON_WIDTH;
     uint16_t hwidth          = BUTTON_HWIDTH;
@@ -150,18 +193,26 @@ static void SDMenuProgressHeadless( int state, int size )
   static BtnStyles DefaultBtnStyle;
   static BtnStyles *userBtnStyle = nullptr;
 
+  static SplashPageElementStyle SplashTitleStyle   = { TFT_BLACK,     TFT_WHITE, 2, MC_DATUM, TFT_LIGHTGREY, TFT_DARKGREY };
+  static SplashPageElementStyle SplashAppNameStyle = { TFT_LIGHTGREY, TFT_BLACK, 2, BC_DATUM, 0, 0 };
+  static SplashPageElementStyle SplashAppPathStyle = { TFT_DARKGREY,  TFT_BLACK, 1, TC_DATUM, 0, 0 };
+
+  static ProgressBarStyle ProgressStyle = {
+    200,        // width
+    8,          // height
+    true,       // clip "xx%" text
+    TFT_LIGHTGREY,  // border color
+    TFT_DARKGREY,  // fill color
+    0,          // font number
+    TC_DATUM,   // text alignment
+    1,          // text size
+    TFT_WHITE,  // text color
+    TFT_BLACK   // text bgcolor
+  };
+
   static void SDMenuProgressUI( int state, int size );
   static void DisplayUpdateUI( const String& label );
   static void DisplayErrorUI( const String& msg, unsigned long wait );
-
-  struct SDUTextStyle_T // somehow redundant with LGFX's textstyle_t
-  {
-    bool frozen           = false;
-    uint8_t textsize      = 0;
-    uint8_t textdatum     = 0;
-    uint32_t textcolor    = 0;
-    uint32_t textbgcolor  = 0;
-  };
   static SDUTextStyle_T SDUTextStyle;
 
   static void freezeTextStyle()
@@ -170,12 +221,12 @@ static void SDMenuProgressHeadless( int state, int size )
       // log_v("can't freeze twice, thaw first !");
       return;
     }
-    #if defined LGFX_ONLY || defined __M5UNIFIED_HPP__
+    #if defined HAS_LGFX // LFGX family cores/drivers (ESP32-Chimera-Core, LovyanGFX, M5GFX, M5Unified)
       SDUTextStyle.textcolor   = SDU_GFX.getTextStyle().fore_rgb888;
       SDUTextStyle.textbgcolor = SDU_GFX.getTextStyle().back_rgb888;
       SDUTextStyle.textdatum   = SDU_GFX.getTextStyle().datum;
       SDUTextStyle.textsize    = SDU_GFX.getTextStyle().size_x;
-    #else // Chimera-Core, TFT_eSPI, M5Stack, M5Core2
+    #else // TFT_eSPI.h, M5Stack.h, M5Core2.h
       SDUTextStyle.textsize    = SDU_GFX.textsize;
       SDUTextStyle.textdatum   = SDU_GFX.textdatum;
       SDUTextStyle.textcolor   = SDU_GFX.textcolor;
@@ -191,7 +242,7 @@ static void SDMenuProgressHeadless( int state, int size )
     SDU_GFX.setTextSize( SDUTextStyle.textsize);
     SDU_GFX.setTextDatum( SDUTextStyle.textdatum );
     SDU_GFX.setTextColor( SDUTextStyle.textcolor , SDUTextStyle.textbgcolor );
-    #ifndef _M5STICKC_H_
+    #ifndef HAS_LGFX // LFGX family cores/drivers (ESP32-Chimera-Core, LovyanGFX, M5GFX, M5Unified)
       SDU_GFX.setFont( nullptr );
     #endif
     SDU_GFX.setCursor(0,0);
@@ -201,29 +252,50 @@ static void SDMenuProgressHeadless( int state, int size )
   }
 
   __attribute__((unused))
+  static void drawSDUSplashElement( const char* msg, int32_t x, int32_t y, SplashPageElementStyle *style )
+  {
+    SDU_GFX.setTextSize( style->fontSize );
+    SDU_GFX.setTextDatum( style->textDatum );
+    uint8_t lineHeight = SDU_GFX.fontHeight()*1.8;
+
+    #if defined HAS_LGFX
+      if( style->colorStart == style->colorEnd ) {
+        SDU_GFX.fillRect( 0, y, SDU_GFX.width(), lineHeight, style->bgColor );
+      } else {
+        for( int i=y; i<y+lineHeight; i++ ) {
+          SDU_GFX.drawGradientHLine( 0, i, SDU_GFX.width(), style->colorStart, style->colorEnd );
+        }
+      }
+    #else
+      SDU_GFX.fillRect( 0, y, SDU_GFX.width(), lineHeight, style->bgColor );
+    #endif
+
+    if( style->textColor != TFT_DARKGREY ) {
+      // drop shadow first
+      SDU_GFX.setTextColor( TFT_DARKGREY );
+      SDU_GFX.drawString( msg, x+1, 1+y+lineHeight/2 );
+    }
+    // now draw text
+    SDU_GFX.setTextColor( style->textColor );
+    SDU_GFX.drawString( msg, x, y+lineHeight/2 );
+  }
+
+  __attribute__((unused))
   static void drawSDUSplashPage( const char* msg )
   {
-    BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
-    SDU_GFX.setTextColor( bs->MsgFontFolor[0], bs->MsgFontFolor[1] );
-    SDU_GFX.setTextSize( bs->MsgFontSize );
-    SDU_GFX.setTextDatum( TC_DATUM );
-    SDU_GFX.setTextFont( 0 );
-    SDU_GFX.setTextColor( TFT_WHITE );
-    //SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 0, 15, 16 );
-    SDU_GFX.drawString( msg, SDU_GFX.width()/2, 0 );
+    int32_t centerX = SDU_GFX.width()/2;
+    SDU_GFX.setTextFont( 1 );
+
+    drawSDUSplashElement( msg, centerX, 0, &SplashTitleStyle );
+
     if( SDUCfg.appName != nullptr ) {
-      SDU_GFX.setTextColor( TFT_LIGHTGREY );
-      //SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 24, 15, 16 );
-      SDU_GFX.drawString( SDUCfg.appName, SDU_GFX.width()/2, 24 );
+      drawSDUSplashElement( SDUCfg.appName, centerX, SDU_GFX.height()/4, &SplashAppNameStyle  );
     }
     if( SDUCfg.binFileName != nullptr ) {
-      SDU_GFX.setTextColor( TFT_DARKGREY );
-      SDU_GFX.setTextSize( bs->FontSize );
-      //SDU_GFX.setTextDatum( TL_DATUM );
-      //SDU_GFX.drawJpg( sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 1, 48, 15, 16 );
-      SDU_GFX.drawString( &SDUCfg.binFileName[1], SDU_GFX.width()/2, 52 );
+      int32_t posY = (SDU_GFX.height() >> 1)-( ProgressStyle.height+2+SDU_GFX.fontHeight() );
+      drawSDUSplashElement( String("File name: " + String(&SDUCfg.binFileName[1])).c_str(), centerX, posY, &SplashAppPathStyle );
     }
-    //SDU_GFX.drawJpg( sdUpdaterIcon32x40_jpg, sdUpdaterIcon32x40_jpg_len, (SDU_GFX.width()/2)-16, (SDU_GFX.height()/2)-20, 32, 40 );
+    //SDU_GFX.drawJpg( sdUpdaterIcon32x40_jpg, sdUpdaterIcon32x40_jpg_len, (centerX)-16, (SDU_GFX.height()/2)-20, 32, 40 );
   }
 
   __attribute__((unused))
@@ -245,7 +317,7 @@ static void SDMenuProgressHeadless( int state, int size )
   }
 
 
-  #if defined LGFX_ONLY
+  #if defined LGFX_ONLY // has no push button logic
     __attribute__((unused))
     static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
     {
@@ -263,76 +335,100 @@ static void SDMenuProgressHeadless( int state, int size )
         SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
         SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
         if( SDUCfg.binFileName != nullptr ) {
-          SDUCfg.onButtonDraw( labelSave, 2, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+          SDUCfg.onButtonDraw( labelSave, 2, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor );
         }
       }
       auto msec = millis();
+      auto lastdraw = millis();
+      uint32_t progress = 0, progressOld = 1;
+      if( SDUCfg.onProgress ) SDUCfg.onProgress( 100, 100 );
+
+      SDUSprite *sprite = new SDUSprite( &SDU_GFX );
+      sprite->createSprite( 32, 32 );
+
+      float angle = 0;
+      int ret = -1;
       do {
         M5.update();
-        if( M5.BtnA.isPressed() ) return 1;
-        if( M5.BtnB.isPressed() ) return 0;
+        if( M5.BtnA.isPressed() ) { ret = 1; break; }
+        if( M5.BtnB.isPressed() ) { ret = 0; break; }
         if( SDUCfg.binFileName != nullptr ) {
           // copy binary to SD
-          #ifndef _M5STICKC_H_
-            if( M5.BtnC.isPressed() ) return 2; // Force copy bin
+          #ifndef _M5STICKC_H_ // M5StickC has not BtnC
+            if( M5.BtnC.isPressed() ) { ret = 2; break; }// Force copy bin
           #endif
         }
+
+        if( SDUCfg.onProgress   ) {
+          float barprogress = float(millis() - msec) / float(waitdelay);
+          progress = 100- (100 * barprogress);
+          if (progressOld != progress) {
+            progressOld = progress;
+            SDUCfg.onProgress( (uint8_t)progress, 100 );
+          }
+        }
+        #if defined HAS_LGFX
+          angle = sin( float(millis())/500.0 )*180.0; // 1/2 round per second
+          sprite->clear();
+          sprite->pushImageRotateZoom(sprite->width()/2, sprite->height()/2, 7.5, 8, angle, 1, 1, 15, 16, sdUpdaterIcon15x16_raw);
+          sprite->pushSprite( SDU_GFX.width()/2-sprite->width()/2, SDU_GFX.height()*.75-sprite->height() );
+          lastdraw = millis();
+        #endif
       } while (millis() - msec < waitdelay);
-      return -1;
+      if( SDUCfg.onProgress ) SDUCfg.onProgress( 0, 100 );
+      sprite->deleteSprite();
+      return ret;
     }
   #endif
 
 
-  #if defined HAS_TOUCH // ESP32-Chimera-Core / LGFX / M5Core2 touch support
+  #if defined _M5Core2_H_ // M5Core2.h additional touch support, will soon be deprecated
 
     #include "M5StackUpdaterUITouch.h"
 
-  #endif // HAS_TOUCH
+  #endif
 
 
   static void SDMenuProgressUI( int state, int size )
   {
     static int SD_UI_Progress;
 
-    int progress_w = 102;
-    int progress_h = 20;
-    int progress_x = (SDU_GFX.width() - progress_w) >> 1;
-    int progress_y = (SDU_GFX.height()- progress_h) >> 1;
+    int posX = (SDU_GFX.width() - (ProgressStyle.width+2)) >> 1;
+    int posY = (SDU_GFX.height()- (ProgressStyle.height+2)) >> 1;
 
     if( state <=0 || size <=0 ) {
       // clear progress bar
-      SDU_GFX.fillRect( progress_x, progress_y, progress_w, progress_h, TFT_BLACK );
+      SDU_GFX.fillRect( posX, posY, ProgressStyle.width+2, ProgressStyle.height+2, ProgressStyle.bgColor );
     } else {
-      SDU_GFX.drawRect( progress_x, progress_y, progress_w, progress_h, TFT_WHITE );
+      // draw frame
+      SDU_GFX.drawRect( posX, posY, ProgressStyle.width+2, ProgressStyle.height+2, ProgressStyle.borderColor );
     }
 
+    int offset = ( state * ProgressStyle.width ) / size;
     int percent = ( state * 100 ) / size;
-    if( percent == SD_UI_Progress ) {
+    if( offset == SD_UI_Progress ) {
       // don't render twice the same value
       return;
     }
-    SD_UI_Progress = percent;
+    SD_UI_Progress = offset;
 
-    if ( percent >= 0 && percent < 101 ) {
-      SDU_GFX.fillRect( progress_x+1, progress_y+1, percent, 18, TFT_GREEN );
-      SDU_GFX.fillRect( progress_x+1+percent, progress_y+1, 100-percent, 18, TFT_BLACK );
+    if ( offset >= 0 && offset < ProgressStyle.width ) {
+      SDU_GFX.fillRect( posX+1,        posY+1, offset,                     ProgressStyle.height, ProgressStyle.fillColor );
+      SDU_GFX.fillRect( posX+1+offset, posY+1, ProgressStyle.width-offset, ProgressStyle.height, ProgressStyle.bgColor );
       Serial.print( "." );
     } else {
-      SDU_GFX.fillRect( progress_x+1, progress_y+1, 100, 18, TFT_BLACK );
+      SDU_GFX.fillRect( posX+1,        posY+1, ProgressStyle.width,        ProgressStyle.height, ProgressStyle.bgColor );
       Serial.println();
     }
-    String percentStr = " " + String( percent ) + "% ";
-    SDU_GFX.setTextDatum( TC_DATUM );
-    SDU_GFX.setTextFont( 0 );
-    SDU_GFX.drawString( percentStr, SDU_GFX.width() >> 1, progress_y+progress_h+5 );
-
-    if ( percent >= 0 && percent < 101 ) {
-      Serial.print( "." );
-    } else {
-      Serial.println();
+    if( ProgressStyle.clipText ) {
+      String percentStr = " " + String( percent ) + "% ";
+      SDU_GFX.setTextFont( ProgressStyle.fontNumber );
+      SDU_GFX.setTextDatum( ProgressStyle.textDatum );
+      SDU_GFX.setTextSize( ProgressStyle.textSize );
+      SDU_GFX.setTextColor( ProgressStyle.textColor, ProgressStyle.bgColor );
+      SDU_GFX.drawString( percentStr, SDU_GFX.width() >> 1, posY+ProgressStyle.height+SDU_GFX.fontHeight() );
     }
   };
-
 
 
   static void DisplayUpdateUI( const String& label )
@@ -357,14 +453,13 @@ static void SDMenuProgressHeadless( int state, int size )
         xpos = 0 ;
       }
     }
-    int progress_w = 102;
-    int progress_h = 20;
-    int progress_x = (SDU_GFX.width() - progress_w) >> 1;
-    int progress_y = (SDU_GFX.height()- progress_h) >> 1;
-    SDU_GFX.setCursor( xpos, progress_y - 20 );
+    //int progress_w = 102;
+    //int progress_h = 20;
+    int posX = (SDU_GFX.width() - ProgressStyle.width+2) >> 1;
+    int posY = (SDU_GFX.height()- ProgressStyle.height+2) >> 1;
+    SDU_GFX.setCursor( xpos, posY - 20 );
     SDU_GFX.print( label );
   }
-
 
 
   static void DisplayErrorUI( const String& msg, unsigned long wait )
@@ -380,7 +475,6 @@ static void SDMenuProgressHeadless( int state, int size )
   }
 
 
-
   static void SetupSDMenuConfig()
   {
     if( SDUCfg.load_defaults ) {
@@ -393,7 +487,7 @@ static void SDMenuProgressHeadless( int state, int size )
       if( !SDUCfg.onSplashPage ) SDUCfg.setSplashPageCb( drawSDUSplashPage ); log_d("Attaching onSplashPage");
       if( !SDUCfg.onButtonDraw ) SDUCfg.setButtonDrawCb( drawSDUPushButton ); log_d("Attaching onButtonDraw");
 
-      #if defined HAS_TOUCH // default touch button support
+      #if defined _M5Core2_H_ // default touch button support
         if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromTouchButton ); log_d("Attaching onWaitForAction (touch)");
       #else // default momentary button support
         if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromPushButton ); log_d("Attaching onWaitForAction (button)");
@@ -406,13 +500,12 @@ static void SDMenuProgressHeadless( int state, int size )
     #endif
   }
 
-
-  // release 'tft' temporary define
+  // release 'SDU_GFX' temporary define
   #if defined undef_tft
     #undef SDU_GFX
   #endif
 
-#else // headless
+#else // USE_DISPLAY is undefined => headless
 
   static void SetupSDMenuConfig()
   {
