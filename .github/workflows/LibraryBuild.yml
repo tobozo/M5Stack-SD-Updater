@@ -1,0 +1,85 @@
+name: LibraryBuild
+on:
+  push: # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request
+    paths:
+    - '**.ino'
+    - '**.cpp'
+    - '**.h'
+    - '**LibraryBuild.yml'
+  pull_request:
+jobs:
+  build:
+    name: ${{ matrix.arduino-boards-fqbn }} - test compiling examples
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+
+        arduino-boards-fqbn:
+          - esp8266:esp8266:generic:eesz=4M3M,xtal=80
+          - esp32:esp32:esp32:FlashFreq=80
+
+
+        matrix-context:
+          - M5Core2-SDLoader-Snippet
+          - M5Stack-SDLoader-Snippet
+          - M5StickC-SPIFFS-Snippet
+          - M5Stack-LGFX-Loader-Snippet
+          - M5Stack-SD-Menu
+          - M5Core2-SD-Menu
+          - M5Fire-SD-Menu
+          - OdroidGo-SD-Menu
+
+        include:
+          - matrix-context: M5Core2-SDLoader-Snippet
+            arduino-boards-fqbn: esp32:esp32:m5stack-core2
+            sketch-names: M5Stack-SDLoader-Snippet.ino
+            required-libraries: ESP32-Chimera-Core,LovyanGFX
+          - matrix-context: M5Stack-SDLoader-Snippet
+            arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
+            sketch-names: M5Stack-SDLoader-Snippet.ino
+            required-libraries: ESP32-Chimera-Core,LovyanGFX
+          - matrix-context: M5StickC-SPIFFS-Snippet
+            arduino-boards-fqbn: esp32:esp32:m5stick-c
+            sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino
+            required-libraries: M5StickC
+          - matrix-context: M5Stack-LGFX-Loader-Snippet
+            arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
+            sketch-names: LGFX-SDLoader-Snippet.ino
+            required-libraries: LovyanGFX
+          - matrix-context: M5Stack-SD-Menu
+            arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32:PartitionScheme=min_spiffs
+            sketch-names: M5Stack-SD-Menu.ino
+            required-libraries: ESP32-Chimera-Core,LovyanGFX,ArduinoJson
+          - matrix-context: M5Core2-SD-Menu
+            arduino-boards-fqbn: esp32:esp32:m5stack-core2
+            sketch-names: M5Stack-SD-Menu.ino
+            required-libraries: ESP32-Chimera-Core,LovyanGFX,ArduinoJson
+          - matrix-context: M5Fire-SD-Menu
+            arduino-boards-fqbn: esp32:esp32:m5stack-fire
+            sketch-names: M5Stack-SD-Menu.ino
+            required-libraries: ESP32-Chimera-Core,LovyanGFX,ArduinoJson
+          - matrix-context: OdroidGo-SD-Menu
+            arduino-boards-fqbn: esp32:esp32:odroid_esp32:PartitionScheme=min_spiffs
+            sketch-names: M5Stack-SD-Menu.ino
+            required-libraries: ESP32-Chimera-Core,LovyanGFX,ArduinoJson
+
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Compile all examples
+        uses: ArminJo/arduino-test-compile@v3
+        with:
+          platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
+          arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
+          required-libraries: ${{ matrix.required-libraries }}
+          sketch-names: ${{ matrix.sketch-names }}
+          #sketches-exclude: "SD-Apps/**"
+          build-properties: ${{ toJson(matrix.build-properties) }}
+
