@@ -79,3 +79,4 @@ jobs:
           sketch-names: ${{ matrix.sketch-names }}
           build-properties: ${{ toJson(matrix.build-properties) }}
           debug-install: true
+
