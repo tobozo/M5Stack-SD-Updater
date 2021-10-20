@@ -69,11 +69,13 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: ${{ matrix.matrix-context }}
-        uses: ArminJo/arduino-test-compile@v3
+        #uses: ArminJo/arduino-test-compile@v3
+        uses: ArminJo/arduino-test-compile@master
         with:
           platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
           required-libraries: ${{ matrix.required-libraries }}
+          extra-arduino-lib-install-args: "--no-deps"
           sketch-names: ${{ matrix.sketch-names }}
           #sketches-exclude: "SD-Apps/**"
           build-properties: ${{ toJson(matrix.build-properties) }}
