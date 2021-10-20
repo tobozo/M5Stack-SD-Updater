@@ -30,35 +30,35 @@ jobs:
           - matrix-context: M5Core2-SDLoader-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stack-core2
             sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: ESP32-Chimera-Core,LovyanGFX,M5Stack
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,M5Stack"
           - matrix-context: M5Stack-SDLoader-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
             sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: ESP32-Chimera-Core,LovyanGFX,M5Stack
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,M5Stack"
           - matrix-context: M5StickC-SPIFFS-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stick-c
             sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino
-            required-libraries: M5StickC
+            required-libraries: "M5StickC"
           - matrix-context: M5Stack-LGFX-Loader-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
             sketch-names: LGFX-SDLoader-Snippet.ino
-            required-libraries: LovyanGFX
+            required-libraries: "LovyanGFX"
           - matrix-context: M5Stack-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32:PartitionScheme=min_spiffs
             sketch-names: M5Stack-SD-Menu.ino
-            required-libraries: ESP32-Chimera-Core,LovyanGFX,ArduinoJson
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Core2-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-core2
             sketch-names: M5Stack-SD-Menu.ino
-            required-libraries: ESP32-Chimera-Core,LovyanGFX,ArduinoJson
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Fire-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-fire
             sketch-names: M5Stack-SD-Menu.ino
-            required-libraries: ESP32-Chimera-Core,LovyanGFX,ArduinoJson
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: OdroidGo-SD-Menu
             arduino-boards-fqbn: esp32:esp32:odroid_esp32:PartitionScheme=min_spiffs
             sketch-names: M5Stack-SD-Menu.ino
-            required-libraries: ESP32-Chimera-Core,LovyanGFX,ArduinoJson
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
 
       fail-fast: false
 
