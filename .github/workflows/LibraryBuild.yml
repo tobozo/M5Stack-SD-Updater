@@ -30,11 +30,11 @@ jobs:
           - matrix-context: M5Core2-SDLoader-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stack-core2
             sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "M5Stack@0.3.7"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Stack-SDLoader-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
             sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "ESP32-Chimera-Core,M5Stack"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5StickC-SPIFFS-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stick-c
             sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino

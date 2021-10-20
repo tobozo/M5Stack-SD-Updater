@@ -51,8 +51,8 @@
   #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
 #endif
 */
-//#include <ESP32-Chimera-Core.h>
-#include <M5Stack.h>
+#include <ESP32-Chimera-Core.h>
+//#include <M5Stack.h>
 // #define SDU_HEADLESS
 #include <M5StackUpdater.h>
 
