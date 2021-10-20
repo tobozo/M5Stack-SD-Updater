@@ -30,7 +30,7 @@ jobs:
           - matrix-context: M5Core2-SDLoader-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stack-core2
             sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "M5Stack"
+            required-libraries: "M5Stack@0.3.7"
           - matrix-context: M5Stack-SDLoader-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
             sketch-names: M5Stack-SDLoader-Snippet.ino
@@ -71,7 +71,7 @@ jobs:
       - name: ${{ matrix.matrix-context }}
         uses: ArminJo/arduino-test-compile@v3
         with:
-          platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
+          platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
           required-libraries: ${{ matrix.required-libraries }}
           sketch-names: ${{ matrix.sketch-names }}
