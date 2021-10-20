@@ -242,7 +242,7 @@ static void SDMenuProgressHeadless( int state, int size )
     SDU_GFX.setTextSize( SDUTextStyle.textsize);
     SDU_GFX.setTextDatum( SDUTextStyle.textdatum );
     SDU_GFX.setTextColor( SDUTextStyle.textcolor , SDUTextStyle.textbgcolor );
-    #ifndef HAS_LGFX // LFGX family cores/drivers (ESP32-Chimera-Core, LovyanGFX, M5GFX, M5Unified)
+    #if defined HAS_LGFX // LFGX family cores/drivers (ESP32-Chimera-Core, LovyanGFX, M5GFX, M5Unified)
       SDU_GFX.setFont( nullptr );
     #endif
     SDU_GFX.setCursor(0,0);
