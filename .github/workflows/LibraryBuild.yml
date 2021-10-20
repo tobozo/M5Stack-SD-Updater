@@ -16,11 +16,6 @@ jobs:
     strategy:
       matrix:
 
-        arduino-boards-fqbn:
-          - esp8266:esp8266:generic:eesz=4M3M,xtal=80
-          - esp32:esp32:esp32:FlashFreq=80
-
-
         matrix-context:
           - M5Core2-SDLoader-Snippet
           - M5Stack-SDLoader-Snippet
