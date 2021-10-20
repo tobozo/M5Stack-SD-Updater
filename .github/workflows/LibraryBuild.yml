@@ -75,7 +75,7 @@ jobs:
           platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
           required-libraries: ${{ matrix.required-libraries }}
-          extra-arduino-lib-install-args: "--no-deps"
+          extra-arduino-lib-install-args: --no-deps
           sketch-names: ${{ matrix.sketch-names }}
           build-properties: ${{ toJson(matrix.build-properties) }}
           debug-install: true
