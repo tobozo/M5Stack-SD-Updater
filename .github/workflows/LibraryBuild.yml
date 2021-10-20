@@ -38,7 +38,7 @@ jobs:
           - matrix-context: M5StickC-SPIFFS-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stick-c
             sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino
-            required-libraries: "M5stickC"
+            required-libraries: "M5stickc"
           - matrix-context: M5Stack-LGFX-Loader-Snippet
             arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
             sketch-names: LGFX-SDLoader-Snippet.ino
