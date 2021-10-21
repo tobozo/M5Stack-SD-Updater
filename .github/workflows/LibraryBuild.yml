@@ -8,7 +8,7 @@ on:
     - '**LibraryBuild.yml'
   pull_request:
 jobs:
-  build:
+  matrix_build:
     name: ${{ matrix.arduino-boards-fqbn }} - test compiling examples
 
     runs-on: ubuntu-latest
@@ -46,18 +46,22 @@ jobs:
           - matrix-context: M5Stack-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32:PartitionScheme=min_spiffs
             sketch-names: M5Stack-SD-Menu.ino
+            bin-name: M5stack-Launcher.bin
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Core2-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-core2
             sketch-names: M5Stack-SD-Menu.ino
+            bin-name: M5Core2-Launcher.bin
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Fire-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-fire
             sketch-names: M5Stack-SD-Menu.ino
+            bin-name: M5Fire-Launcher.bin
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: OdroidGo-SD-Menu
             arduino-boards-fqbn: esp32:esp32:odroid_esp32:PartitionScheme=min_spiffs
             sketch-names: M5Stack-SD-Menu.ino
+            bin-name: OdroidGo-Launcher.bin
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
 
       fail-fast: false
@@ -77,6 +81,56 @@ jobs:
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
           sketch-names: ${{ matrix.sketch-names }}
-          build-properties: ${{ toJson(matrix.build-properties) }}
-          debug-install: true
+          #build-properties: ${{ toJson(matrix.build-properties) }}
+          #debug-install: true
+          set-build-path: true
 
+      - name: Copy compiled binary
+        #if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
+        run: |
+          ls
+          ls /home/runner/
+          ls /home/runner/M5Stack-SD-Menu
+          mkdir -p /home/runner/M5Stack-SD-Menu
+#           cd /home/runner/ESP32-BLECollector/build && ls && cp ESP32-BLECollector.ino.bin ${{ matrix.bin-name }}
+
+      - name: Upload artifact ${{ matrix.bin-name }}
+        uses: actions/upload-artifact@v2
+        if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
+        with:
+          name: ${{ matrix.bin-name }}
+          path: /home/runner/M5Stack-SD-Menu/build/${{ matrix.bin-name }}
+
+  post_build:
+
+    name: Gather Artefacts
+
+    runs-on: ubuntu-latest
+
+    # wait until matrix jobs are all finished
+    needs: matrix_build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Create artifacts dir
+        #if: startsWith(github.ref, 'refs/tags/')
+        run: mkdir -p /home/runner/builds
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        #if: startsWith(github.ref, 'refs/tags/')
+        with:
+          path: /home/runner/builds
+
+      - name: Release check
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            /home/runner/builds/M5stack-Launcher.bin
+            /home/runner/builds/M5Core2-Launcher.bin
+            /home/runner/builds/M5Fire-Launcher.bin
+            /home/runner/builds/OdroidGo-Launcher.bin
