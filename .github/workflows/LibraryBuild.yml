@@ -119,14 +119,11 @@ jobs:
         uses: actions/download-artifact@v2
         #if: startsWith(github.ref, 'refs/tags/')
         with:
-          path: /home/runner/builds
+          path: builds
 
       - name: Release check
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+        #if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            /home/runner/builds/M5stack-Launcher.bin
-            /home/runner/builds/M5Core2-Launcher.bin
-            /home/runner/builds/M5Fire-Launcher.bin
-            /home/runner/builds/OdroidGo-Launcher.bin
+            builds/*
