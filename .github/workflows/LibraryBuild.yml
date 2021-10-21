@@ -89,24 +89,17 @@ jobs:
         #if: startsWith(github.ref, 'refs/tags/')
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
-          pwd
-          echo "[INFO1]"
-          ls examples
-          echo "[INFO2]"
-          ls examples/M5Stack-SD-Menu
-          echo "[INFO3]"
-          ls examples/M5Stack-SD-Menu/build
-          echo "[INFO4]"
+          cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.bin-name }}
 #          ls /home/runner/M5Stack-SD-Menu
 #          mkdir -p /home/runner/M5Stack-SD-Menu
-#           cd /home/runner/ESP32-BLECollector/build && ls && cp M5Stack-SD-Menu.ino.bin ${{ matrix.bin-name }}
+
 
       - name: Upload artifact ${{ matrix.bin-name }}
         uses: actions/upload-artifact@v2
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         with:
           name: ${{ matrix.bin-name }}
-          path: /home/runner/M5Stack-SD-Menu/build/${{ matrix.bin-name }}
+          path: examples/M5Stack-SD-Menu/build/${{ matrix.bin-name }}
 
   post_build:
 
