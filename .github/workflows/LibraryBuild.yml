@@ -92,9 +92,9 @@ jobs:
           pwd
           echo "[INFO]"
           ls M5Stack-SD-Menu
+          ls examples/M5Stack-SD-Menu/build
 #          ls /home/runner/M5Stack-SD-Menu
 #          mkdir -p /home/runner/M5Stack-SD-Menu
-          ls examples/M5Stack-SD-Menu/build
 #           cd /home/runner/ESP32-BLECollector/build && ls && cp M5Stack-SD-Menu.ino.bin ${{ matrix.bin-name }}
 
       - name: Upload artifact ${{ matrix.bin-name }}
