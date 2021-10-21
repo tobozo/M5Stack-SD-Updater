@@ -9,7 +9,7 @@ on:
   pull_request:
 jobs:
   matrix_build:
-    name: ${{ matrix.arduino-boards-fqbn }} - test compiling examples
+    name: ${{ matrix.matrix-context }} => ${{ matrix.sketch-names }}
 
     runs-on: ubuntu-latest
 
@@ -89,11 +89,13 @@ jobs:
         #if: startsWith(github.ref, 'refs/tags/')
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
-          ls
-          ls /home/runner/
-          ls /home/runner/M5Stack-SD-Menu
-          mkdir -p /home/runner/M5Stack-SD-Menu
-#           cd /home/runner/ESP32-BLECollector/build && ls && cp ESP32-BLECollector.ino.bin ${{ matrix.bin-name }}
+          pwd
+          echo "[INFO]"
+          ls M5Stack-SD-Menu
+#          ls /home/runner/M5Stack-SD-Menu
+#          mkdir -p /home/runner/M5Stack-SD-Menu
+          ls examples/M5Stack-SD-Menu/build
+#           cd /home/runner/ESP32-BLECollector/build && ls && cp M5Stack-SD-Menu.ino.bin ${{ matrix.bin-name }}
 
       - name: Upload artifact ${{ matrix.bin-name }}
         uses: actions/upload-artifact@v2
