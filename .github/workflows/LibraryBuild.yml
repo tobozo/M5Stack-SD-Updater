@@ -90,9 +90,13 @@ jobs:
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
           pwd
-          echo "[INFO]"
-          ls M5Stack-SD-Menu
+          echo "[INFO1]"
+          ls examples
+          echo "[INFO2]"
+          ls examples/M5Stack-SD-Menu
+          echo "[INFO3]"
           ls examples/M5Stack-SD-Menu/build
+          echo "[INFO4]"
 #          ls /home/runner/M5Stack-SD-Menu
 #          mkdir -p /home/runner/M5Stack-SD-Menu
 #           cd /home/runner/ESP32-BLECollector/build && ls && cp M5Stack-SD-Menu.ino.bin ${{ matrix.bin-name }}
