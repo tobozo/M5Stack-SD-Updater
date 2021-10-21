@@ -73,8 +73,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: ${{ matrix.matrix-context }}
-        #uses: ArminJo/arduino-test-compile@v3
-        uses: ArminJo/arduino-test-compile@master
+        uses: ArminJo/arduino-test-compile@v3
+        #uses: ArminJo/arduino-test-compile@master
         with:
           platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
@@ -90,9 +90,6 @@ jobs:
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
           cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.bin-name }}
-#          ls /home/runner/M5Stack-SD-Menu
-#          mkdir -p /home/runner/M5Stack-SD-Menu
-
 
       - name: Upload artifact ${{ matrix.bin-name }}
         uses: actions/upload-artifact@v2
