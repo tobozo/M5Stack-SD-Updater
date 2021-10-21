@@ -32,10 +32,17 @@
 #define ROLLBACK_LABEL   "Rollback" // reload app from the "other" OTA partition
 #define LAUNCHER_LABEL   "Launcher" // load Launcher (typically menu.bin)
 #define SKIP_LABEL       "Skip >>|" // resume normal operations (=no action taken)
-#define BTN_HINT_MSG     "SD-Updater Options"
+#define SAVE_LABEL       "Save"     // copy sketch binary to FS
+#define BTN_HINT_MSG     "SD-Updater Lobby"
 #define SDU_LOAD_TPL     "Will Load menu binary : %s\n"
 #define SDU_ROLLBACK_MSG "Will Roll back"
 
+#if !defined SDU_APP_PATH
+  #define SDU_APP_PATH nullptr
+#endif
+#if !defined SDU_APP_NAME
+  #define SDU_APP_NAME nullptr
+#endif
 
 // callback signatures
 typedef void (*onProgressCb)( int state, int size );
@@ -45,7 +52,7 @@ typedef void (*onBeforeCb)();
 typedef void (*onAfterCb)();
 typedef void (*onSplashPageCb)( const char* msg );
 typedef void (*onButtonDrawCb)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor );
-typedef int  (*onWaitForActionCb)( char* labelLoad, char* labelSkip, unsigned long waitdelay );
+typedef int  (*onWaitForActionCb)( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay );
 typedef void (*onConfigLoad)();
 
 // SDUpdater config callbacks and params
@@ -57,6 +64,9 @@ struct config_sdu_t
   const char* labelMenu     = LAUNCHER_LABEL;
   const char* labelSkip     = SKIP_LABEL;
   const char* labelRollback = ROLLBACK_LABEL;
+  const char* labelSave     = SAVE_LABEL;
+  const char* binFileName   = SDU_APP_PATH;
+  const char* appName       = SDU_APP_NAME;
 
   onProgressCb      onProgress       = nullptr;
   onMessageCb       onMessage        = nullptr;
@@ -81,6 +91,9 @@ struct config_sdu_t
   void setLabelMenu( const char* label )          { labelMenu = label; }
   void setLabelSkip( const char* label )          { labelSkip = label; }
   void setLabelRollback( const char* label )      { labelRollback = label; }
+  void setLabelSave( const char* label )          { labelSave = label; }
+  void setAppName( const char* name )             { appName = name; }
+  void setBinFileName( const char* name )         { binFileName = name; }
 
 };
 
@@ -114,17 +127,27 @@ extern "C" {
 // required to store the MENU_BIN hash
 #include <Preferences.h>
 
-
 #ifndef MENU_BIN
   #define MENU_BIN "/menu.bin"
 #endif
 
-#if !defined(TFCARD_CS_PIN) // override this from your sketch
- #define TFCARD_CS_PIN SS
+#if !defined(TFCARD_CS_PIN) // override this from your sketch if the guess is wrong
+  #if defined( ARDUINO_LOLIN_D32_PRO ) || defined( ARDUINO_M5STACK_Core2  ) || defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE)
+    #define TFCARD_CS_PIN  4
+  #elif defined( ARDUINO_ESP32_WROVER_KIT ) || defined( ARDUINO_ODROID_ESP32 )
+    #define TFCARD_CS_PIN 22
+  #elif defined ARDUINO_TWATCH_BASE || defined ARDUINO_TWATCH_2020_V1 || defined ARDUINO_TWATCH_2020_V2 || defined(ARDUINO_TTGO_T1)
+    #define TFCARD_CS_PIN 13
+  #else
+    #define TFCARD_CS_PIN SS
+  #endif
 #endif
 
-#if !defined SDU_HEADLESS && (defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY)
+#if !defined SDU_HEADLESS && (defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY || defined __M5UNIFIED_HPP__)
   #define USE_DISPLAY
+  #if defined _M5Core2_H_
+    #define HAS_TOUCH
+  #endif
 #else
   // #warning SD-Updater will run in Headless mode
 #endif

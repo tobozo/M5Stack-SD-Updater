@@ -51,19 +51,27 @@
   #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
 #endif
 */
-//#include <ESP32-Chimera-Core.h>
-#include <M5Stack.h>
-#define SDU_APP_NAME "M5Stack SDLoader Snippet"
-#define SDU_APP_PATH "/MY_SKETCH.bin"
+#include <ESP32-Chimera-Core.h>
+//#include <M5Stack.h>
 // #define SDU_HEADLESS
 #include <M5StackUpdater.h>
 
-void setup() {
+#define SDU_APP_NAME "M5Stack SDLoader Snippet"
+#define SDU_APP_PATH "/MY_SKETCH.bin"
 
+
+void setup()
+{
   M5.begin();
 
   Serial.println("Welcome to the SD-Updater minimal example!");
   Serial.println("Now checking if a button was pushed during boot ...");
+
+  SDUCfg.setLabelMenu("<< Menu");        // BtnA label: load menu.bin
+  SDUCfg.setLabelSkip("Launch");         // BtnB label: skip the lobby countdown and run the app
+  SDUCfg.setLabelSave("Save");           // BtnC label: save the sketch to the SD
+  SDUCfg.setAppName( SDU_APP_NAME );     // Lobby screen label: application name
+  SDUCfg.setBinFileName( SDU_APP_PATH ); // If file path to bin is set for this app, it will be checked at boot and created if not exist
 
   // checkSDUpdater( SD );
   checkSDUpdater(
@@ -72,14 +80,12 @@ void setup() {
     2000,         // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
     TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
   );
-
-
   Serial.println("Nope, will run the sketch normally");
-
 }
 
-void loop() {
 
+void loop()
+{
   // provide means to copy the sketch to filesystem
   M5.update();
   if( M5.BtnB.pressedFor( 1000 ) ) {
@@ -90,5 +96,4 @@ void loop() {
       Serial.println("Copy failed !");
     }
   }
-
 }

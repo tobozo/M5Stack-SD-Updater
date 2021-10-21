@@ -147,27 +147,33 @@ bool SDUpdater::copyFsPartition(File* dst, const esp_partition_t* src, size_t le
     if (dst) dst->write(buf.get(), (readBytes + 3) & ~3);
     lengthLeft -= readBytes;
     offset += readBytes;
-    /*
-    // using progress here messes up with SD
     if( cfg->onProgress ) {
       progress = 100 * offset / length;
       if (progressOld != progress) {
         progressOld = progress;
         cfg->onProgress( (uint8_t)progress, 100 );
+        vTaskDelay(10);
       }
     }
-    */
   }
   return true;
 }
 
 
-bool SDUpdater::saveSketchToFS( fs::FS &fs, const char* binfilename )
+bool SDUpdater::saveSketchToFS( fs::FS &fs, const char* binfilename, bool skipIfExists )
 {
   // no rollback possible, start filesystem
   if( !_fsBegin( fs ) ) {
     _error( "Unloadable filesystem, aborting" );
     return false;
+  }
+
+  if( skipIfExists ) {
+    if( fs.exists( binfilename ) ) {
+      log_d("File %s exists, skipping overwrite", binfilename );
+      //_message( String("\nChecked ") + String(binfilename) );
+      return false;
+    }
   }
   if( cfg->onBefore) cfg->onBefore();
   if( cfg->onProgress ) cfg->onProgress( 0, 100 );
@@ -398,13 +404,18 @@ void SDUpdater::checkSDUpdaterHeadless( String fileName, unsigned long waitdelay
   if( waitdelay == 0 ) {
     waitdelay = 100; // at least give some time for the serial buffer to fill
   }
-  Serial.printf("SDUpdater: you have %d milliseconds to send 'update', 'rollback' or 'skip' command\n", (int)waitdelay);
+  Serial.printf("SDUpdater: you have %d milliseconds to send 'update', 'rollback', 'skip' or 'save' command\n", (int)waitdelay);
 
   if( cfg->onWaitForAction ) {
-    if ( cfg->onWaitForAction( nullptr, nullptr, waitdelay ) == 1 ) {
+    int ret = cfg->onWaitForAction( nullptr, nullptr, nullptr, waitdelay );
+    if ( ret == 1 ) {
       Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
       updateFromFS( fileName );
       ESP.restart();
+    }
+    if( cfg->binFileName != nullptr ) {
+      log_d("Checking if %s needs saving", cfg->binFileName );
+      saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != 2 );
     }
   } else {
     _error( "Missing onWaitForAction!" );
@@ -443,7 +454,8 @@ void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
   }
 
   if( cfg->onWaitForAction ) {
-    if ( cfg->onWaitForAction( isRollBack ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, waitdelay ) == 1 ) {
+    int ret = cfg->onWaitForAction( isRollBack ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, (char*)cfg->labelSave, waitdelay );
+    if ( ret == 1 ) {
       if( isRollBack == false ) {
         Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
         updateFromFS( fileName );
@@ -452,6 +464,10 @@ void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
         Serial.println( SDU_ROLLBACK_MSG );
         doRollBack( SDU_ROLLBACK_MSG );
       }
+    }
+    if( cfg->binFileName != nullptr ) {
+      log_d("Checking if %s needs saving", cfg->binFileName );
+      saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != 2 );
     }
   } else {
     _error( "Missing onWaitForAction!" );

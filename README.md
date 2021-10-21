@@ -21,7 +21,7 @@
 
 - [Video demonstration](https://www.youtube.com/watch?v=myQfeYxyc3o)
 
-- This project by [tobozo](https://github.com/tobozo) - built on M5Stack-SAM by Tom Such. Further credits listed below.
+- This project by [tobozo](https://github.com/tobozo) - Demo built on M5Stack-SAM by Tom Such. Further credits listed below.
 
 - Contributors welcome !
 
@@ -39,11 +39,13 @@ SDCard is recommended but the SDUpdater supports other filesystems such as SD_MM
 
 **Make sure you have the following libraries:** - they should be installed in: `~/Arduino/libraries`
 
-- [M5Stack library](https://github.com/m5stack/M5Stack), [ESP32-Chimera-Core](https://github.com/tobozo/ESP32-Chimera-Core), [LovyanGFX](https://github.com/lovyan03/LovyanGFX) or [M5GFX](https://github.com/m5stack/M5GFX) - this is probably already installed - if not you can get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+- [ESP32-Chimera-Core](https://github.com/tobozo/ESP32-Chimera-Core), [LovyanGFX](https://github.com/lovyan03/LovyanGFX), [M5GFX](https://github.com/m5stack/M5GFX), [M5Unified](https://github.com/m5stack/M5Unified) or [M5Stack Core](https://github.com/m5stack/M5Stack).
 
-- M5Stack-SD-Updater (this project): get it from the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5)
+- [M5Stack-SD-Updater](https://github.com/tobozo/M5Stack-SD-Updater) (this library + its examples).
 
-- ArduinoJSON (Optional, used by SD-Menu): [https://github.com/bblanchon/ArduinoJson/](https://github.com/bblanchon/ArduinoJson/) available in the Arduino Library Manager
+- [ArduinoJSON](https://github.com/bblanchon/ArduinoJson/) (Optional, used by SD-Menu).
+
+All those are available in the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5).
 
 
 <br />
@@ -52,12 +54,11 @@ SDCard is recommended but the SDUpdater supports other filesystems such as SD_MM
 🍱 UNPACKING THE BINARIES
 -------------------------
 
-For your own lazyness, you can use @micutil's awesome [M5Burner](https://github.com/micutil/M5Burner_Mic) and skip the next steps.
 
-[![https://github.com/micutil/M5Burner_Mic/releases](https://raw.githubusercontent.com/micutil/M5Burner_Mic/master/images/m5burnermic128.png)](https://github.com/micutil/M5Burner_Mic/releases)
-
-
-... or customize your own menu and make the installation manually :
+**obsolete**
+~~For your own lazyness, you can use @micutil's awesome [M5Burner](https://github.com/micutil/M5Burner_Mic) and skip the next steps.~~
+~~[![https://github.com/micutil/M5Burner_Mic/releases](https://raw.githubusercontent.com/micutil/M5Burner_Mic/master/images/m5burnermic128.png)](https://github.com/micutil/M5Burner_Mic/releases)~~
+~~... or customize your own menu and make the installation manually :~~
 
 
 **1) Open the `examples/M5Stack-SD-Update` sketch from the Arduino ID Examples menu.**
@@ -137,7 +138,7 @@ The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as 
     checkSDUpdater(
       SD,           // filesystem (SD, SD_MMC, SPIFFS, LittleFS, PSRamFS)
       MENU_BIN,     // path to binary (default = /menu.bin, empty string = rollback only)
-      0,            // wait delay, (default=0, will be forced to 2000 upon ESP.restart() or with headless build )
+      5000          // wait delay, (default=0, will be forced to 2000 upon ESP.restart() or with headless build )
       TFCARD_CS_PIN // optional for SD use only, usually default=4 but your mileage may vary)
     );
 
@@ -183,7 +184,7 @@ The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as 
 
   Use one of following methods to get the app on the filesystem:
 
-  - Have the app copy itself to filesystem using `saveSketchToFS( SD, "/my_application.bin" );` from an option inside your app.
+  - Have the app copy itself to filesystem using BtnC from the lobby or implement `saveSketchToFS( SD, "/my_application.bin" );` from an option inside your app.
 
   - Manually copy it to the filesystem:
     - In the Arduino IDE menu go to "Sketch / Export Compiled Binary".
@@ -219,7 +220,7 @@ The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as 
 
 
 
-Set custom action trigger for `update`, `rollback` and `skip` lobby options:
+Set custom action trigger for `update`, `rollback`, `save` and `skip` lobby options:
 ```C++
   // int myActionTrigger( char* labelLoad,  char* labelSkip, unsigned long waitdelay )
   // return values: 1=update, 0=rollback, -1=skip
@@ -230,7 +231,7 @@ Set custom action trigger for `update`, `rollback` and `skip` lobby options:
 
 ```C++
 
-static int myActionTrigger( char* labelLoad,  char* labelSkip, unsigned long waitdelay )
+static int myActionTrigger( char* labelLoad,  char* labelSkip, char* labelSave, unsigned long waitdelay )
 {
   int64_t msec = millis();
   do {
@@ -238,6 +239,7 @@ static int myActionTrigger( char* labelLoad,  char* labelSkip, unsigned long wai
       String out = Serial.readStringUntil('\n');
       if(      out == "update" )  return  1; // load "/menu.bin"
       else if( out == "rollback") return  0; // rollback to other OTA partition
+      else if( out == "save")     return  2; // save current sketch to SD card
       else if( out == "skip" )    return -1; // do nothing
       else Serial.printf("Ignored command: %s\n", out.c_str() );
     }
@@ -248,6 +250,9 @@ static int myActionTrigger( char* labelLoad,  char* labelSkip, unsigned long wai
 void setup()
 {
   Serial.begin(115200);
+
+  SDUCfg.setAppName( "My Application" );         // lobby screen label: application name
+  SDUCfg.setBinFileName( "/MyApplication.bin" ); // if file path to bin is set for this app, it will be checked at boot and created if not exist
 
   SDUCfg.setWaitForActionCb( myActionTrigger );
 
@@ -351,18 +356,15 @@ The default SD-Menu application will scan for these file types:
 
 🔘 OPTIONAL:
 ------------
-- The default binary name to be loaded (`/menu.bin`) can be changed at compilation time by defining the `MENU_BIN` constant:
+
+- The lobby screen at boot can be customized using `SDUCfg.setAppName` and `SDUCfg.setBinFileName`.
+When set, the app name and the binary path will be visible on the lobby screen, and an extra button `Button C` labelled `Save` is added to the UI.
+Pushing this button while the M5Stack is booting will create or overwrite the sketch binary to the SD Card.
+This can be triggered manually by using `saveSketchToFS(SD, fileName, TFCARD_CS_PIN)`.
 
 ```C++
-#define MENU_BIN "/my_custom_menu.bin"
-#include "M5StackUpdater.h"
-```
-
-- The lobby screen at boot can be customized:
-
-```C++
-#define SDU_APP_NAME "My App"
-#include "M5StackUpdater.h"
+  SDUCfg.setAppName( "My Application" ); // lobby screen label: application name
+  SDUCfg.setBinFileName( "/MyApplication.bin" ); // if file path to bin is set for this app, it will be checked at boot and created if not exist
 ```
 
 - It can also be disabled (although this requires to use the early callback setters):
@@ -371,6 +373,15 @@ The default SD-Menu application will scan for these file types:
 #define SDU_HEADLESS
 #include "M5StackUpdater.h"
 ```
+
+
+- Although not recommended (because not extensevely tested), the default binary name to be loaded (`/menu.bin`) can be changed at compilation time by defining the `MENU_BIN` constant:
+
+```C++
+#define MENU_BIN "/my_custom_launcher.bin"
+#include "M5StackUpdater.h"
+```
+
 
 - The JoyPSP and [M5Stack-Faces](https://github.com/m5stack/faces) Controls for M5Stack SD Menu necessary code are now disabled in the menu example but the code stays here and can be used as a boilerplate for any other two-wires input device.
 

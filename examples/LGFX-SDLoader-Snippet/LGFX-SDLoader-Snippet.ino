@@ -26,7 +26,7 @@ void ButtonUpdate()
   BtnC->read();
 }
 
-static int myActionTrigger( char* labelLoad, char* labelSkip, unsigned long waitdelay )
+static int myActionTrigger( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
 {
   if( waitdelay > 100 ) { // show button labels
     //SDUCfg.onBefore();
@@ -34,12 +34,14 @@ static int myActionTrigger( char* labelLoad, char* labelSkip, unsigned long wait
     BtnStyles btns; // use default theme from library
     SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
     SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+    SDUCfg.onButtonDraw( labelSave, 1, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor );
   }
   auto msec = millis();
   do {
     ButtonUpdate();
     if( BtnA->isPressed() ) return 1; // SD-Load menu (or rollback if avaiblable)
     if( BtnB->isPressed() ) return 0; // skip SD Loader screen
+    if( BtnB->isPressed() ) return 2; // save sketch to FS
   } while (millis() - msec < waitdelay);
   return -1;
 }
