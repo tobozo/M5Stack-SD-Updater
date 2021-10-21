@@ -127,4 +127,4 @@ jobs:
         with:
           draft: true
           files: |
-            builds/*
+            /home/runner/work/M5Stack-SD-Updater/M5Stack-SD-Updater/builds/**
