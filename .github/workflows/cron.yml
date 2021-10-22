@@ -1,0 +1,31 @@
+name: "Cron ➕ workflows"
+on:
+  workflow_dispatch:
+  push:
+    #branches: [master, unstable]
+    paths: ['**cron.yml']
+  schedule:
+    - cron: 0 * * * *
+    - cron: 10 * * * *
+    - cron: 20 * * * *
+    - cron: 30 * * * *
+    - cron: 40 * * * *
+    - cron: 50 * * * *
+
+jobs:
+  check-lambda-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Next app checker"
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GHTOKEN: ${{ secrets.GHTOKEN }}
+          CLONE_FOLDERNAME: ${{ 'M5Stack-App-Registry' }}
+          CLONE_REPOSITORY: ${{ secrets.REGISTRY_REPOSITORY }}
+        run: |
+          # set -o xtrace
+          cd $GITHUB_WORKSPACE/../
+          rm -Rf $GITHUB_WORKSPACE
+          git clone https://$GITHUB_ACTOR:$GHTOKEN@github.com/$CLONE_REPOSITORY.git $CLONE_FOLDERNAME
+          cd $CLONE_FOLDERNAME
+          source tools/cron.remote.sh
