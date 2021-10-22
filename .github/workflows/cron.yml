@@ -28,4 +28,4 @@ jobs:
           rm -Rf $GITHUB_WORKSPACE
           git clone https://$GITHUB_ACTOR:$GHTOKEN@github.com/$CLONE_REPOSITORY.git $CLONE_FOLDERNAME
           cd $CLONE_FOLDERNAME
-          source .github/scripts/cron.sh
+          source tools/cron.remote.sh
