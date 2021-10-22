@@ -47,7 +47,7 @@ jobs:
             sketch-names: LGFX-SDLoader-Snippet.ino
             required-libraries: "LovyanGFX"
           - matrix-context: M5Stack-SD-Menu
-            arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32:PartitionScheme=min_spiffs
+            arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
             sketch-names: M5Stack-SD-Menu.ino
             bin-name: M5stack-Launcher.bin
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
@@ -62,7 +62,7 @@ jobs:
             bin-name: M5Fire-Launcher.bin
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: OdroidGo-SD-Menu
-            arduino-boards-fqbn: esp32:esp32:odroid_esp32:PartitionScheme=min_spiffs
+            arduino-boards-fqbn: esp32:esp32:odroid_esp32
             sketch-names: M5Stack-SD-Menu.ino
             bin-name: OdroidGo-Launcher.bin
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
