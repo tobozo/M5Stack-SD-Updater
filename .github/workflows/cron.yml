@@ -1,17 +1,23 @@
 name: "Cron ➕ workflows"
 on:
-  workflow_dispatch:
   push:
     #branches: [master, unstable]
     paths: ['**cron.yml']
   schedule:
     - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      workflow-name:
+        description: 'Dispatch workflow (defaults to latest)'
+        required: false
+        default: ''
 
 jobs:
   check-lambda-app:
     runs-on: ubuntu-latest
     steps:
       - name: "Next app checker"
+        if: github.event.inputs.workflow-name == ''
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
           GHTOKEN: ${{ secrets.GHTOKEN }}
@@ -21,6 +27,11 @@ jobs:
           # set -o xtrace
           cd $GITHUB_WORKSPACE/../
           rm -Rf $GITHUB_WORKSPACE
-          git clone https://$GITHUB_ACTOR:$GHTOKEN@github.com/$CLONE_REPOSITORY.git $CLONE_FOLDERNAME
-          cd $CLONE_FOLDERNAME
           source tools/cron.remote.sh
+      - name: "Dispatching"
+        if: github.event.inputs.workflow-name != ''
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: ${{ github.event.inputs.workflow-name }}
+          #token: ${{ secrets.PERSONAL_TOKEN }}
+          #inputs: '{ "message": "blah blah", "debug": true }'
