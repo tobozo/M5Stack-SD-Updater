@@ -27,6 +27,8 @@ jobs:
           # set -o xtrace
           cd $GITHUB_WORKSPACE/../
           rm -Rf $GITHUB_WORKSPACE
+          git clone https://$GITHUB_ACTOR:$GHTOKEN@github.com/$CLONE_REPOSITORY.git $CLONE_FOLDERNAME
+          cd $CLONE_FOLDERNAME
           source tools/cron.remote.sh
       - name: "Dispatching"
         if: github.event.inputs.workflow-name != ''
