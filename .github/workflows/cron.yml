@@ -19,8 +19,9 @@ jobs:
       - name: "Next app checker"
         if: github.event.inputs.workflow-name == ''
         run: |
-          nextAW=`curl -L --silent https://phpsecu.re/api/registry/workflow | grep '^{' | jq -r .need_workflow[0]`
-          if [[ "$nextAW" == "" || "$nextAW" == "null" ]]; then echo "[INFO] No workflow in queue"; exit 0; fi
+          jsonW=`curl -L --silent https://phpsecu.re/api/registry/workflow`
+          nextAW=`echo $jsonW | grep '^{' | jq -r .need_workflow[0]`
+          if [[ "$nextAW" == "" || "$nextAW" == "null" ]]; then echo "[INFO] No workflow in queue, JSON chunk: $jsonW"; exit 0; fi
           nextURL=`echo "$nextAW" | jq  -r .app_path`;
           if [[ "$nextURL" == "" || "$nextURL" == "null" ]]; then echo "[ERROR] No app_path, JSON chunk: $nextAW"; exit 1; fi
           nextSlug=`echo "$nextAW" | jq  -r .slug`;
