@@ -35,5 +35,5 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: ${{ github.event.inputs.workflow-name }}
-          #token: ${{ secrets.PERSONAL_TOKEN }}
+          token: ${{ secrets.GHTOKEN }}
           #inputs: '{ "message": "blah blah", "debug": true }'
