@@ -11,6 +11,10 @@ on:
         description: 'Dispatch workflow (defaults to latest)'
         required: false
         default: ''
+      board-name:
+        description: 'Board name (m5stack, m5fire, m5core2, odroid)'
+        required: false
+        default: ''
 
 jobs:
   check-lambda-app:
@@ -18,23 +22,38 @@ jobs:
     steps:
       - name: "Next app checker"
         if: github.event.inputs.workflow-name == ''
-        env:
-          GITHUB_WORKSPACE: ${{ github.workspace }}
-          GHTOKEN: ${{ secrets.GHTOKEN }}
-          CLONE_FOLDERNAME: ${{ 'M5Stack-App-Registry' }}
-          CLONE_REPOSITORY: ${{ secrets.REGISTRY_REPOSITORY }}
         run: |
-          # set -o xtrace
-          cd $GITHUB_WORKSPACE/../
-          rm -Rf $GITHUB_WORKSPACE
-          git clone https://$GITHUB_ACTOR:$GHTOKEN@github.com/$CLONE_REPOSITORY.git $CLONE_FOLDERNAME
-          cd $CLONE_FOLDERNAME
-          source tools/cron.remote.sh
-      - name: "Dispatching"
+          set -o xtrace
+          echo ::set-output name=workflow-name::""
+          echo "WORKFLOW_NAME=\"\"" >> $GITHUB_ENV
+          echo "JSON_INPUTS=\"\"" >> $GITHUB_ENV
+          nextAW=`curl -L --silent https://phpsecu.re/api/registry/workflow | grep '^{' | jq -r .need_workflow[0]`
+          if [[ "$nextAW" == "" || "$nextAW" == "null" ]]; then echo "[INFO] No workflow in queue"; exit 0; fi
+          nextURL=`echo "$nextAW" | jq  -r .workflow_url`;
+          if [[ "$nextURL" == "" || "$nextURL" == "null" ]]; then echo "[ERROR] No workflow_url, JSON chunk: $nextAW"; exit 1; fi
+          nextSlug=`echo "$nextAW" | jq  -r .slug`;
+          if [[ "$nextSlug" == "" || "$nextSlug" == "null" ]]; then echo "[ERROR] No slug, JSON chunk: $nextAW"; exit 1; fi
+          nextRepo=`echo "$nextAW" | jq  -r .repo`;
+          if [[ "$nextRepo" == "" || "$nextRepo" == "null" ]]; then echo "[ERROR] No repo, JSON chunk: $nextAW"; exit 1; fi
+          nextBoard=`echo "$nextAW" | jq  -r .board`;
+          if [[ "$nextBoard" == "" || "$nextBoard" == "null" ]]; then echo "[ERROR] No board, JSON chunk: $nextAW"; exit 1; fi
+          nextPlatform=`echo "$nextAW" | jq  -r .platform`;
+          if [[ "$nextPlatform" == "" || "$nextPlatform" == "null" ]]; then echo "[ERROR] No platform, JSON chunk: $nextAW"; exit 1; fi
+          jsonString="{\"board-name\":\"$nextBoard\", \"platform-name\":\"$nextPlatform\", \"remote-app-path\":\"$nextURL\", \"remote-app-slug\":\"$nextSlug\", \"remote-repo-slug\":\"$nextRepo\"}"
+          echo "WORKFLOW_NAME=$nextSlug.yml" >> $GITHUB_ENV
+          echo "JSON_INPUTS=$jsonString" >> $GITHUB_ENV
+
+      - name: "Dispatched setter"
         if: github.event.inputs.workflow-name != ''
+        run: |
+          echo "WORKFLOW_NAME=${{ github.event.inputs.workflow-name }}" >> $GITHUB_ENV
+          echo "JSON_INPUTS=\"\"" >> $GITHUB_ENV
+
+      - name: "Dispatch"
+        if: env.WORKFLOW_NAME != ''
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: ${{ github.event.inputs.workflow-name }}
+          workflow: ${{ env.WORKFLOW_NAME }}
           repo: ${{ secrets.REGISTRY_REPOSITORY }}
           token: ${{ secrets.GHTOKEN }}
-          #inputs: '{ "message": "blah blah", "debug": true }'
+          inputs: '${{ env.JSON_INPUTS }}'
