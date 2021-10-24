@@ -50,7 +50,7 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
 
   static void HIDFeedback( int ms )
   {
-    xTaskCreatePinnedToCore( vibrateTask, "vibrateTask", 2048, (void*)&ms, 16, NULL , 1 );
+    xTaskCreatePinnedToCore( vibrateTask, "vibrateTask", 2048, (void*)&ms, 1, NULL , 1 );
   }
 
 #else
@@ -156,7 +156,7 @@ void HIDInit()
 
 
 
-HIDSignal HIDFeedback( HIDSignal signal, int ms = 100 )
+HIDSignal HIDFeedback( HIDSignal signal, int ms = 50 )
 {
   if( signal != HID_INERT ) {
     HIDFeedback( ms );
@@ -246,70 +246,7 @@ HIDSignal getControls()
       }
     }
 
-    #if defined ARDUINO_M5STACK_Core2
-
-      #if __has_include("lgfx/v1/Touch.hpp")
-        // LGFX touch
-
-        bool a = false;
-        bool b = false;
-        bool c = false;
-        bool d = false;
-        bool e = false;
-
-        uint16_t number = 0; // M5Core2 has no multi touch support so this number will always be zero, but the driver requires it
-        uint16_t button_zone_width = ((tft.width()+1)/3); // 1/3rd of the screen per button
-        uint16_t button_marginleft = 15; // dead space in pixels before and after each button to prevent overlap
-        uint16_t button_marginright = button_zone_width-button_marginleft;
-        bool pressed = false; // on release
-        int button_num = -1; // pressed button (0, 1, 2)
-        unsigned long startpress = millis();
-        unsigned long pressedfor = 0;
-
-        lgfx::touch_point_t tp; // touch coordinates will be stored there
-        number = tft.getTouch(&tp, 1);
-
-        while ( number>0 ) {
-          if( tp.y < tft.height() ) { // inside display area, no buttons there
-            // tft.fillCircle(tp.x, tp.y, 5, TFT_WHITE);
-          } else { // outside display area, find out what button zone is touched
-            uint16_t tpxmod = tp.x%button_zone_width; // convert touch position to button relative coords
-            // assign a button number only if touch position is between button margins
-            if( tpxmod > button_marginleft && tpxmod < button_marginright ) {
-              button_num = tp.x / button_zone_width;
-              pressed = true;
-            }
-          }
-          number = tft.getTouch(&tp, 1);
-        }
-
-        if( pressed && button_num > -1 ) {
-          pressedfor = millis() - startpress;
-          // put your logic there e.g. if( button_num == 0 && pressed_for > 700 ) // BtnA longpress
-          if( pressedfor > 100 ) {
-            Serial.printf("M5Core2 Touch Button #%d was pressed for %d ms\n", button_num, (int)pressedfor );
-            switch( button_num ) {
-              case 0: a = true; break;
-              case 1: b = true; break;
-              case 2: c = true; break;
-              case 3: d = true; break; // won't happen
-              case 4: e = true; break; // won't happen
-              default: break;
-            }
-          }
-
-        }
-
-      #else
-        // legacy buttons support
-        bool a = M5.BtnA.wasPressed();
-        bool b = M5.BtnB.wasPressed() && !M5.BtnC.isPressed();
-        bool c = M5.BtnC.wasPressed() && !M5.BtnB.isPressed();
-        bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
-        bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
-      #endif
-
-    #elif defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE
+    #if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE || defined ARDUINO_M5STACK_Core2
 
       // legacy buttons support
       bool a = M5.BtnA.wasPressed();

@@ -1,5 +1,5 @@
 #include <M5Unified.h>
-#define TFCARD_CS_PIN 4
+//#define TFCARD_CS_PIN 4
 #include <M5StackUpdater.h>
 
 void setup(void)

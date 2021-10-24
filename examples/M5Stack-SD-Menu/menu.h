@@ -51,7 +51,6 @@
   #warning ODROID DETECTED !!
   #define PLATFORM_NAME "Odroid-GO"
   #define DEFAULT_REGISTRY_BOARD "odroid"
-  #define USE_DOWNLOADER
 #elif defined ( ARDUINO_ESP32_DEV ) || defined( ARDUINO_LOLIN_D32_PRO )
   #warning WROVER OR LOLIN_D32_PRO DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "esp32"
@@ -769,7 +768,13 @@ void UISetup()
     if( lastcheck + 60000 < millis() ) {
       Serial.println( GOTOSLEEP_MESSAGE );
       #ifdef ARDUINO_M5STACK_Core2
-        M5.Axp.DeepSleep();
+        esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0); // gpio39 == touch INT
+        delay(100);
+        M5.Lcd.fillScreen(TFT_BLACK);
+        M5.Lcd.sleep();
+        M5.Lcd.waitDisplay();
+        esp_deep_sleep_start();
+        //M5.Axp.DeepSleep();
       #else
         #if !defined _CHIMERA_CORE_ || defined HAS_POWER
           M5.setWakeupButton( BUTTON_B_PIN );
@@ -782,14 +787,6 @@ void UISetup()
 
   unsigned long longPush = 10000;
   unsigned long shortPush = 5000;
-
-  #ifdef ARDUINO_M5STACK_Core2
-    tft.setCursor(0,0);
-    tft.print("SDUpdater\npress BtnA");
-    tft.setCursor(0,0);
-    delay(500);
-    M5.update();
-  #endif
 
   #if defined USE_DOWNLOADER
     if( M5.BtnB.isPressed() )
@@ -827,7 +824,9 @@ void UISetup()
       if( pushDuration > longPush ) {
         int resp = modalConfirm( "cleanup", "DELETE APPS", "CAUTION! This will remove all apps and assets.", "    Obliviate?",  "DELETE", "CANCEL", "NOES!" );
         if( resp == HID_SELECT ) {
-          checkMenuTimeStamp(); // set the time before cleaning up the folder
+          #if !defined HAS_RTC
+            checkMenuTimeStamp(); // set the time before cleaning up the folder
+          #endif
           cleanDir( "/" );
           cleanDir( "/jpg/" );
           cleanDir( "/json/" );
@@ -837,7 +836,12 @@ void UISetup()
       }
       Serial.println( GOTOSLEEP_MESSAGE );
       #ifdef ARDUINO_M5STACK_Core2
-        M5.Axp.DeepSleep();
+        esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0); // gpio39 == touch INT
+        delay(100);
+        M5.Lcd.fillScreen(TFT_BLACK);
+        M5.Lcd.sleep();
+        M5.Lcd.waitDisplay();
+        esp_deep_sleep_start();
       #else
         #if !defined _CHIMERA_CORE_ || defined HAS_POWER
           M5.setWakeupButton( BUTTON_B_PIN );
@@ -857,8 +861,9 @@ void doFSChecks()
   tft.setTextSize( 1 );
   tft.clear();
 
-  // TODO: check menu.bin datetime and set
-  checkMenuTimeStamp();
+  #if !defined HAS_RTC
+    checkMenuTimeStamp();
+  #endif
   checkMenuStickyPartition();
 
   tft.fillRect(110, 112, 100, 20,0);
@@ -1001,7 +1006,12 @@ void sleepTimer() {
     }
     Serial.println( GOTOSLEEP_MESSAGE );
     #ifdef ARDUINO_M5STACK_Core2
-      M5.Axp.DeepSleep();
+      esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0); // gpio39 == touch INT
+      delay(100);
+      M5.Lcd.fillScreen(TFT_BLACK);
+      M5.Lcd.sleep();
+      M5.Lcd.waitDisplay();
+      esp_deep_sleep_start();
     #else
       #if !defined _CHIMERA_CORE_ || defined HAS_POWER
         M5.setWakeupButton( BUTTON_B_PIN );
