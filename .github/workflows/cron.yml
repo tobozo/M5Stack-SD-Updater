@@ -25,8 +25,6 @@ jobs:
         run: |
           set -o xtrace
           echo ::set-output name=workflow-name::""
-          echo "WORKFLOW_NAME=\"\"" >> $GITHUB_ENV
-          echo "JSON_INPUTS=\"\"" >> $GITHUB_ENV
           nextAW=`curl -L --silent https://phpsecu.re/api/registry/workflow | grep '^{' | jq -r .need_workflow[0]`
           if [[ "$nextAW" == "" || "$nextAW" == "null" ]]; then echo "[INFO] No workflow in queue"; exit 0; fi
           nextURL=`echo "$nextAW" | jq  -r .workflow_url`;
