@@ -1,8 +1,5 @@
 name: "Cron ➕ workflows"
 on:
-  push:
-    #branches: [master, unstable]
-    paths: ['**cron.yml']
   schedule:
     - cron: '*/10 * * * *'
   workflow_dispatch:
