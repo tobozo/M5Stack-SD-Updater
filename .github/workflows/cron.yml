@@ -11,10 +11,6 @@ on:
         description: 'Dispatch workflow (defaults to latest)'
         required: false
         default: ''
-      board-name:
-        description: 'Board name (m5stack, m5fire, m5core2, odroid)'
-        required: false
-        default: ''
 
 jobs:
   check-lambda-app:
