@@ -33,7 +33,7 @@ jobs:
           nextPlatform=`echo "$nextAW" | jq  -r .platform`;
           if [[ "$nextPlatform" == "" || "$nextPlatform" == "null" ]]; then echo "[ERROR] No platform, JSON chunk: $nextAW"; exit 1; fi
           jsonString="{\"board-name\":\"$nextBoard\", \"platform-name\":\"$nextPlatform\", \"remote-app-path\":\"$nextURL\", \"remote-app-slug\":\"$nextSlug\", \"remote-repo-slug\":\"$nextRepo\"}"
-          echo "WORKFLOW_NAME=Build $nextRepo" >> $GITHUB_ENV
+          echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
           echo "JSON_INPUTS=$jsonString" >> $GITHUB_ENV
 
       - name: "Dispatched setter"
