@@ -47,13 +47,13 @@ jobs:
         if: github.event.inputs.dispatch-json != '' && github.event.inputs.workflow-name == ''
         run: |
           echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
-          wqbn="${{ github.event.inputs.dispatch-json }}"
-          board="$(echo '$wqbn' | cut -d':' -f1)"
-          platform="$(echo '$wqbn' | cut -d':' -f2)"
-          folder="$(echo '$wqbn' | cut -d':' -f3)"
-          repo="$(echo '$wqbn' | cut -d':' -f4)"
-          app_slug="${repo//\//__}"
-          app_path="folder/$repo"
+          wqbn=${{ github.event.inputs.dispatch-json }}
+          board=$(echo $wqbn | cut -d':' -f1)
+          platform=$(echo $wqbn | cut -d':' -f2)
+          folder=$(echo $wqbn | cut -d':' -f3)
+          repo=$(echo $wqbn | cut -d':' -f4)
+          app_slug=${repo//\//__}
+          app_path=folder/$repo
           jsonString="{\"board-name\":\"$board\", \"platform-name\":\"$platform\", \"remote-app-path\":\"$app_path\", \"remote-app-slug\":\"$app_slug\", \"remote-repo-slug\":\"$repo\"}"
           echo "JSON_INPUTS=\"$jsonString\"" >> $GITHUB_ENV
 
