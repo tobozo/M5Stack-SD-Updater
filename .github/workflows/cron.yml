@@ -47,7 +47,8 @@ jobs:
         if: github.event.inputs.dispatch-json != '' && github.event.inputs.workflow-name == ''
         run: |
           echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
-          echo "JSON_INPUTS=\"${{ github.event.inputs.dispatch-json }}\"" >> $GITHUB_ENV
+          jsonString="${{ github.event.inputs.dispatch-json }}"
+          echo "JSON_INPUTS=\"$jsonString\"" >> $GITHUB_ENV
 
 
       - name: "Dispatch"
