@@ -8,13 +8,17 @@ on:
         description: 'Dispatch workflow (defaults to latest)'
         required: false
         default: ''
+      dispatch-json:
+        description: 'Dispatch workflow (json)'
+        required: false
+        default: ''
 
 jobs:
   check-lambda-app:
     runs-on: ubuntu-latest
     steps:
       - name: "Next app checker"
-        if: github.event.inputs.workflow-name == ''
+        if: github.event.inputs.workflow-name == '' && github.event.inputs.dispatch-json == ''
         run: |
           jsonW=`curl -L --silent https://phpsecu.re/api/registry/workflow`
           nextAW=`echo $jsonW | grep '^{' | jq -r .need_workflow[0]`
@@ -33,11 +37,18 @@ jobs:
           echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
           echo "JSON_INPUTS=$jsonString" >> $GITHUB_ENV
 
-      - name: "Dispatched setter"
-        if: github.event.inputs.workflow-name != ''
+      - name: "Dispatched setter (named)"
+        if: github.event.inputs.workflow-name != '' && github.event.inputs.dispatch-json == ''
         run: |
           echo "WORKFLOW_NAME=${{ github.event.inputs.workflow-name }}" >> $GITHUB_ENV
           echo "JSON_INPUTS=\"\"" >> $GITHUB_ENV
+
+      - name: "Dispatched setter (json)"
+        if: github.event.inputs.dispatch-json != '' && github.event.inputs.workflow-name == ''
+        run: |
+          echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
+          echo "JSON_INPUTS=\"${{ github.event.inputs.dispatch-json }}\"" >> $GITHUB_ENV
+
 
       - name: "Dispatch"
         if: env.WORKFLOW_NAME != ''
