@@ -30,7 +30,7 @@ jobs:
           folder="$(echo $fqwn | cut -d':' -f3)"
           repo="$(echo $fqwn | cut -d':' -f4)"
           app_slug="${repo//\//_}"
-          app_path="$folder/$repo"
+          app_path="$folder/$repo.json"
           jsonString="{\"board-name\":\"$board\", \"platform-name\":\"$platform\", \"remote-app-path\":\"$app_path\", \"remote-app-slug\":\"$app_slug\", \"remote-repo-slug\":\"$repo\"}"
           echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
           echo "JSON_INPUTS=$jsonString" >> $GITHUB_ENV
@@ -50,7 +50,7 @@ jobs:
           folder="$(echo $fqwn | cut -d':' -f3)"
           repo="$(echo $fqwn | cut -d':' -f4)"
           app_slug="${repo//\//_}"
-          app_path="$folder/$repo"
+          app_path="$folder/$repo.json"
           jsonString="{\"board-name\":\"$board\", \"platform-name\":\"$platform\", \"remote-app-path\":\"$app_path\", \"remote-app-slug\":\"$app_slug\", \"remote-repo-slug\":\"$repo\"}"
           echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
           echo "JSON_INPUTS=$jsonString" >> $GITHUB_ENV
