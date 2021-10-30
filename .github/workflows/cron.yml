@@ -19,7 +19,7 @@ jobs:
         run: |
           jsonW=`curl -L --silent https://phpsecu.re/api/registry/workflow`
           nextAW=`echo $jsonW | grep '^{' | jq -r .need_workflow[0]`
-          if [[ "$nextAW" == "" || "$nextAW" == "null" ]]; then echo "[INFO] No workflow in queue, JSON chunk: $jsonW"; exit 0; fi
+          if [[ "$nextAW" == "" || "$nextAW" == "null" ]]; then echo "[INFO] No workflow in queue"; exit 0; fi
           fqwn=`echo "$nextAW" | jq  -r .fqwn`;
           echo "FQWN=$fqwn" >> $GITHUB_ENV
 
