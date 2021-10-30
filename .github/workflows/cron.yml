@@ -23,17 +23,15 @@ jobs:
           jsonW=`curl -L --silent https://phpsecu.re/api/registry/workflow`
           nextAW=`echo $jsonW | grep '^{' | jq -r .need_workflow[0]`
           if [[ "$nextAW" == "" || "$nextAW" == "null" ]]; then echo "[INFO] No workflow in queue, JSON chunk: $jsonW"; exit 0; fi
-          nextURL=`echo "$nextAW" | jq  -r .app_path`;
-          if [[ "$nextURL" == "" || "$nextURL" == "null" ]]; then echo "[ERROR] No app_path, JSON chunk: $nextAW"; exit 1; fi
-          nextSlug=`echo "$nextAW" | jq  -r .slug`;
-          if [[ "$nextSlug" == "" || "$nextSlug" == "null" ]]; then echo "[ERROR] No slug, JSON chunk: $nextAW"; exit 1; fi
-          nextRepo=`echo "$nextAW" | jq  -r .repo`;
-          if [[ "$nextRepo" == "" || "$nextRepo" == "null" ]]; then echo "[ERROR] No repo, JSON chunk: $nextAW"; exit 1; fi
-          nextBoard=`echo "$nextAW" | jq  -r .board`;
-          if [[ "$nextBoard" == "" || "$nextBoard" == "null" ]]; then echo "[ERROR] No board, JSON chunk: $nextAW"; exit 1; fi
-          nextPlatform=`echo "$nextAW" | jq  -r .platform`;
-          if [[ "$nextPlatform" == "" || "$nextPlatform" == "null" ]]; then echo "[ERROR] No platform, JSON chunk: $nextAW"; exit 1; fi
-          jsonString="{\"board-name\":\"$nextBoard\", \"platform-name\":\"$nextPlatform\", \"remote-app-path\":\"$nextURL\", \"remote-app-slug\":\"$nextSlug\", \"remote-repo-slug\":\"$nextRepo\"}"
+          fqwn=`echo "$nextAW" | jq  -r .fqwn`;
+          if [[ "$fqwn" == "" || "$fqwn" == "null" ]]; then echo "[ERROR] No fqwn, JSON chunk: $nextAW"; exit 1; fi
+          board="$(echo $fqwn | cut -d':' -f1)"
+          platform="$(echo $fqwn | cut -d':' -f2)"
+          folder="$(echo $fqwn | cut -d':' -f3)"
+          repo="$(echo $fqwn | cut -d':' -f4)"
+          app_slug="${repo//\//_}"
+          app_path="$folder/$repo.json"
+          jsonString="{\"board-name\":\"$board\", \"platform-name\":\"$platform\", \"remote-app-path\":\"$app_path\", \"remote-app-slug\":\"$app_slug\", \"remote-repo-slug\":\"$repo\"}"
           echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
           echo "JSON_INPUTS=$jsonString" >> $GITHUB_ENV
 
@@ -43,16 +41,16 @@ jobs:
           echo "WORKFLOW_NAME=${{ github.event.inputs.workflow-name }}" >> $GITHUB_ENV
           echo "JSON_INPUTS=\"\"" >> $GITHUB_ENV
 
-      - name: "Dispatched setter (wqbn)"
+      - name: "Dispatched setter (fqwn)"
         if: github.event.inputs.dispatch-json != '' && github.event.inputs.workflow-name == ''
         run: |
-          wqbn=${{ github.event.inputs.dispatch-json }}
-          board=$(echo $wqbn | cut -d':' -f1)
-          platform=$(echo $wqbn | cut -d':' -f2)
-          folder=$(echo $wqbn | cut -d':' -f3)
-          repo=$(echo $wqbn | cut -d':' -f4)
-          app_slug=${repo//\//_}
-          app_path=$folder/$repo.json
+          fqwn="${{ github.event.inputs.dispatch-json }}"
+          board="$(echo $fqwn | cut -d':' -f1)"
+          platform="$(echo $fqwn | cut -d':' -f2)"
+          folder="$(echo $fqwn | cut -d':' -f3)"
+          repo="$(echo $fqwn | cut -d':' -f4)"
+          app_slug="${repo//\//_}"
+          app_path="$folder/$repo.json"
           jsonString="{\"board-name\":\"$board\", \"platform-name\":\"$platform\", \"remote-app-path\":\"$app_path\", \"remote-app-slug\":\"$app_slug\", \"remote-repo-slug\":\"$repo\"}"
           echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
           echo "JSON_INPUTS=$jsonString" >> $GITHUB_ENV
