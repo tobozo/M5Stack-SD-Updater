@@ -412,13 +412,11 @@ static void SDMenuProgressHeadless( int state, int size )
     }
     SD_UI_Progress = offset;
 
-    if ( offset >= 0 && offset < ProgressStyle.width ) {
+    if ( offset >= 0 && offset <= ProgressStyle.width ) {
       SDU_GFX.fillRect( posX+1,        posY+1, offset,                     ProgressStyle.height, ProgressStyle.fillColor );
       SDU_GFX.fillRect( posX+1+offset, posY+1, ProgressStyle.width-offset, ProgressStyle.height, ProgressStyle.bgColor );
-      Serial.print( "." );
     } else {
       SDU_GFX.fillRect( posX+1,        posY+1, ProgressStyle.width,        ProgressStyle.height, ProgressStyle.bgColor );
-      Serial.println();
     }
     if( ProgressStyle.clipText ) {
       String percentStr = " " + String( percent ) + "% ";

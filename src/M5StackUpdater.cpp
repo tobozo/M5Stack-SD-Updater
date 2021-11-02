@@ -205,6 +205,10 @@ bool SDUpdater::saveSketchToFS( fs::FS &fs, const char* binfilename, bool skipIf
 void SDUpdater::updateNVS()
 {
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
+  if (!update_partition) {
+    log_d( "Cancelling NVS Update as update partition is invalid" );
+    return;
+  }
   esp_image_metadata_t nusketchMeta = getSketchMeta( update_partition );
   uint32_t nuSize = nusketchMeta.image_len;
   Serial.printf( "Updating menu.bin NVS size/digest after update: %d\n", nuSize );
@@ -292,6 +296,10 @@ void SDUpdater::tryRollback( String fileName )
   }
 
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
+  if (!update_partition) {
+    log_d( "Cancelling rollback as update partition is invalid" );
+    return;
+  }
   esp_image_metadata_t sketchMeta = getSketchMeta( update_partition );
   uint32_t nuSize = sketchMeta.image_len;
 
@@ -365,7 +373,7 @@ void SDUpdater::updateFromFS( const String& fileName )
   Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
 
   // try rollback first, it's faster!
-  if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
+  if( cfg->use_rollback && strcmp( MenuBin, fileName.c_str() ) == 0 ) {
     tryRollback( fileName );
   }
 

@@ -61,6 +61,7 @@ struct config_sdu_t
   fs::FS *fs = nullptr;
   int TFCardCsPin = -1;
   bool load_defaults = true;
+  bool use_rollback = true;
   const char* labelMenu     = LAUNCHER_LABEL;
   const char* labelSkip     = SKIP_LABEL;
   const char* labelRollback = ROLLBACK_LABEL;
@@ -94,6 +95,7 @@ struct config_sdu_t
   void setLabelSave( const char* label )          { labelSave = label; }
   void setAppName( const char* name )             { appName = name; }
   void setBinFileName( const char* name )         { binFileName = name; }
+  void useRolllback( bool use )                   { use_rollback = use; }
 
 };
 
