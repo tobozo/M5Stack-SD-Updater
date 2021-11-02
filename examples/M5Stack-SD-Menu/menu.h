@@ -74,16 +74,17 @@
 #endif
 
 
+#include <ESP32-Chimera-Core.h> // use LGFX display autodetect
+//#define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
+LGFX &tft( M5.Lcd );
+LGFX_Sprite sprite = LGFX_Sprite( &tft );
 
-
+#define SDU_APP_NAME "Application Launcher"
+#include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
 #include <sys/time.h>
 #include "compile_time.h"
 //#include <SPIFFS.h>
-
-#include "core.h"
-#define SDU_APP_NAME "Application Launcher"
-#include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
 #if defined(_CHIMERA_CORE_)
   #include "lgfx/utility/lgfx_qrcode.h"
@@ -133,13 +134,11 @@ String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
 
 
-
 SDUpdater *sdUpdater;
 M5SAM M5Menu;
 #if defined USE_DOWNLOADER
   AppRegistry Registry;
 #endif
-LGFX_Sprite sprite = LGFX_Sprite( &tft );
 
 
 /* vMicro compliance, see https://github.com/tobozo/M5Stack-SD-Updater/issues/5#issuecomment-386749435 */
@@ -260,6 +259,7 @@ void renderIcon( FileInfo &fileInfo )
     return;
   }
   JSONMeta jsonMeta = fileInfo.jsonMeta;
+  log_d("[%d] Will render icon %s at[%d:%d]", ESP.getFreeHeap(), fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10 );
   tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
 }
 
@@ -272,7 +272,8 @@ void renderIcon( uint16_t MenuID )
 /* by file name */
 void renderFace( String face )
 {
-  tft.drawJpgFile( M5_FS, face.c_str(), 5, 85, 120, 120, 0, 0, JPEG_DIV_NONE );
+  log_d("[%d] Will render face %s", ESP.getFreeHeap(), face.c_str() );
+  tft.drawJpgFile( M5_FS, face.c_str(), 5, 85, 120, 120/*, 0, 0, JPEG_DIV_NONE*/ );
 }
 
 
