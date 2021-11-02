@@ -178,11 +178,66 @@ void copyPartition( const char* binfilename = PROGMEM {MENU_BIN} )
 }
 
 
+
+void lsPart()
+{
+
+  struct {
+    String getDigest( uint8_t dig[32] ) {
+      static String digest;
+      digest = "";
+      char hex[3] = {0};
+      for(int i=0;i<32;i++) {
+        snprintf( hex, 3, "%02x", dig[i] );
+        digest += String(hex);
+      }
+      return digest;
+    }
+  } digester;
+
+  esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
+
+  log_w("Partition  Type   Subtype    Address   PartSize   ImgSize   Digest");
+  log_w("---------+------+---------+----------+----------+---------+--------");
+
+  while(pi != NULL) {
+    const esp_partition_t* part = esp_partition_get(pi);
+    bool isOta = (part->label[3]=='1' || part->label[3] == '0');
+    esp_image_metadata_t meta;
+    if( isOta ) meta  = sdUpdater->getSketchMeta( part );
+    log_w("%-8s   0x%02x      0x%02x   0x%06x   %8d  %8s   %s",
+      String( part->label ),
+      part->type,
+      part->subtype,
+      part->address,
+      part->size,
+      isOta ? String(meta.image_len) : "n/a",
+      isOta ? digester.getDigest(meta.image_digest).c_str() : "n/a"
+    );
+    //
+    pi = esp_partition_next( pi );
+  }
+  esp_partition_iterator_release(pi);
+}
+
+
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
 void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} )
 {
-  const esp_partition_t *running = esp_ota_get_running_partition();
-  const esp_partition_t *nextupdate = esp_ota_get_next_update_partition(NULL);
+  const esp_partition_t* running = esp_ota_get_running_partition();
+  const esp_partition_t* nextupdate = esp_ota_get_next_update_partition(NULL);
+
+  if (!running) {
+    log_e( "Can't fetch running partition info !!" );
+    return;
+  }
+  if (!nextupdate) {
+    log_e( "Can't fetch nextupdate partition info !!" );
+    return;
+  }
+
+  lsPart();
+
   //const char* menubinfilename PROGMEM {MENU_BIN} ;
   tft.setTextDatum(MC_DATUM);
   tft.setCursor(0,0);

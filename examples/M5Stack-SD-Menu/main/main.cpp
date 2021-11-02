@@ -8,6 +8,8 @@ void setup() {
     M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
   #endif
 
+  SDUCfg.setFS( &M5_FS );
+  SDUCfg.setCSPin( TFCARD_CS_PIN );
   sdUpdater = new SDUpdater();
 
   //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console

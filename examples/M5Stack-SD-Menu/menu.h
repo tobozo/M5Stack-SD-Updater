@@ -77,8 +77,6 @@
 
 #include "core.h"
 
-#define SDU_APP_NAME "Application Launcher"
-#include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
 #include <sys/time.h>
 #include "compile_time.h"
@@ -132,7 +130,7 @@ String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
 
 
-SDUpdater *sdUpdater;
+SDUpdater *sdUpdater = nullptr;
 M5SAM M5Menu;
 #if defined USE_DOWNLOADER
   AppRegistry Registry;
@@ -740,6 +738,7 @@ void launchApp( FileInfo &info )
     }
   }
   sdUpdater->updateFromFS( M5_FS, fileInfo[MenuID].fileName );
+  //updateFromFS( M5_FS, fileInfo[MenuID].fileName, TFCARD_CS_PIN );
   ESP.restart();
 }
 

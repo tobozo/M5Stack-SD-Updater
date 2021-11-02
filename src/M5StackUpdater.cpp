@@ -71,13 +71,24 @@ void SDUpdater::_message( const String& msg )
 esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition )
 {
   esp_image_metadata_t data;
-  if ( !source_partition ) return data;
+  if ( !source_partition ) {
+    log_e("No source partition provided");
+    return data;
+  }
   const esp_partition_pos_t source_partition_pos  = {
      .offset = source_partition->address,
      .size = source_partition->size,
   };
   data.start_addr = source_partition_pos.offset;
-  esp_image_verify( ESP_IMAGE_VERIFY, &source_partition_pos, &data );
+  esp_err_t ret = esp_image_verify( ESP_IMAGE_VERIFY, &source_partition_pos, &data );
+  // only verify OTA0 or OTA1
+  if( source_partition->label[3] == '1' || source_partition->label[3] == '0' ) {
+    if( ret != ESP_OK ) {
+      log_e("Failed to verify image %s at addr %x", String( source_partition->label ), source_partition->address );
+    } else {
+      //log_w("Successfully verified image %s at addr %x", String( source_partition->label[3] ), source_partition->address );
+    }
+  }
   return data;//.image_len;
 }
 
@@ -373,8 +384,13 @@ void SDUpdater::updateFromFS( const String& fileName )
   Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
 
   // try rollback first, it's faster!
-  if( cfg->use_rollback && strcmp( MenuBin, fileName.c_str() ) == 0 ) {
-    tryRollback( fileName );
+  if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
+    if( cfg->use_rollback ) {
+      tryRollback( fileName );
+      log_e("Rollback failed, will try from filesystem");
+    } else {
+      log_w("Skipping rollback per config");
+    }
   }
 
   // no rollback possible, start filesystem

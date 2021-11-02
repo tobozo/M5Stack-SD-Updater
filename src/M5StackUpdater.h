@@ -87,22 +87,22 @@
 #include <Update.h>
 
 // inherit includes from sketch
-#if __has_include(<SD.h>)
+#if __has_include(<SD.h>) || defined _SD_H_
   #include <SD.h>
 #endif
-#if __has_include(<SD_MMC.h>)
+#if __has_include(<SD_MMC.h>) || defined _SD_MMC_H_
   #include <SD_MMC.h>
 #endif
-#if __has_include(<SPIFFS.h>)
+#if __has_include(<SPIFFS.h>) || defined _SPIFFS_H_
   #include <SPIFFS.h>
 #endif
-#if __has_include(<LittleFS.h>)
+#if __has_include(<LittleFS.h>) || defined _LiffleFS_H_
   #include <LittleFS.h>
 #endif
-#if __has_include(<LITTLEFS.h>)
+#if __has_include(<LITTLEFS.h>) || defined _LIFFLEFS_H_
   #include <LITTLEFS.h>
 #endif
-#if __has_include(<PSRamFS.h>)
+#if __has_include(<PSRamFS.h>) || defined _PSRAMFS_H_
   #include <PSRamFS.h>
 #endif
 
