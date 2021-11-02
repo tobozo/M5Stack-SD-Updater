@@ -104,10 +104,8 @@ void copyFsPartition( fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} )
 }
 */
 
-
-//extern SDUpdater *sdUpdater;
-
-
+#pragma once
+#include "core.h"
 
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher

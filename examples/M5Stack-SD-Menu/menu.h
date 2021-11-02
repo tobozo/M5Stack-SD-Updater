@@ -29,6 +29,7 @@
  */
 // #pragma GCC push_options
 // #pragma GCC optimize ("Os")
+#pragma once
 
 
 // TODO: moved USE_DOWNLOADER features to "Downloader.ino"
@@ -74,10 +75,7 @@
 #endif
 
 
-#include <ESP32-Chimera-Core.h> // use LGFX display autodetect
-//#define tft M5.Lcd // syntax sugar, forward compat with other displays (i.e GO.Lcd)
-LGFX &tft( M5.Lcd );
-LGFX_Sprite sprite = LGFX_Sprite( &tft );
+#include "core.h"
 
 #define SDU_APP_NAME "Application Launcher"
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
@@ -260,7 +258,12 @@ void renderIcon( FileInfo &fileInfo )
   }
   JSONMeta jsonMeta = fileInfo.jsonMeta;
   log_d("[%d] Will render icon %s at[%d:%d]", ESP.getFreeHeap(), fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10 );
-  tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
+
+  fs::File iconFile = M5_FS.open( fileInfo.iconName.c_str()  );
+  if( !iconFile ) return;
+  tft.drawJpg( &iconFile, tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
+  iconFile.close();
+  //tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
 }
 
 /* by menu ID */
@@ -273,7 +276,11 @@ void renderIcon( uint16_t MenuID )
 void renderFace( String face )
 {
   log_d("[%d] Will render face %s", ESP.getFreeHeap(), face.c_str() );
-  tft.drawJpgFile( M5_FS, face.c_str(), 5, 85, 120, 120/*, 0, 0, JPEG_DIV_NONE*/ );
+  fs::File iconFile = M5_FS.open( face.c_str()  );
+  if( !iconFile ) return;
+  tft.drawJpg( &iconFile, 5, 85/*, 120, 120, 0, 0, JPEG_DIV_NONE*/ );
+  iconFile.close();
+  //tft.drawJpgFile( M5_FS, face.c_str(), 5, 85/*, 120, 120, 0, 0, JPEG_DIV_NONE*/ );
 }
 
 
@@ -836,7 +843,6 @@ void UISetup()
       gotoSleep();
     }
   #endif
-
 }
 
 
