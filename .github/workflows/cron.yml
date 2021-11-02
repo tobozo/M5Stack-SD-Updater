@@ -4,12 +4,8 @@ on:
     - cron: '*/10 * * * *'
   workflow_dispatch:
     inputs:
-      workflow-name:
-        description: 'Dispatch workflow (defaults to latest)'
-        required: false
-        default: ''
-      dispatch-json:
-        description: 'Dispatch workflow (json)'
+      dispatch-fqwn:
+        description: 'Dispatch workflow (fully qualified workflow name)'
         required: false
         default: ''
 
@@ -17,34 +13,25 @@ jobs:
   check-lambda-app:
     runs-on: ubuntu-latest
     steps:
+
       - name: "Next app checker"
-        if: github.event.inputs.workflow-name == '' && github.event.inputs.dispatch-json == ''
+        if: github.event.inputs.dispatch-fqwn == ''
         run: |
           jsonW=`curl -L --silent https://phpsecu.re/api/registry/workflow`
           nextAW=`echo $jsonW | grep '^{' | jq -r .need_workflow[0]`
-          if [[ "$nextAW" == "" || "$nextAW" == "null" ]]; then echo "[INFO] No workflow in queue, JSON chunk: $jsonW"; exit 0; fi
+          if [[ "$nextAW" == "" || "$nextAW" == "null" ]]; then echo "[INFO] No workflow in queue"; exit 0; fi
           fqwn=`echo "$nextAW" | jq  -r .fqwn`;
-          if [[ "$fqwn" == "" || "$fqwn" == "null" ]]; then echo "[ERROR] No fqwn, JSON chunk: $nextAW"; exit 1; fi
-          board="$(echo $fqwn | cut -d':' -f1)"
-          platform="$(echo $fqwn | cut -d':' -f2)"
-          folder="$(echo $fqwn | cut -d':' -f3)"
-          repo="$(echo $fqwn | cut -d':' -f4)"
-          app_slug="${repo//\//_}"
-          app_path="$folder/$repo.json"
-          jsonString="{\"board-name\":\"$board\", \"platform-name\":\"$platform\", \"remote-app-path\":\"$app_path\", \"remote-app-slug\":\"$app_slug\", \"remote-repo-slug\":\"$repo\"}"
-          echo "WORKFLOW_NAME=Dispatched Build" >> $GITHUB_ENV
-          echo "JSON_INPUTS=$jsonString" >> $GITHUB_ENV
-
-      - name: "Dispatched setter (named)"
-        if: github.event.inputs.workflow-name != '' && github.event.inputs.dispatch-json == ''
-        run: |
-          echo "WORKFLOW_NAME=${{ github.event.inputs.workflow-name }}" >> $GITHUB_ENV
-          echo "JSON_INPUTS=\"\"" >> $GITHUB_ENV
+          echo "FQWN=$fqwn" >> $GITHUB_ENV
 
       - name: "Dispatched setter (fqwn)"
-        if: github.event.inputs.dispatch-json != '' && github.event.inputs.workflow-name == ''
+        if: github.event.inputs.dispatch-fqwn != ''
         run: |
-          fqwn="${{ github.event.inputs.dispatch-json }}"
+          echo "FQWN=${{ github.event.inputs.dispatch-fqwn }}" >> $GITHUB_ENV
+
+      - name: "FQWN Parser"
+        if: env.FQWN != ''
+        run: |
+          fqwn=${{ env.FQWN }}
           board="$(echo $fqwn | cut -d':' -f1)"
           platform="$(echo $fqwn | cut -d':' -f2)"
           folder="$(echo $fqwn | cut -d':' -f3)"
