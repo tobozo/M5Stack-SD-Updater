@@ -135,7 +135,7 @@ struct FileInfo
       iconName = currentIconFile;
       return true;
     }
-    log_w("[JSON]: no currentIconFile %s", currentIconFile.c_str() );
+    log_d("[JSON]: no currentIconFile %s", currentIconFile.c_str() );
     return false;
   }
   bool hasFace() {
@@ -149,7 +149,7 @@ struct FileInfo
       faceName = iconName;
       return true;
     }
-    log_w("[JSON]: no currentIconFile %s", currentIconFile.c_str() );
+    log_d("[JSON]: no currentIconFile %s", currentIconFile.c_str() );
     return false;
   }
   bool hasMeta() {
@@ -162,7 +162,7 @@ struct FileInfo
       metaName = currentMetaFile;
       return true;
     }
-    log_w("[JSON]: no currentMetaFile %s", currentMetaFile.c_str() );
+    log_d("[JSON]: no currentMetaFile %s", currentMetaFile.c_str() );
     return false;
   }
   bool hasData = false; // app requires a spiffs /data folder
