@@ -77,43 +77,6 @@
  *
  */
 
-#include "menu.h"
+#include "main/main.cpp"
 
 
-
-void setup() {
-  #if defined(_CHIMERA_CORE_)
-    M5.begin(true, false, true, false, false); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
-  #else
-    M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
-  #endif
-
-  sdUpdater = new SDUpdater();
-  // suggest rollback
-  sdUpdater->checkSDUpdaterUI(
-    SD,           // filesystem (default=SD)
-    "",           // path to binary (default = /menu.bin, empty = rollback only)
-    0            // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
-  );
-
-  #if defined(_CHIMERA_CORE_)
-    // debug I2C
-    //Wire.begin(SDA, SCL);
-    //M5.I2C.scan();
-  #endif
-
-  //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
-  UISetup(); // UI init and check if a SD exists
-
-  doFSChecks(); // replicate on SD and app1 partition, scan data folder, load registry
-  doFSInventory(); // enumerate apps and render menu
-
-}
-
-
-void loop() {
-
-  HIDMenuObserve();
-  sleepTimer();
-
-}

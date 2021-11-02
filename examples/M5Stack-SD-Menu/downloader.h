@@ -28,11 +28,16 @@
  *
  */
 
-//#define MBEDTLS_ERROR_C
+//
+
+
+
+
+
 #include "certificates.h"
-#include <WiFi.h>
+//#include <WiFi.h>
 #include <HTTPClient.h>
-#include <WiFi.h>
+//#include <WiFi.h>
 #include <WiFiClientSecure.h>
 
 //#define USE_WIFI_MANAGER
@@ -41,13 +46,26 @@
   #include "wifi_manager.h"
 #endif
 
-//#include "mbedtls/md.h"
-//#include <ESP32-targz.h>
+//#define USE_SODIUM // as of 2.0.1-rc1 this produces a bigger binary (+4Kb) + occasional crashes
+#define USE_MBEDTLS // old mbedtls still more stable and produces a smaller binary
 
-
-#include "sodium/crypto_hash_sha256.h"
-crypto_hash_sha256_state ctx;
-
+#ifdef USE_SODIUM
+  #include "sodium/crypto_hash_sha256.h"
+  crypto_hash_sha256_state ctx;
+  #define SHA_START() [](){}
+  #define SHA_INIT crypto_hash_sha256_init
+  #define SHA_UPDATE crypto_hash_sha256_update
+  #define SHA_FINAL crypto_hash_sha256_final
+#elif defined USE_MBEDTLS
+  #define MBEDTLS_SHA256_ALT
+  #define MBEDTLS_ERROR_C
+  #include "mbedtls/sha256.h"
+  mbedtls_sha256_context ctx;
+  #define SHA_START() mbedtls_sha256_starts(&ctx,0)
+  #define SHA_INIT mbedtls_sha256_init
+  #define SHA_UPDATE mbedtls_sha256_update
+  #define SHA_FINAL mbedtls_sha256_finish
+#endif
 
 
 // registry this launcher is tied to
@@ -65,7 +83,10 @@ byte daysavetime = 1; // UTC + 1
 
 HTTPClient http;
 
-//extern SDUpdater *sdUpdater; // used for menu progress
+// tiny buffer shared by HTTP and sha256 sum
+size_t sizeOfTinyBuff = 512; // smaller is better because sha256 hashing happen between reads
+uint8_t *tinyBuff = nullptr;
+
 extern M5SAM M5Menu;
 extern uint16_t appsCount;
 extern uint16_t MenuID;
@@ -128,6 +149,25 @@ struct URLParts {
 };
 
 
+
+
+bool tinyBuffInit()
+{
+  if( tinyBuff == nullptr ) {
+    tinyBuff = (uint8_t *)heap_caps_malloc(sizeOfTinyBuff, MALLOC_CAP_8BIT);
+    if( tinyBuff == NULL ) {
+      return false;
+    } else {
+      log_d("Allocated %d bytes for wget buffer", sizeOfTinyBuff );
+    }
+  } else {
+    log_d("Reusing wget buffer");
+  }
+  return true;
+}
+
+
+
 URLParts parseURL( String url ) { // logic stolen from HTTPClient::beginInternal()
   URLParts urlParts;
   int index = url.indexOf(':');
@@ -161,6 +201,8 @@ URLParts parseURL( String url ) { // logic stolen from HTTPClient::beginInternal
 URLParts parseURL( const char* url ) {
   return parseURL( String( url ) );
 }
+
+
 
 
 
@@ -449,8 +491,8 @@ void drawRSSIBar(int16_t x, int16_t y, int16_t rssi, uint16_t bgcolor, float siz
       barColors[2] =  TFT_YELLOW;
     break;
     case 2:
-      barColors[0] =  TFT_YELLOW;
-      barColors[1] =  TFT_YELLOW;
+      barColors[0] =  TFT_ORANGE;
+      barColors[1] =  TFT_ORANGE;
     break;
     case 1:
       barColors[0] = TFT_RED;
@@ -587,26 +629,26 @@ static void sha256_sum(const char* fileName) {
     return;
   }
   tft.drawJpg( checksum_jpg, checksum_jpg_len, 288, 125, 22, 32 );
-  uint8_t shabuff[512] = { 0 };
-  size_t sizeOfBuff = sizeof(shabuff);
-  //mbedtls_md_init(&ctx);
-  //mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
-  //mbedtls_md_starts(&ctx);
-  crypto_hash_sha256_init(&ctx);
+
+  tinyBuffInit();
+  *shaResult = {0};
+
+  SHA_INIT(&ctx);
+  SHA_START();
+
   size_t n;
-  while ((n = checkFile.read(shabuff, sizeOfBuff)) > 0) {
-    //mbedtls_md_update(&ctx, (const unsigned char *) shabuff, n);
-    crypto_hash_sha256_update(&ctx, (const unsigned char *) shabuff, n);
-    if( fileSize/10 > sizeOfBuff && fileSize != len ) {
-      /*sdUpdater.*/M5SDMenuProgress(fileSize-len, fileSize);
+  while ((n = checkFile.read(tinyBuff, sizeOfTinyBuff)) > 0) {
+    SHA_UPDATE(&ctx, (const unsigned char *) tinyBuff, n);
+    if( fileSize/10 > sizeOfTinyBuff && fileSize != len ) {
+      M5SDMenuProgress(fileSize-len, fileSize);
     }
     len -= n;
+    delay(1);
   }
   tft.fillRect( 288, 125, 22, 32, M5MENU_GREY );
   checkFile.close();
-  //mbedtls_md_finish(&ctx, shaResult);
-  //mbedtls_md_free(&ctx);
-  crypto_hash_sha256_final(&ctx, shaResult);
+
+  SHA_FINAL(&ctx, shaResult);
   sha_sum_to_str();
 }
 
@@ -639,7 +681,7 @@ const char* updateWallet( String host, const char* ca) {
     memcpy( newhost, host.c_str(), hostlen );
     memcpy( newcert, ca, certlen);
     TLSWallet[idx] = { (const char*)newhost , (const char*)newcert };
-    log_d("[WALLET UPDATE] Wallet #%d created ( %s )\n", idx, TLSWallet[idx].host );
+    log_d("[WALLET UPDATE] Wallet #%d loaded ( %s )\n", idx, TLSWallet[idx].host );
     return TLSWallet[idx].ca;
   }
   return ca;
@@ -777,6 +819,9 @@ bool syncConnect(WiFiClientSecure *client, HTTPRouter &router, URLParts urlParts
 }
 
 
+
+
+
 bool wget( const char* bin_url, const char* outputFile ) {
   log_d("[HEAP Before: %d]", ESP.getFreeHeap() );
   Serial.printf("#> wget %s --output-document=%s ", bin_url, outputFile );
@@ -793,17 +838,19 @@ bool wget( const char* bin_url, const char* outputFile ) {
   }
 
   int len = http.getSize();
+
   if(len<=0) {
     log_e("  [ERROR] %s has zero Content-Lenght, aborting\n", bin_url );
     wgetRouter.dismiss( client, true );
     return false;
   }
   int httpSize = len;
-  uint8_t buff[512] = { 0 };
-  size_t sizeOfBuff = sizeof(buff);
-  if( M5_FS.exists( outputFile ) ) {
-    M5_FS.remove( outputFile );
+
+  if( !tinyBuffInit() ) {
+    log_e("Failed to allocate memory for download buffer, aborting");
+    wgetRouter.dismiss( client, true );
   }
+
   File myFile = M5_FS.open( outputFile, FILE_WRITE);
   if(!myFile) {
     myFile.close();
@@ -814,39 +861,36 @@ bool wget( const char* bin_url, const char* outputFile ) {
   unsigned long downwloadstart = millis();
   WiFiClient *stream = http.getStreamPtr();
   *shaResult = {0};
-  // mbedtls_md_init(&ctx);
-  // mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
-  // mbedtls_md_starts(&ctx);
-  crypto_hash_sha256_init( &ctx );
+
+  SHA_INIT( &ctx );
+  SHA_START();
+
   tft.drawJpg( checksum_jpg, checksum_jpg_len, 288, 125, 22, 32 );
   tft.drawJpg( download_jpg, download_jpg_len, 252, 125, 26, 32 );
   Serial.print("[Download+SHA256 Sum -->][..");
   while(http.connected() && (len > 0 || len == -1)) {
-    if( httpSize/10 > sizeOfBuff && httpSize!=len ) {
-      /*sdUpdater.*/M5SDMenuProgress(httpSize-len, httpSize);
-    }
-    // get available data size
-    size_t size = stream->available();
-    if(size) {
-      // read up to 128 byte
-      int c = stream->readBytes(buff, ((size > sizeOfBuff) ? sizeOfBuff : size));
-      // hashsum
-      //mbedtls_md_update(&ctx, (const unsigned char *) buff, c);
-      crypto_hash_sha256_update(&ctx, (const unsigned char *) buff, c);
+    int c = stream->readBytes(tinyBuff, sizeOfTinyBuff );
+    if( c > 0 ) {
       // write it to SD
-      myFile.write(buff, c);
-      if(len > 0) {
-        len -= c;
-      }
+      myFile.write(tinyBuff, c);
+      delay(1);
+      // calculate hash sum (multipart mode)
+      SHA_UPDATE(&ctx, (const unsigned char *)tinyBuff, c);
+      delay(1);
+    } else {
+      log_d("Got empty buffer from last read while %d bytes remaning", len );
     }
-    //delay(1);
+    if(len > 0) {
+      len -= c;
+    }
+    if( httpSize/10 > sizeOfTinyBuff && httpSize!=len ) {
+      M5SDMenuProgress(httpSize-len, httpSize);
+    }
+    vTaskDelay(1); // feed the watchdog to prevent beacon timeouts
   }
+  SHA_FINAL(&ctx, shaResult);
   myFile.close();
-  delete stream;
   Serial.print("]");
-  crypto_hash_sha256_final(&ctx, shaResult);
-  // mbedtls_md_finish(&ctx, shaResult);
-  // mbedtls_md_free(&ctx);
   sha_sum_to_str();
   tft.fillRect( 252, 125, 70, 32, M5MENU_GREY );
   renderDownloadIcon( M5MENU_GREY );
@@ -859,6 +903,8 @@ bool wget( const char* bin_url, const char* outputFile ) {
   } else {
     Serial.printf("  [OK] Copy done...\n");
   }
+  //free(tinyBuff);
+  delete stream;
   wgetRouter.endhttp = false;
   wgetRouter.deleteclient = false;
   wgetRouter.dismiss( client, false );
@@ -1109,7 +1155,7 @@ bool syncAppRegistry( String BASE_URL ) {
   }
   progress_modulo = 100/appsCount;
   String base_url = root["base_url"].as<String>();
-  Serial.printf("\nFound %s apps at %s\n", String(appsCount).c_str(), base_url.c_str() );
+  Serial.printf("\nFound %s apps at %s\n", String(appsCount).c_str(), appURL.c_str() );
   for(uint16_t i=0;i<appsCount;i++) {
     String appName = root["apps"][i]["name"].as<String>();
     //if( appName == "Downloader" ) continue;
@@ -1219,6 +1265,7 @@ void WiFiEvent(WiFiEvent_t event) {
 
 
 void enableWiFi() {
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
   WiFi.mode(WIFI_OFF);
   delay(500);
   WiFi.mode(WIFI_STA);

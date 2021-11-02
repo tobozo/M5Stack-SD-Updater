@@ -359,5 +359,20 @@ bool replaceLauncher( fs::FS &fs, FileInfo &info)
   return true;
 }
 
+FileInfo *fileInfo = nullptr;
 
-FileInfo fileInfo[M5SAM_LIST_MAX_COUNT];
+void initFileInfo()
+{
+  if( psramInit() ) {
+    fileInfo = (FileInfo *)ps_calloc( M5SAM_LIST_MAX_COUNT, sizeof(FileInfo) );
+  } else {
+    fileInfo = (FileInfo *)calloc( M5SAM_LIST_MAX_COUNT, sizeof(FileInfo) );
+  }
+  if( fileInfo == NULL ) {
+    log_n("[CRITICAL] Failed to allocate %d bytes!! Set a lower value to M5SAM_LIST_MAX_COUNT in SAM.h to prevent this. Halting...", sizeof(FileInfo)*M5SAM_LIST_MAX_COUNT );
+    while(1) vTaskDelay(1);
+  }
+}
+
+
+

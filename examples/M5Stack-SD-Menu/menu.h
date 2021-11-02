@@ -27,8 +27,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-#pragma GCC push_options
-#pragma GCC optimize ("Os")
+// #pragma GCC push_options
+// #pragma GCC optimize ("Os")
 
 
 // TODO: moved USE_DOWNLOADER features to "Downloader.ino"
@@ -36,16 +36,17 @@
 #if defined( ARDUINO_M5STACK_Core2 )
   #warning M5STACK Core2 DETECTED !!
   #define PLATFORM_NAME "M5Core2"
-  #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #define DEFAULT_REGISTRY_BOARD "m5core2"
   #define USE_DOWNLOADER
 #elif defined( ARDUINO_M5Stack_Core_ESP32 )
   #warning M5STACK CLASSIC DETECTED !!
   #define PLATFORM_NAME "M5Stack"
   #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #define USE_DOWNLOADER
 #elif defined( ARDUINO_M5STACK_FIRE )
   #warning M5STACK FIRE DETECTED !!
   #define PLATFORM_NAME "M5Fire"
-  #define DEFAULT_REGISTRY_BOARD "m5stack"
+  #define DEFAULT_REGISTRY_BOARD "m5fire"
   #define USE_DOWNLOADER
 #elif defined( ARDUINO_ODROID_ESP32 )
   #warning ODROID DETECTED !!
@@ -138,7 +139,7 @@ M5SAM M5Menu;
 #if defined USE_DOWNLOADER
   AppRegistry Registry;
 #endif
-TFT_eSprite sprite = TFT_eSprite( &tft );
+LGFX_Sprite sprite = LGFX_Sprite( &tft );
 
 
 /* vMicro compliance, see https://github.com/tobozo/M5Stack-SD-Updater/issues/5#issuecomment-386749435 */
@@ -159,15 +160,25 @@ static String heapState()
   return "";
 }
 
-/*
-static const char* sduFSFilePath( fs::File *file ) {
-  #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
-    return file->path();
+void gotoSleep()
+{
+  Serial.println( GOTOSLEEP_MESSAGE );
+  #ifdef ARDUINO_M5STACK_Core2
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0); // gpio39 == touch INT
+    //M5.Axp.DeepSleep();
   #else
-    return file->name();
+    #if !defined _CHIMERA_CORE_ || defined HAS_POWER || defined HAS_IP5306
+      M5.setWakeupButton( BUTTON_B_PIN );
+      M5.powerOFF();
+    #else
+    #endif
   #endif
+  delay(100);
+  M5.Lcd.fillScreen(TFT_BLACK);
+  M5.Lcd.sleep();
+  M5.Lcd.waitDisplay();
+  esp_deep_sleep_start();
 }
-*/
 
 void renderScroll( String scrollText, uint8_t x = 0, uint8_t y = 0, uint16_t width = tft.width() )
 {
@@ -727,6 +738,7 @@ void launchApp( FileInfo &info )
 
 void UISetup()
 {
+  initFileInfo();
   HIDInit();
   // make sure you're using the latest from https://github.com/tobozo/M5StackSAM/
   M5Menu.listMaxLabelSize = 32; // list labels will be trimmed
@@ -766,21 +778,7 @@ void UISetup()
     delay( toggle ? 300 : 500 );
     // go to sleep after a minute, no need to hammer the SD Card reader
     if( lastcheck + 60000 < millis() ) {
-      Serial.println( GOTOSLEEP_MESSAGE );
-      #ifdef ARDUINO_M5STACK_Core2
-        esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0); // gpio39 == touch INT
-        delay(100);
-        M5.Lcd.fillScreen(TFT_BLACK);
-        M5.Lcd.sleep();
-        M5.Lcd.waitDisplay();
-        esp_deep_sleep_start();
-        //M5.Axp.DeepSleep();
-      #else
-        #if !defined _CHIMERA_CORE_ || defined HAS_POWER
-          M5.setWakeupButton( BUTTON_B_PIN );
-          M5.powerOFF();
-        #endif
-      #endif
+      gotoSleep();
     }
   }
   tft.setTextDatum(TL_DATUM);
@@ -834,21 +832,7 @@ void UISetup()
           copyPartition(); // restore the menu.bin file
         }
       }
-      Serial.println( GOTOSLEEP_MESSAGE );
-      #ifdef ARDUINO_M5STACK_Core2
-        esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0); // gpio39 == touch INT
-        delay(100);
-        M5.Lcd.fillScreen(TFT_BLACK);
-        M5.Lcd.sleep();
-        M5.Lcd.waitDisplay();
-        esp_deep_sleep_start();
-      #else
-        #if !defined _CHIMERA_CORE_ || defined HAS_POWER
-          M5.setWakeupButton( BUTTON_B_PIN );
-          M5.powerOFF();
-        #endif
-      #endif
-
+      gotoSleep();
     }
   #endif
 
@@ -1004,20 +988,7 @@ void sleepTimer() {
       lastpush = millis() - (MS_BEFORE_SLEEP - brightness*10); // exponential dimming effect
       return;
     }
-    Serial.println( GOTOSLEEP_MESSAGE );
-    #ifdef ARDUINO_M5STACK_Core2
-      esp_sleep_enable_ext0_wakeup(GPIO_NUM_39, 0); // gpio39 == touch INT
-      delay(100);
-      M5.Lcd.fillScreen(TFT_BLACK);
-      M5.Lcd.sleep();
-      M5.Lcd.waitDisplay();
-      esp_deep_sleep_start();
-    #else
-      #if !defined _CHIMERA_CORE_ || defined HAS_POWER
-        M5.setWakeupButton( BUTTON_B_PIN );
-        M5.powerOFF();
-      #endif
-    #endif
+    gotoSleep();
   }
 }
 
