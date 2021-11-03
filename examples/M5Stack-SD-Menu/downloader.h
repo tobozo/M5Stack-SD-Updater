@@ -1265,7 +1265,7 @@ void WiFiEvent(WiFiEvent_t event) {
 
 
 void enableWiFi() {
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+  //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
   WiFi.mode(WIFI_OFF);
   delay(500);
   WiFi.mode(WIFI_STA);

@@ -65,15 +65,8 @@
 #endif
 
 
-#if defined(_CHIMERA_CORE_)
-  // auto-select SD source
-  #define M5_FS SDUPDATER_FS
-#else
-  // until M5Stack clean up their flags
-  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  #define M5_FS SD
-#endif
-
+//#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+//#define M5_FS SD
 
 #include "core.h"
 

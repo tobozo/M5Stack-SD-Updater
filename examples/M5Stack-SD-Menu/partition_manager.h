@@ -179,45 +179,44 @@ void copyPartition( const char* binfilename = PROGMEM {MENU_BIN} )
 
 
 
+struct {
+  String toString( uint8_t dig[32] ) {
+    static String digest;
+    digest = "";
+    char hex[3] = {0};
+    for(int i=0;i<32;i++) {
+      snprintf( hex, 3, "%02x", dig[i] );
+      digest += String(hex);
+    }
+    return digest;
+  }
+} digest;
+
+
 void lsPart()
 {
-
-  struct {
-    String getDigest( uint8_t dig[32] ) {
-      static String digest;
-      digest = "";
-      char hex[3] = {0};
-      for(int i=0;i<32;i++) {
-        snprintf( hex, 3, "%02x", dig[i] );
-        digest += String(hex);
-      }
-      return digest;
+  #if defined ESP_PARTITION_TYPE_ANY
+    esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
+    log_w("Partition  Type   Subtype    Address   PartSize   ImgSize   Digest");
+    log_w("---------+------+---------+----------+----------+---------+--------");
+    while(pi != NULL) {
+      const esp_partition_t* part = esp_partition_get(pi);
+      esp_image_metadata_t meta;
+      bool isOta = (part->label[3]=='1' || part->label[3] == '0');
+      if( isOta ) meta  = sdUpdater->getSketchMeta( part );
+      log_w("%-8s   0x%02x      0x%02x   0x%06x   %8d  %8s   %s",
+        String( part->label ),
+        part->type,
+        part->subtype,
+        part->address,
+        part->size,
+        isOta ? String(meta.image_len) : "n/a",
+        isOta ? digest.toString(meta.image_digest).c_str() : "n/a"
+      );
+      pi = esp_partition_next( pi );
     }
-  } digester;
-
-  esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
-
-  log_w("Partition  Type   Subtype    Address   PartSize   ImgSize   Digest");
-  log_w("---------+------+---------+----------+----------+---------+--------");
-
-  while(pi != NULL) {
-    const esp_partition_t* part = esp_partition_get(pi);
-    bool isOta = (part->label[3]=='1' || part->label[3] == '0');
-    esp_image_metadata_t meta;
-    if( isOta ) meta  = sdUpdater->getSketchMeta( part );
-    log_w("%-8s   0x%02x      0x%02x   0x%06x   %8d  %8s   %s",
-      String( part->label ),
-      part->type,
-      part->subtype,
-      part->address,
-      part->size,
-      isOta ? String(meta.image_len) : "n/a",
-      isOta ? digester.getDigest(meta.image_digest).c_str() : "n/a"
-    );
-    //
-    pi = esp_partition_next( pi );
-  }
-  esp_partition_iterator_release(pi);
+    esp_partition_iterator_release(pi);
+  #endif
 }
 
 

@@ -8,3 +8,4 @@
 
 M5Display &tft( M5.Lcd );
 static LGFX_Sprite sprite = LGFX_Sprite( &tft );
+fs::SDFS &M5_FS(SD);
