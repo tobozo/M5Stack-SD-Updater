@@ -178,7 +178,7 @@ class SDUpdater
     {
       bool mounted = false;
       size_t tried = 0;
-      #if defined (_SPIFFS_H_)
+      #if __has_include(<SPIFFS.h>) || defined _SPIFFS_H_
         log_i("Checking for SPIFFS Support");
         if( &fs == &SPIFFS ) {
           if( !SPIFFS.begin() ){
@@ -218,7 +218,7 @@ class SDUpdater
           mounted = true;
         }
       #endif
-      #if defined ( _PSRAMFS_H_ )
+      #if __has_include(<PSRamFS.h>) || defined _PSRAMFS_H_
         log_i(" Checking for PSRamFS Support");
         if( &fs == &PSRamFS ) {
           if( !PSRamFS.begin() ){

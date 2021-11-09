@@ -224,7 +224,7 @@
           t_x = tp.x;
           t_y = tp.y;
           ispressed = number > 0;
-        #else // M5Core2.h
+        #else // M5Core2.h / TFT_eSPI_Button syntax
           ispressed = SDU_GFX.getTouch(&t_x, &t_y);
         #endif
 
@@ -238,6 +238,17 @@
         }
 
       } while (millis() - msectouch < waitdelay);
+
+      #if defined( ARDUINO_M5STACK_Core2  ) // M5Core2
+        // clean handlers
+        LoadBtn->delHandlers();
+        SkipBtn->delHandlers();
+        SaveBtn->delHandlers();
+        delete LoadBtn;
+        delete SkipBtn;
+        delete SaveBtn;
+      #endif
+
       return retval;
     }
 
