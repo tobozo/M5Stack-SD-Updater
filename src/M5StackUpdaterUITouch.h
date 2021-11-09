@@ -27,7 +27,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-#if defined HAS_TOUCH
+#if defined SDU_HAS_TOUCH
   #ifndef _SDU_TOUCH_UI_
     #define _SDU_TOUCH_UI_
 
@@ -224,7 +224,7 @@
           t_x = tp.x;
           t_y = tp.y;
           ispressed = number > 0;
-        #else // M5Core2.h
+        #else // M5Core2.h / TFT_eSPI_Button syntax
           ispressed = SDU_GFX.getTouch(&t_x, &t_y);
         #endif
 
@@ -238,8 +238,19 @@
         }
 
       } while (millis() - msectouch < waitdelay);
+
+      #if defined _M5Core2_H_
+        // clean handlers
+        LoadBtn->delHandlers();
+        SkipBtn->delHandlers();
+        SaveBtn->delHandlers();
+        delete LoadBtn;
+        delete SkipBtn;
+        delete SaveBtn;
+      #endif
+
       return retval;
     }
 
   #endif // !defined _SDU_TOUCH_UI_
-#endif // defined HAS_TOUCH || defined _M5Core2_H_
+#endif // defined SDU_HAS_TOUCH

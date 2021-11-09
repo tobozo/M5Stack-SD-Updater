@@ -10,7 +10,7 @@
     "type": "git",
     "url": "https://github.com/tobozo/M5Stack-SD-Updater.git"
   },
-  "version": "1.1.5",
+  "version": "1.1.6",
   "framework": "arduino",
   "platforms": "espressif32"
 }

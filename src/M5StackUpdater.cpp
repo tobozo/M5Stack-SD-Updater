@@ -71,13 +71,24 @@ void SDUpdater::_message( const String& msg )
 esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition )
 {
   esp_image_metadata_t data;
-  if ( !source_partition ) return data;
+  if ( !source_partition ) {
+    log_e("No source partition provided");
+    return data;
+  }
   const esp_partition_pos_t source_partition_pos  = {
      .offset = source_partition->address,
      .size = source_partition->size,
   };
   data.start_addr = source_partition_pos.offset;
-  esp_image_verify( ESP_IMAGE_VERIFY, &source_partition_pos, &data );
+  esp_err_t ret = esp_image_verify( ESP_IMAGE_VERIFY, &source_partition_pos, &data );
+  // only verify OTA0 or OTA1
+  if( source_partition->label[3] == '1' || source_partition->label[3] == '0' ) {
+    if( ret != ESP_OK ) {
+      log_e("Failed to verify image %s at addr %x", String( source_partition->label ), source_partition->address );
+    } else {
+      //log_w("Successfully verified image %s at addr %x", String( source_partition->label[3] ), source_partition->address );
+    }
+  }
   return data;//.image_len;
 }
 
@@ -205,6 +216,10 @@ bool SDUpdater::saveSketchToFS( fs::FS &fs, const char* binfilename, bool skipIf
 void SDUpdater::updateNVS()
 {
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
+  if (!update_partition) {
+    log_d( "Cancelling NVS Update as update partition is invalid" );
+    return;
+  }
   esp_image_metadata_t nusketchMeta = getSketchMeta( update_partition );
   uint32_t nuSize = nusketchMeta.image_len;
   Serial.printf( "Updating menu.bin NVS size/digest after update: %d\n", nuSize );
@@ -292,6 +307,10 @@ void SDUpdater::tryRollback( String fileName )
   }
 
   const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
+  if (!update_partition) {
+    log_d( "Cancelling rollback as update partition is invalid" );
+    return;
+  }
   esp_image_metadata_t sketchMeta = getSketchMeta( update_partition );
   uint32_t nuSize = sketchMeta.image_len;
 
@@ -366,7 +385,12 @@ void SDUpdater::updateFromFS( const String& fileName )
 
   // try rollback first, it's faster!
   if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
-    tryRollback( fileName );
+    if( cfg->use_rollback ) {
+      tryRollback( fileName );
+      log_e("Rollback failed, will try from filesystem");
+    } else {
+      log_w("Skipping rollback per config");
+    }
   }
 
   // no rollback possible, start filesystem

@@ -50,7 +50,7 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
 
   static void HIDFeedback( int ms )
   {
-    xTaskCreatePinnedToCore( vibrateTask, "vibrateTask", 2048, (void*)&ms, 1, NULL , 1 );
+    // xTaskCreatePinnedToCore( vibrateTask, "vibrateTask", 2048, (void*)&ms, 1, NULL , 1 );
   }
 
 #else

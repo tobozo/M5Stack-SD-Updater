@@ -135,7 +135,7 @@ struct FileInfo
       iconName = currentIconFile;
       return true;
     }
-    log_w("[JSON]: no currentIconFile %s", currentIconFile.c_str() );
+    log_d("[JSON]: no currentIconFile %s", currentIconFile.c_str() );
     return false;
   }
   bool hasFace() {
@@ -149,7 +149,7 @@ struct FileInfo
       faceName = iconName;
       return true;
     }
-    log_w("[JSON]: no currentIconFile %s", currentIconFile.c_str() );
+    log_d("[JSON]: no currentIconFile %s", currentIconFile.c_str() );
     return false;
   }
   bool hasMeta() {
@@ -162,7 +162,7 @@ struct FileInfo
       metaName = currentMetaFile;
       return true;
     }
-    log_w("[JSON]: no currentMetaFile %s", currentMetaFile.c_str() );
+    log_d("[JSON]: no currentMetaFile %s", currentMetaFile.c_str() );
     return false;
   }
   bool hasData = false; // app requires a spiffs /data folder
@@ -359,5 +359,20 @@ bool replaceLauncher( fs::FS &fs, FileInfo &info)
   return true;
 }
 
+FileInfo *fileInfo = nullptr;
 
-FileInfo fileInfo[M5SAM_LIST_MAX_COUNT];
+void initFileInfo()
+{
+  if( psramInit() ) {
+    fileInfo = (FileInfo *)ps_calloc( M5SAM_LIST_MAX_COUNT, sizeof(FileInfo) );
+  } else {
+    fileInfo = (FileInfo *)calloc( M5SAM_LIST_MAX_COUNT, sizeof(FileInfo) );
+  }
+  if( fileInfo == NULL ) {
+    log_n("[CRITICAL] Failed to allocate %d bytes!! Set a lower value to M5SAM_LIST_MAX_COUNT in SAM.h to prevent this. Halting...", sizeof(FileInfo)*M5SAM_LIST_MAX_COUNT );
+    while(1) vTaskDelay(1);
+  }
+}
+
+
+
