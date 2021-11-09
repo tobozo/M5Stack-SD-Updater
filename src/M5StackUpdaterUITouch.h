@@ -27,7 +27,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-#if defined HAS_TOUCH
+#if defined SDU_HAS_TOUCH
   #ifndef _SDU_TOUCH_UI_
     #define _SDU_TOUCH_UI_
 
@@ -239,7 +239,7 @@
 
       } while (millis() - msectouch < waitdelay);
 
-      #if defined( ARDUINO_M5STACK_Core2  ) // M5Core2
+      #if defined _M5Core2_H_
         // clean handlers
         LoadBtn->delHandlers();
         SkipBtn->delHandlers();
@@ -253,4 +253,4 @@
     }
 
   #endif // !defined _SDU_TOUCH_UI_
-#endif // defined HAS_TOUCH || defined _M5Core2_H_
+#endif // defined SDU_HAS_TOUCH

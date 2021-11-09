@@ -485,7 +485,7 @@ static void SDMenuProgressHeadless( int state, int size )
       if( !SDUCfg.onSplashPage ) SDUCfg.setSplashPageCb( drawSDUSplashPage ); log_d("Attaching onSplashPage");
       if( !SDUCfg.onButtonDraw ) SDUCfg.setButtonDrawCb( drawSDUPushButton ); log_d("Attaching onButtonDraw");
 
-      #if defined HAS_TOUCH // default touch button support
+      #if defined SDU_HAS_TOUCH // default touch button support
         if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromTouchButton ); log_d("Attaching onWaitForAction (touch)");
       #else // default momentary button support
         if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromPushButton ); log_d("Attaching onWaitForAction (button)");

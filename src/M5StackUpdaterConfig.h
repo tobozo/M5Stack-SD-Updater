@@ -148,7 +148,7 @@ extern "C" {
 #if !defined SDU_HEADLESS && (defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY || defined __M5UNIFIED_HPP__)
   #define USE_DISPLAY
   #if defined _M5Core2_H_
-    //#define HAS_TOUCH
+    //#define SDU_HAS_TOUCH
   #endif
 #else
   // #warning SD-Updater will run in Headless mode
