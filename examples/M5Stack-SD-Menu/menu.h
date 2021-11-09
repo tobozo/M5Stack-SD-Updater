@@ -763,6 +763,8 @@ void UISetup()
   tft.setTextSize( 1 );
   tft.drawString( SD_LOADING_MESSAGE, 160, 142, 1 );
 
+  M5.update();
+
   bool toggle = true;
 #ifdef _CHIMERA_CORE_
   while( !M5.sd_begin() )
