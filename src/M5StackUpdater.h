@@ -178,7 +178,7 @@ class SDUpdater
     {
       bool mounted = false;
       size_t tried = 0;
-      #if __has_include(<SPIFFS.h>) || defined _SPIFFS_H_
+      #if defined _SPIFFS_H_
         log_i("Checking for SPIFFS Support");
         if( &fs == &SPIFFS ) {
           if( !SPIFFS.begin() ){
