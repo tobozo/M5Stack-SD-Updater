@@ -32,7 +32,7 @@
 #pragma once
 
 
-// TODO: moved USE_DOWNLOADER features to "Downloader.ino"
+// TODO: moved USE_DOWNLOADER features to "AppStore.ino"
 // auto-select board
 #if defined( ARDUINO_M5STACK_Core2 )
   #warning M5STACK Core2 DETECTED !!
@@ -43,7 +43,7 @@
   #warning M5STACK CLASSIC DETECTED !!
   #define PLATFORM_NAME "M5Stack"
   #define DEFAULT_REGISTRY_BOARD "m5stack"
-  #define USE_DOWNLOADER
+  //#define USE_DOWNLOADER // moved to AppStore.ino
 #elif defined( ARDUINO_M5STACK_FIRE )
   #warning M5STACK FIRE DETECTED !!
   #define PLATFORM_NAME "M5Fire"
@@ -914,7 +914,7 @@ void HIDMenuObserve() {
   switch( hidState ) {
     #ifdef _CHIMERA_CORE_
       case HID_SCREENSHOT:
-        M5.ScreenShot.snap( "screenshot" );
+        M5.ScreenShot->snap( "screenshot" );
       break;
     #endif
     case HID_DOWN:

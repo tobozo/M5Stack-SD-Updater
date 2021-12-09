@@ -2,11 +2,8 @@
 
 
 void setup() {
-  #if defined(_CHIMERA_CORE_)
-    M5.begin(true, false, true, false, false); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
-  #else
-    M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
-  #endif
+
+  M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
 
   SDUCfg.setFS( &M5_FS );
   SDUCfg.setCSPin( TFCARD_CS_PIN );
@@ -28,6 +25,7 @@ void loop() {
 
 }
 
+
 #if !defined ARDUINO
 extern "C" {
   void loopTask(void*)
@@ -39,7 +37,7 @@ extern "C" {
   }
   void app_main()
   {
-    xTaskCreatePinnedToCore( loopTask, "loopTask", 8192, NULL, 1, NULL, 1 );
+    xTaskCreatePinnedToCore( loopTask, "loopTask", 16384, NULL, 1, NULL, 1 );
   }
 
 }
