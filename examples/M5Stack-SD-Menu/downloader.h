@@ -442,7 +442,7 @@ int modalConfirm( const char* modalName, const char* question, const char* title
     hidState = getControls();
     #ifdef _CHIMERA_CORE_
       if( hidState == HID_SCREENSHOT ) {
-        M5.ScreenShot.snap( modalName );
+        M5.ScreenShot->snap( modalName );
         hidState = HID_INERT;
       }
     #endif
