@@ -1,4 +1,4 @@
-#ifndef __M5STACKUPDATER_H
+#pragma once
 #define __M5STACKUPDATER_H
 /*
  *
@@ -122,7 +122,7 @@ class SDUpdater
     };
     // legacy constructor
     SDUpdater( const int TFCardCsPin_ = TFCARD_CS_PIN ) {
-      log_d("SDUpdate base mode on CS pin(%d)", TFCardCsPin_ );
+      //log_d("SDUpdater base mode on CS pin(%d)", TFCardCsPin_ );
       //SDUCfg.setSDU( this ); // attach this to SDUCfg.sdUpdater
       SDUCfg.setCSPin( TFCardCsPin_ );
       cfg = &SDUCfg;
@@ -162,6 +162,7 @@ class SDUpdater
     void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
     void tryRollback( String fileName );
     void _error( const String& errMsg, unsigned long waitdelay = 2000 );
+    void _error( const char **errMsgs, uint8_t msgCount=1, unsigned long waitdelay=2000 );
     void _message( const String& label );
     #if defined _M5Core2_H_ // enable additional touch button support
       const bool SDUHasTouch = true;
@@ -171,60 +172,66 @@ class SDUpdater
     bool _fsBegin()
     {
       if( cfg->fs != nullptr ) return _fsBegin( *cfg->fs );
-      _error("No filesystem selected");
+      _error( "No filesystem selected" );
       return false;
     }
     bool _fsBegin( fs::FS &fs )
     {
       bool mounted = false;
       size_t tried = 0;
+      const char* msg[] = {nullptr, "ABORTING"};
       #if defined _SPIFFS_H_
-        log_i("Checking for SPIFFS Support");
+        log_d("Checking for SPIFFS Support");
         if( &fs == &SPIFFS ) {
           if( !SPIFFS.begin() ){
-            _error( "SPIFFS MOUNT FAILED, ABORTING!!" );
+            msg[0] = "SPIFFS MOUNT FAILED";
+            _error( msg, 2 );
             return false;
-          } else log_i("SPIFFS Successfully mounted");
+          } else log_d("SPIFFS Successfully mounted");
           mounted = true;
         }
       #endif
       #if defined (_LITTLEFS_H_)
-        log_i("Checking for LittleFS Support");
+        log_d("Checking for LittleFS Support");
         if( &fs == &LittleFS ) {
           if( !LittleFS.begin() ){
-            _error( "LittleFS MOUNT FAILED, ABORTING!!" );
+            msg[0] = "LittleFS MOUNT FAILED";
+            _error( msg, 2 );
             return false;
-          } else log_i("LittleFS Successfully mounted");
+          } else log_d("LittleFS Successfully mounted");
           mounted = true;
         }
       #endif
       #if defined (_SD_H_)
-        log_i(" Checking for SD Support (pin #%d)",  cfg->TFCardCsPin );
+        log_d(" Checking for SD Support (pin #%d)",  cfg->TFCardCsPin );
         if( &fs == &SD ) {
           if( !SD.begin( cfg->TFCardCsPin ) ) {
-            _error( "SD MOUNT FAILED (pin #" + String(cfg->TFCardCsPin) + "), ABORTING!!" );
+            msg[0] = String("SD MOUNT FAILED (pin #" + String(cfg->TFCardCsPin) + ")").c_str();
+            _error( msg, 2 );
             return false;
-          } else log_i( "SD Successfully mounted (pin #%d)", cfg->TFCardCsPin );
+          } else log_d( "SD Successfully mounted (pin #%d)", cfg->TFCardCsPin );
           mounted = true;
         }
       #endif
       #if defined (_SDMMC_H_)
-        log_i(" Checking for SD_MMC Support");
+        log_d(" Checking for SD_MMC Support");
         if( &fs == &SD_MMC ) {
           if( !SD_MMC.begin() ){
-            _error( "SD_MMC MOUNT FAILED, ABORTING!!" );
+            msg[0] = "SD_MMC FAILED";
+            _error( msg, 2 );
             return false;
-          } else log_i( "SD_MMC Successfully mounted");
+          } else log_d( "SD_MMC Successfully mounted");
           mounted = true;
         }
       #endif
       #if __has_include(<PSRamFS.h>) || defined _PSRAMFS_H_
-        log_i(" Checking for PSRamFS Support");
+        log_d(" Checking for PSRamFS Support");
         if( &fs == &PSRamFS ) {
           if( !PSRamFS.begin() ){
-            _error( "PSRamFS MOUNT FAILED, ABORTING!!" );
+            msg[0] = "PSRamFS FAILED";
+            _error( msg, 2 );
             return false;
-          } else log_i( "PSRamFS Successfully mounted");
+          } else log_d( "PSRamFS Successfully mounted");
           mounted = true;
         }
       #endif
@@ -300,6 +307,3 @@ __attribute__((unused)) static void checkSDUpdater( fs::FS &fs, String fileName 
     sdUpdater.checkSDUpdaterHeadless( fileName, waitdelay );
   #endif
 }
-
-
-#endif

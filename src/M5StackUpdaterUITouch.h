@@ -71,11 +71,11 @@
       void handlePressed( SDU_TouchButton *btn, bool pressed, uint16_t x, uint16_t y)
       {
         if (pressed && btn->contains(x, y)) {
-          log_d("Press at [%d:%d]", x, y );
+          log_v("Press at [%d:%d]", x, y );
           btn->press(true); // tell the button it is pressed
         } else {
           if( pressed ) {
-            log_d("Outside Press at [%d:%d]", x, y );
+            log_v("Outside Press at [%d:%d]", x, y );
           }
           btn->press(false); // tell the button it is NOT pressed
         }
@@ -202,18 +202,18 @@
 
         if( tbWrapper.justReleased( LoadBtn, ispressed, labelLoad ) ) {
           retval = 1;
-          log_n("LoadBTN Pressed at [%d:%d]!", t_x, t_y);
+          log_v("LoadBTN Pressed at [%d:%d]!", t_x, t_y);
           break;
         }
         if( tbWrapper.justReleased( SkipBtn, ispressed, labelSkip ) ) {
           retval = 0;
-          log_n("SkipBTN Pressed at [%d:%d]!", t_x, t_y);
+          log_v("SkipBTN Pressed at [%d:%d]!", t_x, t_y);
           break;
         }
         if( SDUCfg.binFileName != nullptr ) {
           if( tbWrapper.justReleased( SaveBtn, ispressed, labelSave ) ) {
             retval = 2;
-            log_n("SaveBtn Pressed at [%d:%d]!", t_x, t_y);
+            log_v("SaveBtn Pressed at [%d:%d]!", t_x, t_y);
             break;
           }
         }

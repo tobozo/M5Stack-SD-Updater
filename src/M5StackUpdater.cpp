@@ -54,6 +54,15 @@
 #endif
 
 
+void SDUpdater::_error( const char **errMsgs, uint8_t msgCount, unsigned long waitdelay )
+{
+  for( int i=0; i<msgCount; i++ ) {
+    _error( String(errMsgs[i]), i<msgCount-1?0:waitdelay );
+  }
+  //_error( "", waitdelay );
+}
+
+
 void SDUpdater::_error( const String& errMsg, unsigned long waitdelay )
 {
   Serial.print("[ERROR] ");
@@ -175,7 +184,8 @@ bool SDUpdater::saveSketchToFS( fs::FS &fs, const char* binfilename, bool skipIf
 {
   // no rollback possible, start filesystem
   if( !_fsBegin( fs ) ) {
-    _error( "Unloadable filesystem, aborting" );
+    const char *msg[] = {"No Filesystem mounted.","Can't check firmware."};
+    _error( msg, 2 );
     return false;
   }
 
@@ -197,7 +207,7 @@ bool SDUpdater::saveSketchToFS( fs::FS &fs, const char* binfilename, bool skipIf
 
   if (copyFsPartition( &dst, running, sksize)) {
     if( cfg->onProgress ) cfg->onProgress( 75, 100 );
-    _message( String("\nDone ") + String(binfilename) );
+    _message( String("Done ") + String(binfilename) );
     vTaskDelay(1000);
     ret = true;
   } else {
@@ -234,7 +244,7 @@ void SDUpdater::updateNVS()
 void SDUpdater::performUpdate( Stream &updateSource, size_t updateSize, String fileName )
 {
   _message( "LOADING " + fileName );
-  log_i( "Binary size: %d bytes", updateSize );
+  log_d( "Binary size: %d bytes", updateSize );
   if( cfg->onProgress ) Update.onProgress( cfg->onProgress );
   if (Update.begin( updateSize )) {
     size_t written = Update.writeStream( updateSource );
@@ -281,10 +291,11 @@ void SDUpdater::doRollBack( const String& message )
       if( cfg->onProgress ) cfg->onProgress( i, 100 );
       vTaskDelay(10);
     }
-    _message( "\nRollback done, restarting" );
+    _message( "Rollback done, restarting" );
     ESP.restart();
   } else {
-    _error( "Cannot rollback: the other OTA partition doesn't seem to be populated or valid" );
+    const char *msg[] = {"Cannot rollback", "The other OTA", "partition doesn't", "seem to be", "populated or valid"};
+    _error( msg, 5 );
   }
 }
 
@@ -373,7 +384,8 @@ void SDUpdater::checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long wai
 void SDUpdater::updateFromFS( const String& fileName )
 {
   if( cfg->fs == nullptr ) {
-    _error("No valid filesystem selected!");
+    const char *msg[] = {"No valid filesystem", "selected!"};
+    _error( msg, 2 );
     return;
   }
   Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
@@ -389,13 +401,14 @@ void SDUpdater::updateFromFS( const String& fileName )
       tryRollback( fileName );
       log_e("Rollback failed, will try from filesystem");
     } else {
-      log_w("Skipping rollback per config");
+      log_d("Skipping rollback per config");
     }
   }
 
   // no rollback possible, start filesystem
   if( !_fsBegin() ) {
-    _error( "Unloadable filesystem, aborting" );
+    const char* msg[] = {"No filesystem mounted.", "Can't load firmware."};
+    _error( msg, 2 );
     return;
   }
 
@@ -410,14 +423,15 @@ void SDUpdater::updateFromFS( const String& fileName )
 
     size_t updateSize = updateBin.size();
 
-    log_i("File %s exists (%d bytes)", fileName.c_str(), updateSize );
+    //log_d("File %s exists (%d bytes)", fileName.c_str(), updateSize );
 
     updateFromStream( updateBin, updateSize, fileName );
 
     updateBin.close();
 
   } else {
-    _error( "Could not load " + fileName + " binary from sd root" );
+    const char* msg[] = {"Could not reach", fileName.c_str(), "Can't load firmware."};
+    _error( msg, 3 );
   }
 }
 
@@ -452,7 +466,8 @@ void SDUpdater::checkSDUpdaterHeadless( String fileName, unsigned long waitdelay
 void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
 {
   if( cfg->fs == nullptr ) {
-    _error("No valid filesystem selected!");
+    const char* msg[] = {"No valid filesystem", "selected!", "Cannot load", fileName.c_str()};
+    _error( msg, 4 );
     return;
   }
   bool draw = SDUHasTouch;

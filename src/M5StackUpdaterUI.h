@@ -27,7 +27,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-#ifndef _M5UPDATER_UI_
+#pragma once
 #define _M5UPDATER_UI_
 
 
@@ -125,11 +125,11 @@ static void SDMenuProgressHeadless( int state, int size )
       0, 0, 0, 0
     };
   #else // assuming landscape mode /w 320x240 display
-    #define BUTTON_WIDTH 60
+    #define BUTTON_WIDTH 68
     #define BUTTON_HWIDTH BUTTON_WIDTH/2 // button half width
     #define BUTTON_HEIGHT 28
     static int16_t SDUButtonsXOffset[3] = {
-      31, 126, 221
+      31, 125, 219
     };
     static int16_t SDUButtonsYOffset[3] = {
       0, 0, 0
@@ -166,6 +166,7 @@ static void SDMenuProgressHeadless( int state, int size )
     uint16_t BorderColor;
     uint16_t FillColor;
     uint16_t TextColor;
+    uint16_t ShadowColor;
   };
 
   struct SDUTextStyle_T // somehow redundant with LGFX's textstyle_t
@@ -179,9 +180,10 @@ static void SDMenuProgressHeadless( int state, int size )
 
   struct BtnStyles
   {
-    BtnStyle Load = { TFT_ORANGE,                          SDU_GFX.color565( 0xaa, 0x00, 0x00), SDU_GFX.color565( 0xdd, 0xdd, 0xdd) };
-    BtnStyle Skip = { SDU_GFX.color565( 0x11, 0x11, 0x11), SDU_GFX.color565( 0x33, 0x88, 0x33), SDU_GFX.color565( 0xee, 0xee, 0xee) };
-    BtnStyle Save = { TFT_ORANGE,                          TFT_BLACK,                           TFT_WHITE };
+    //                Border                                Fill                                  Text       Shadow
+    BtnStyle Load = { SDU_GFX.color565( 0x75, 0x75, 0x75 ), SDU_GFX.color565( 0x60, 0x60, 0x60 ), TFT_WHITE, TFT_BLACK };
+    BtnStyle Skip = { SDU_GFX.color565( 0x75, 0x75, 0x75 ), SDU_GFX.color565( 0x40, 0x40, 0x40 ), TFT_WHITE, TFT_BLACK };
+    BtnStyle Save = { SDU_GFX.color565( 0x75, 0x75, 0x75 ), SDU_GFX.color565( 0x20, 0x20, 0x20 ), TFT_WHITE, TFT_BLACK };
     uint16_t height          = BUTTON_HEIGHT;
     uint16_t width           = BUTTON_WIDTH;
     uint16_t hwidth          = BUTTON_HWIDTH;
@@ -193,9 +195,10 @@ static void SDMenuProgressHeadless( int state, int size )
   static BtnStyles DefaultBtnStyle;
   static BtnStyles *userBtnStyle = nullptr;
 
-  static SplashPageElementStyle SplashTitleStyle   = { TFT_BLACK,     TFT_WHITE, 2, MC_DATUM, TFT_LIGHTGREY, TFT_DARKGREY };
-  static SplashPageElementStyle SplashAppNameStyle = { TFT_LIGHTGREY, TFT_BLACK, 2, BC_DATUM, 0, 0 };
-  static SplashPageElementStyle SplashAppPathStyle = { TFT_DARKGREY,  TFT_BLACK, 1, TC_DATUM, 0, 0 };
+  static SplashPageElementStyle SplashTitleStyle      = { TFT_BLACK,     TFT_WHITE, 2, MC_DATUM, TFT_LIGHTGREY, TFT_DARKGREY };
+  static SplashPageElementStyle SplashAppNameStyle    = { TFT_LIGHTGREY, TFT_BLACK, 2, BC_DATUM, 0, 0 };
+  static SplashPageElementStyle SplashAuthorNameStyle = { TFT_LIGHTGREY, TFT_BLACK, 2, BC_DATUM, 0, 0 };
+  static SplashPageElementStyle SplashAppPathStyle    = { TFT_DARKGREY,  TFT_BLACK, 1, BC_DATUM, 0, 0 };
 
   static ProgressBarStyle ProgressStyle = {
     200,        // width
@@ -251,13 +254,24 @@ static void SDMenuProgressHeadless( int state, int size )
     SDUTextStyle.frozen = false;
   }
 
+  static void drawTextShadow( const char* text, int32_t x, int32_t y, uint16_t textcolor, uint16_t shadowcolor )
+  {
+    if( textcolor != shadowcolor ) {
+      SDU_GFX.setTextColor( shadowcolor );
+      SDU_GFX.drawString( text, x+1, y+1 );
+    }
+    SDU_GFX.setTextColor( textcolor );
+    SDU_GFX.drawString( text, x, y );
+  }
+
+
+
   __attribute__((unused))
   static void drawSDUSplashElement( const char* msg, int32_t x, int32_t y, SplashPageElementStyle *style )
   {
     SDU_GFX.setTextSize( style->fontSize );
     SDU_GFX.setTextDatum( style->textDatum );
     uint8_t lineHeight = SDU_GFX.fontHeight()*1.8;
-
     #if defined HAS_LGFX
       if( style->colorStart == style->colorEnd ) {
         SDU_GFX.fillRect( 0, y, SDU_GFX.width(), lineHeight, style->bgColor );
@@ -269,51 +283,48 @@ static void SDMenuProgressHeadless( int state, int size )
     #else
       SDU_GFX.fillRect( 0, y, SDU_GFX.width(), lineHeight, style->bgColor );
     #endif
-
-    if( style->textColor != TFT_DARKGREY ) {
-      // drop shadow first
-      SDU_GFX.setTextColor( TFT_DARKGREY );
-      SDU_GFX.drawString( msg, x+1, 1+y+lineHeight/2 );
-    }
-    // now draw text
-    SDU_GFX.setTextColor( style->textColor );
-    SDU_GFX.drawString( msg, x, y+lineHeight/2 );
+    drawTextShadow( msg, x, y+lineHeight/2, style->textColor, TFT_DARKGREY );
   }
 
   __attribute__((unused))
   static void drawSDUSplashPage( const char* msg )
   {
-    int32_t centerX = SDU_GFX.width()/2;
+    int32_t centerX = SDU_GFX.width() >> 1;
+    SDU_GFX.setTextSize( 2 );
+    uint8_t lineHeightBig = SDU_GFX.fontHeight();
     SDU_GFX.setTextFont( 1 );
+    uint8_t lineHeightSmall = SDU_GFX.fontHeight();
+    uint8_t appNamePosy     = lineHeightBig*1.8+lineHeightSmall;
+    uint8_t authorNamePosY  = appNamePosy + lineHeightBig*1.8;
+    uint8_t binFileNamePosY = authorNamePosY+lineHeightSmall*1.8;
 
+    SDU_GFX.clear();
     drawSDUSplashElement( msg, centerX, 0, &SplashTitleStyle );
 
     if( SDUCfg.appName != nullptr ) {
-      drawSDUSplashElement( SDUCfg.appName, centerX, SDU_GFX.height()/4, &SplashAppNameStyle  );
+      drawSDUSplashElement( SDUCfg.appName, centerX, appNamePosy, &SplashAppNameStyle  );
+    }
+    if( SDUCfg.authorName != nullptr ) {
+      drawSDUSplashElement( String( "By " + String(SDUCfg.authorName) ).c_str(), centerX, authorNamePosY, &SplashAuthorNameStyle  );
     }
     if( SDUCfg.binFileName != nullptr ) {
-      int32_t posY = (SDU_GFX.height() >> 1)-( ProgressStyle.height+2+SDU_GFX.fontHeight() );
-      drawSDUSplashElement( String("File name: " + String(&SDUCfg.binFileName[1])).c_str(), centerX, posY, &SplashAppPathStyle );
+      drawSDUSplashElement( String("File name: " + String(&SDUCfg.binFileName[1])).c_str(), centerX, binFileNamePosY, &SplashAppPathStyle );
     }
     //SDU_GFX.drawJpg( sdUpdaterIcon32x40_jpg, sdUpdaterIcon32x40_jpg_len, (centerX)-16, (SDU_GFX.height()/2)-20, 32, 40 );
   }
 
   __attribute__((unused))
-  static void drawSDUPushButton( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor )
+  static void drawSDUPushButton( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor, uint16_t shadowcolor )
   {
     BtnStyles *bs = ( userBtnStyle == nullptr ) ? &DefaultBtnStyle : userBtnStyle;
-    SDU_GFX.setTextColor( textcolor, fillcolor );
-    SDU_GFX.setTextSize( bs->FontSize );
-
     uint32_t bx = SDUButtonsXOffset[position];
     uint32_t by = SDU_GFX.height() - bs->height - 2 - SDUButtonsYOffset[position];
-
     SDU_GFX.fillRoundRect( bx, by, bs->width, bs->height, 3, fillcolor );
     SDU_GFX.drawRoundRect( bx, by, bs->width, bs->height, 3, outlinecolor );
-
+    SDU_GFX.setTextSize( bs->FontSize );
     SDU_GFX.setTextDatum( MC_DATUM );
     SDU_GFX.setTextFont( 2 );
-    SDU_GFX.drawString( label, bx+bs->width/2, by+bs->height/2 );
+    drawTextShadow( label, bx+bs->width/2, by+bs->height/2, textcolor, shadowcolor );
   }
 
 
@@ -332,10 +343,10 @@ static void SDMenuProgressHeadless( int state, int size )
         SDUCfg.onBefore();
         SDUCfg.onSplashPage( BTN_HINT_MSG );
         BtnStyles btns;
-        SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
-        SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
+        SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
+        SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
         if( SDUCfg.binFileName != nullptr ) {
-          SDUCfg.onButtonDraw( labelSave, 2, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor );
+          SDUCfg.onButtonDraw( labelSave, 2, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor, btns.Save.ShadowColor );
         }
       }
       auto msec = millis();
@@ -343,22 +354,29 @@ static void SDMenuProgressHeadless( int state, int size )
       uint32_t progress = 0, progressOld = 1;
       if( SDUCfg.onProgress ) SDUCfg.onProgress( 100, 100 );
 
-      SDUSprite *sprite = new SDUSprite( &SDU_GFX );
-      sprite->createSprite( 32, 32 );
+      #if defined HAS_LGFX
+        SDUSprite *sprite = new SDUSprite( &SDU_GFX );
+        sprite->createSprite( 32, 32 );
+      #endif
 
-      float angle = 0;
       int ret = -1;
+
+      Button *ButtonA = &M5.BtnA; // Load Launcher
+      Button *ButtonB = &M5.BtnB; // Skip Lobby
+      #if defined _M5STICKC_H_
+        Button *ButtonC = nullptr;
+      #else
+        Button *ButtonC = SDUCfg.binFileName != nullptr ? &M5.BtnC : nullptr; // Save Sketch to SD
+      #endif
+
+      // order matters !!
+      Button *buttons[3] = { ButtonB, ButtonA, ButtonC };
+
       do {
         M5.update();
-        if( M5.BtnA.isPressed() ) { ret = 1; break; }
-        if( M5.BtnB.isPressed() ) { ret = 0; break; }
-        if( SDUCfg.binFileName != nullptr ) {
-          // copy binary to SD
-          #ifndef _M5STICKC_H_ // M5StickC has not BtnC
-            if( M5.BtnC.isPressed() ) { ret = 2; break; }// Force copy bin
-          #endif
+        for( int i=0; i<3; i++ ) {
+          if( buttons[i] && buttons[i]->isPressed() ) { ret = i; goto _endAssert; }
         }
-
         if( SDUCfg.onProgress   ) {
           float barprogress = float(millis() - msec) / float(waitdelay);
           progress = 100- (100 * barprogress);
@@ -367,16 +385,27 @@ static void SDMenuProgressHeadless( int state, int size )
             SDUCfg.onProgress( (uint8_t)progress, 100 );
           }
         }
-        #if defined HAS_LGFX
-          angle = sin( float(millis())/500.0 )*180.0; // 1/2 round per second
+        #if defined HAS_LGFX // this effect needs pushImageRotateZoom support
+          float angle = sin( float(millis())/500.0 )*180.0; // 1/2 round per second
           sprite->clear();
           sprite->pushImageRotateZoom(sprite->width()/2, sprite->height()/2, 7.5, 8, angle, 1, 1, 15, 16, sdUpdaterIcon15x16_raw);
           sprite->pushSprite( SDU_GFX.width()/2-sprite->width()/2, SDU_GFX.height()*.75-sprite->height() );
           lastdraw = millis();
         #endif
       } while (millis() - msec < waitdelay);
+
+      _endAssert:
+
       if( SDUCfg.onProgress ) SDUCfg.onProgress( 0, 100 );
-      sprite->deleteSprite();
+      #if defined HAS_LGFX
+        sprite->deleteSprite();
+      #endif
+      if( ret > -1 ) { // wait for button release
+        while( buttons[ret]->isPressed() ) {
+          M5.update();
+          vTaskDelay(10);
+        }
+      }
       return ret;
     }
   #endif
@@ -462,13 +491,20 @@ static void SDMenuProgressHeadless( int state, int size )
 
   static void DisplayErrorUI( const String& msg, unsigned long wait )
   {
-    SDU_GFX.fillScreen( TFT_BLACK );
-    SDU_GFX.setTextColor( TFT_RED, TFT_BLACK );
-    SDU_GFX.setTextFont( 0 );
+    static uint8_t msgposy = 0;
     SDU_GFX.setTextSize( 2 );
-    SDU_GFX.setTextDatum( ML_DATUM );
-    SDU_GFX.setCursor( 10, 10 );
-    SDU_GFX.print( msg );
+    SDU_GFX.setTextFont( 0 );
+    uint8_t headerHeight = SDU_GFX.fontHeight()*1.8; // = 28px
+    log_d("Header height: %d", headerHeight );
+    if( msgposy == 0 ) {
+      SDU_GFX.fillRect( 0, headerHeight+1, SDU_GFX.width(), SDU_GFX.height()-headerHeight, TFT_BLACK );
+    }
+    SDU_GFX.setTextColor( TFT_RED, TFT_BLACK );
+    SDU_GFX.setTextDatum( MC_DATUM );
+    SDU_GFX.drawString( msg.c_str(), SDU_GFX.width()/2, msgposy+headerHeight*2 );
+    msgposy += headerHeight;
+    //SDU_GFX.setCursor( SDU_GFX.width()/2, headerHeight*2 );
+    //SDU_GFX.print( msg );
     delay(wait);
   }
 
@@ -477,18 +513,18 @@ static void SDMenuProgressHeadless( int state, int size )
   {
     if( SDUCfg.load_defaults ) {
 
-      if( !SDUCfg.onProgress   ) SDUCfg.setProgressCb(   SDMenuProgressUI );  log_d("Attaching onProgress");
-      if( !SDUCfg.onMessage    ) SDUCfg.setMessageCb(    DisplayUpdateUI );   log_d("Attaching onMessage");
-      if( !SDUCfg.onError      ) SDUCfg.setErrorCb(      DisplayErrorUI );    log_d("Attaching onError");
-      if( !SDUCfg.onBefore     ) SDUCfg.setBeforeCb(     freezeTextStyle );   log_d("Attaching onBefore");
-      if( !SDUCfg.onAfter      ) SDUCfg.setAfterCb(      thawTextStyle );     log_d("Attaching onAfter");
-      if( !SDUCfg.onSplashPage ) SDUCfg.setSplashPageCb( drawSDUSplashPage ); log_d("Attaching onSplashPage");
-      if( !SDUCfg.onButtonDraw ) SDUCfg.setButtonDrawCb( drawSDUPushButton ); log_d("Attaching onButtonDraw");
+      if( !SDUCfg.onProgress   ) { SDUCfg.setProgressCb(   SDMenuProgressUI );  log_v("Attached onProgress");   }
+      if( !SDUCfg.onMessage    ) { SDUCfg.setMessageCb(    DisplayUpdateUI );   log_v("Attached onMessage");    }
+      if( !SDUCfg.onError      ) { SDUCfg.setErrorCb(      DisplayErrorUI );    log_v("Attached onError");      }
+      if( !SDUCfg.onBefore     ) { SDUCfg.setBeforeCb(     freezeTextStyle );   log_v("Attached onBefore");     }
+      if( !SDUCfg.onAfter      ) { SDUCfg.setAfterCb(      thawTextStyle );     log_v("Attached onAfter");      }
+      if( !SDUCfg.onSplashPage ) { SDUCfg.setSplashPageCb( drawSDUSplashPage ); log_v("Attached onSplashPage"); }
+      if( !SDUCfg.onButtonDraw ) { SDUCfg.setButtonDrawCb( drawSDUPushButton ); log_v("Attached onButtonDraw"); }
 
       #if defined SDU_HAS_TOUCH // default touch button support
-        if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromTouchButton ); log_d("Attaching onWaitForAction (touch)");
+        if ( !SDUCfg.onWaitForAction) { SDUCfg.setWaitForActionCb( assertStartUpdateFromTouchButton ); log_v("Attached onWaitForAction (touch)"); }
       #else // default momentary button support
-        if ( !SDUCfg.onWaitForAction) SDUCfg.setWaitForActionCb( assertStartUpdateFromPushButton ); log_d("Attaching onWaitForAction (button)");
+        if ( !SDUCfg.onWaitForAction) { SDUCfg.setWaitForActionCb( assertStartUpdateFromPushButton ); log_v("Attached onWaitForAction (button)"); }
       #endif
     }
     #if defined LGFX_ONLY
@@ -508,13 +544,10 @@ static void SDMenuProgressHeadless( int state, int size )
   static void SetupSDMenuConfig()
   {
     if( SDUCfg.load_defaults ) {
-      if( !SDUCfg.onProgress      ) { SDUCfg.setProgressCb(      SDMenuProgressHeadless );      log_d("Attaching onProgress"); }
-      if( !SDUCfg.onMessage       ) { SDUCfg.setMessageCb(       DisplayUpdateHeadless );       log_d("Attaching onMessage"); }
-      if( !SDUCfg.onWaitForAction ) { SDUCfg.setWaitForActionCb( assertStartUpdateFromSerial ); log_d("Attaching onWaitForAction (serial)"); }
+      if( !SDUCfg.onProgress      ) { SDUCfg.setProgressCb(      SDMenuProgressHeadless );      log_v("Attached onProgress"); }
+      if( !SDUCfg.onMessage       ) { SDUCfg.setMessageCb(       DisplayUpdateHeadless );       log_v("Attached onMessage"); }
+      if( !SDUCfg.onWaitForAction ) { SDUCfg.setWaitForActionCb( assertStartUpdateFromSerial ); log_v("Attached onWaitForAction (serial)"); }
     }
   }
 
 #endif //#ifdef USE_DISPLAY
-
-
-#endif //  _M5UPDATER_UI_
