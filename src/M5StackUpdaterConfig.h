@@ -27,7 +27,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-
+#pragma once
 
 #define ROLLBACK_LABEL   "Rollback" // reload app from the "other" OTA partition
 #define LAUNCHER_LABEL   "Launcher" // load Launcher (typically menu.bin)
@@ -43,6 +43,9 @@
 #if !defined SDU_APP_NAME
   #define SDU_APP_NAME nullptr
 #endif
+#if !defined SDU_APP_AUTHOR
+  #define SDU_APP_AUTHOR nullptr
+#endif
 
 // callback signatures
 typedef void (*onProgressCb)( int state, int size );
@@ -51,7 +54,7 @@ typedef void (*onErrorCb)( const String& message, unsigned long delay );
 typedef void (*onBeforeCb)();
 typedef void (*onAfterCb)();
 typedef void (*onSplashPageCb)( const char* msg );
-typedef void (*onButtonDrawCb)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor );
+typedef void (*onButtonDrawCb)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor, uint16_t shadowcolor );
 typedef int  (*onWaitForActionCb)( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay );
 typedef void (*onConfigLoad)();
 
@@ -68,6 +71,7 @@ struct config_sdu_t
   const char* labelSave     = SAVE_LABEL;
   const char* binFileName   = SDU_APP_PATH;
   const char* appName       = SDU_APP_NAME;
+  const char* authorName    = SDU_APP_AUTHOR;
 
   onProgressCb      onProgress       = nullptr;
   onMessageCb       onMessage        = nullptr;
@@ -94,6 +98,7 @@ struct config_sdu_t
   void setLabelRollback( const char* label )      { labelRollback = label; }
   void setLabelSave( const char* label )          { labelSave = label; }
   void setAppName( const char* name )             { appName = name; }
+  void setAuthorName( const char* name )          { authorName = name; }
   void setBinFileName( const char* name )         { binFileName = name; }
   void useRolllback( bool use )                   { use_rollback = use; }
 
