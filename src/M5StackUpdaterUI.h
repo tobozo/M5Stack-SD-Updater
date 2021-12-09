@@ -298,7 +298,7 @@ static void SDMenuProgressHeadless( int state, int size )
     uint8_t authorNamePosY  = appNamePosy + lineHeightBig*1.8;
     uint8_t binFileNamePosY = authorNamePosY+lineHeightSmall*1.8;
 
-    SDU_GFX.clear();
+    SDU_GFX.fillScreen(TFT_BLACK); // M5StickC does not have tft.clear()
     drawSDUSplashElement( msg, centerX, 0, &SplashTitleStyle );
 
     if( SDUCfg.appName != nullptr ) {
