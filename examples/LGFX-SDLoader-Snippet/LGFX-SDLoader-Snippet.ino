@@ -32,9 +32,9 @@ static int myActionTrigger( char* labelLoad, char* labelSkip, char* labelSave, u
     //SDUCfg.onBefore();
     SDUCfg.onSplashPage( "SD Updater Options" );
     BtnStyles btns; // use default theme from library
-    SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor );
-    SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor );
-    SDUCfg.onButtonDraw( labelSave, 1, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor );
+    SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
+    SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
+    SDUCfg.onButtonDraw( labelSave, 1, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor, btns.Save.ShadowColor );
   }
   auto msec = millis();
   do {
