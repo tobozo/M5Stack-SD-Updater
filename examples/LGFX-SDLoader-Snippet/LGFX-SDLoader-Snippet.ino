@@ -34,7 +34,11 @@ static int myActionTrigger( char* labelLoad, char* labelSkip, char* labelSave, u
     BtnStyles btns; // use default theme from library
     SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
     SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
-    SDUCfg.onButtonDraw( labelSave, 1, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor, btns.Save.ShadowColor );
+    #if defined SDU_APP_PATH
+      if( SDU_APP_PATH!=nullptr ) {
+        SDUCfg.onButtonDraw( labelSave, 1, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor, btns.Save.ShadowColor );
+      }
+    #endif
   }
   auto msec = millis();
   do {
@@ -74,6 +78,11 @@ void setup()
     2000,         // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
     TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
   );
+
+
+  tft.setTextSize(2);
+  tft.println( SDU_APP_NAME );
+
 }
 
 
@@ -83,13 +92,13 @@ void loop()
   ButtonUpdate();
 
   if( BtnA->wasPressed() ) {
-    Serial.println("BtnA pressed !");
+    tft.println("BtnA pressed !");
   }
   if( BtnB->wasPressed() ) {
-    Serial.println("BtnB pressed !");
+    tft.println("BtnB pressed !");
   }
   if( BtnC->wasPressed() ) {
-    Serial.println("BtnC pressed !");
+    tft.println("BtnC pressed !");
   }
 
 }
