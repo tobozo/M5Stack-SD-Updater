@@ -90,6 +90,13 @@ static void SDMenuProgressHeadless( int state, int size )
       {
         SDuGFX = gfx;
       }
+      namespace SDU
+      {
+        static void pollButtons() { }
+        static bool buttonAPressed() { return false; };
+        static bool buttonBPressed() { return false; };
+        static bool buttonCPressed() { return false; };
+      };
       #define HAS_LGFX // LFGX family cores/drivers (ESP32-Chimera-Core, LovyanGFX, M5GFX, M5Unified)
       #define SDUSprite LGFX_Sprite
     #endif
@@ -101,6 +108,7 @@ static void SDMenuProgressHeadless( int state, int size )
         #define SDU_GFX M5.Display // M5Unified has a different namespace but LGFX compatible API
         #define HAS_LGFX // LFGX family cores/drivers (ESP32-Chimera-Core, LovyanGFX, M5GFX, M5Unified)
         #define SDUSprite LGFX_Sprite
+        //#define SDUButton m5::Button_Class
       #else
         #define SDU_GFX M5.Lcd // can be either M5.Lcd from M5Core.h, M5Core2.h, M5StickC.h or ESP32-Chimera-Core.h
         #if defined _CHIMERA_CORE_H_
@@ -109,7 +117,22 @@ static void SDMenuProgressHeadless( int state, int size )
         #else
           #define SDUSprite TFT_eSprite
         #endif
+        //#define SDUButton Button
       #endif
+      namespace SDU
+      {
+        static void pollButtons() { M5.update(); }
+        static bool buttonAPressed() { return M5.BtnA.isPressed() ? true:false; }
+        static bool buttonBPressed() { return M5.BtnB.isPressed() ? true:false; }
+        static bool buttonCPressed()
+        {
+          #if defined _M5STICKC_H_
+            return false;
+          #else
+            return M5.BtnC.isPressed() ? true:false;
+          #endif
+        }
+      };
     #endif
   #endif
 
@@ -272,7 +295,7 @@ static void SDMenuProgressHeadless( int state, int size )
     SDU_GFX.setTextSize( style->fontSize );
     SDU_GFX.setTextDatum( style->textDatum );
     uint8_t lineHeight = SDU_GFX.fontHeight()*1.8;
-    #if defined HAS_LGFX
+    #if defined HAS_LGFX // draw gradient background
       if( style->colorStart == style->colorEnd ) {
         SDU_GFX.fillRect( 0, y, SDU_GFX.width(), lineHeight, style->bgColor );
       } else {
@@ -280,7 +303,7 @@ static void SDMenuProgressHeadless( int state, int size )
           SDU_GFX.drawGradientHLine( 0, i, SDU_GFX.width(), style->colorStart, style->colorEnd );
         }
       }
-    #else
+    #else // just fill the background
       SDU_GFX.fillRect( 0, y, SDU_GFX.width(), lineHeight, style->bgColor );
     #endif
     drawTextShadow( msg, x, y+lineHeight/2, style->textColor, TFT_DARKGREY );
@@ -328,88 +351,67 @@ static void SDMenuProgressHeadless( int state, int size )
   }
 
 
-  #if defined LGFX_ONLY // has no push button logic
-    __attribute__((unused))
-    static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
-    {
-      // Dummy function, use SDUCfg.onWaitForAction( fn ) to override
-      return -1;
+
+  __attribute__((unused))
+  static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
+  {
+    if( waitdelay > 100 ) {
+      SDUCfg.onBefore();
+      SDUCfg.onSplashPage( BTN_HINT_MSG );
+      BtnStyles btns;
+      SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
+      SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
+      if( SDUCfg.binFileName != nullptr ) {
+        SDUCfg.onButtonDraw( labelSave, 2, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor, btns.Save.ShadowColor );
+      }
     }
-  #else // M5.BtnA/BtnB/BtnC support
-    __attribute__((unused))
-    static int assertStartUpdateFromPushButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
-    {
-      if( waitdelay > 100 ) {
-        SDUCfg.onBefore();
-        SDUCfg.onSplashPage( BTN_HINT_MSG );
-        BtnStyles btns;
-        SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
-        SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
-        if( SDUCfg.binFileName != nullptr ) {
-          SDUCfg.onButtonDraw( labelSave, 2, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor, btns.Save.ShadowColor );
+    auto msec = millis();
+    uint32_t progress = 0, progressOld = 1;
+    if( SDUCfg.onProgress ) SDUCfg.onProgress( 100, 100 );
+
+    #if defined HAS_LGFX
+      SDUSprite *sprite = new SDUSprite( &SDU_GFX );
+      sprite->createSprite( 32, 32 );
+    #endif
+
+    int ret = -1;
+
+    do {
+      if( SDUCfg.buttonsUpdate ) SDUCfg.buttonsUpdate();
+      for( int i=0; i<3; i++ ) {
+        if( SDUCfg.Buttons[i].cb && SDUCfg.Buttons[i].cb() ) { ret = SDUCfg.Buttons[i].val; goto _endAssert; }
+      }
+      if( SDUCfg.onProgress   ) {
+        float barprogress = float(millis() - msec) / float(waitdelay);
+        progress = 100- (100 * barprogress);
+        if (progressOld != progress) {
+          progressOld = progress;
+          SDUCfg.onProgress( (uint8_t)progress, 100 );
         }
       }
-      auto msec = millis();
-      auto lastdraw = millis();
-      uint32_t progress = 0, progressOld = 1;
-      if( SDUCfg.onProgress ) SDUCfg.onProgress( 100, 100 );
-
-      #if defined HAS_LGFX
-        SDUSprite *sprite = new SDUSprite( &SDU_GFX );
-        sprite->createSprite( 32, 32 );
+      #if defined HAS_LGFX // this effect needs pushImageRotateZoom support
+        float angle = sin( float(millis())/500.0 )*180.0; // 1/2 round per second
+        sprite->clear();
+        sprite->pushImageRotateZoom(sprite->width()/2, sprite->height()/2, 7.5, 8, angle, 1, 1, 15, 16, sdUpdaterIcon15x16_raw);
+        sprite->pushSprite( SDU_GFX.width()/2-sprite->width()/2, SDU_GFX.height()*.75-sprite->height() );
       #endif
+    } while (millis() - msec < waitdelay);
 
-      int ret = -1;
+    _endAssert:
 
-      Button *ButtonA = &M5.BtnA; // Load Launcher
-      Button *ButtonB = &M5.BtnB; // Skip Lobby
-      #if defined _M5STICKC_H_
-        Button *ButtonC = nullptr;
-      #else
-        Button *ButtonC = SDUCfg.binFileName != nullptr ? &M5.BtnC : nullptr; // Save Sketch to SD
-      #endif
-
-      // order matters !!
-      Button *buttons[3] = { ButtonB, ButtonA, ButtonC };
-
-      do {
-        M5.update();
-        for( int i=0; i<3; i++ ) {
-          if( buttons[i] && buttons[i]->isPressed() ) { ret = i; goto _endAssert; }
-        }
-        if( SDUCfg.onProgress   ) {
-          float barprogress = float(millis() - msec) / float(waitdelay);
-          progress = 100- (100 * barprogress);
-          if (progressOld != progress) {
-            progressOld = progress;
-            SDUCfg.onProgress( (uint8_t)progress, 100 );
-          }
-        }
-        #if defined HAS_LGFX // this effect needs pushImageRotateZoom support
-          float angle = sin( float(millis())/500.0 )*180.0; // 1/2 round per second
-          sprite->clear();
-          sprite->pushImageRotateZoom(sprite->width()/2, sprite->height()/2, 7.5, 8, angle, 1, 1, 15, 16, sdUpdaterIcon15x16_raw);
-          sprite->pushSprite( SDU_GFX.width()/2-sprite->width()/2, SDU_GFX.height()*.75-sprite->height() );
-          lastdraw = millis();
-        #endif
-      } while (millis() - msec < waitdelay);
-
-      _endAssert:
-
-      if( SDUCfg.onProgress ) SDUCfg.onProgress( 0, 100 );
-      #if defined HAS_LGFX
-        sprite->deleteSprite();
-      #endif
-      if( ret > -1 ) { // wait for button release
-        while( buttons[ret]->isPressed() ) {
-          M5.update();
-          vTaskDelay(10);
-        }
+    if( SDUCfg.onProgress ) SDUCfg.onProgress( 0, 100 );
+    #if defined HAS_LGFX
+      sprite->deleteSprite();
+    #endif
+    if( ret > -1 ) { // wait for button release
+      log_v("Waiting for Button #%d to be released", ret );
+      while( SDUCfg.Buttons[ret].cb && SDUCfg.Buttons[ret].cb() ) {
+        if( SDUCfg.buttonsUpdate ) SDUCfg.buttonsUpdate();
+        vTaskDelay(10);
       }
-      return ret;
     }
-  #endif
-
+    return ret;
+  }
 
   #if defined _M5Core2_H_ // M5Core2.h additional touch support, will soon be deprecated
 
@@ -460,8 +462,6 @@ static void SDMenuProgressHeadless( int state, int size )
 
   static void DisplayUpdateUI( const String& label )
   {
-    //log_d("Entering DisplayUpdateUI");
-
     if (SDU_GFX.width() < SDU_GFX.height()) SDU_GFX.setRotation(SDU_GFX.getRotation() ^ 1);
 
     SDU_GFX.fillScreen( TFT_BLACK );
@@ -480,8 +480,6 @@ static void SDMenuProgressHeadless( int state, int size )
         xpos = 0 ;
       }
     }
-    //int progress_w = 102;
-    //int progress_h = 20;
     int posX = (SDU_GFX.width() - ProgressStyle.width+2) >> 1;
     int posY = (SDU_GFX.height()- ProgressStyle.height+2) >> 1;
     SDU_GFX.setCursor( xpos, posY - 20 );
@@ -503,8 +501,6 @@ static void SDMenuProgressHeadless( int state, int size )
     SDU_GFX.setTextDatum( MC_DATUM );
     SDU_GFX.drawString( msg.c_str(), SDU_GFX.width()/2, msgposy+headerHeight*2 );
     msgposy += headerHeight;
-    //SDU_GFX.setCursor( SDU_GFX.width()/2, headerHeight*2 );
-    //SDU_GFX.print( msg );
     delay(wait);
   }
 
@@ -513,14 +509,17 @@ static void SDMenuProgressHeadless( int state, int size )
   {
     if( SDUCfg.load_defaults ) {
 
-      if( !SDUCfg.onProgress   ) { SDUCfg.setProgressCb(   SDMenuProgressUI );  log_v("Attached onProgress");   }
-      if( !SDUCfg.onMessage    ) { SDUCfg.setMessageCb(    DisplayUpdateUI );   log_v("Attached onMessage");    }
-      if( !SDUCfg.onError      ) { SDUCfg.setErrorCb(      DisplayErrorUI );    log_v("Attached onError");      }
-      if( !SDUCfg.onBefore     ) { SDUCfg.setBeforeCb(     freezeTextStyle );   log_v("Attached onBefore");     }
-      if( !SDUCfg.onAfter      ) { SDUCfg.setAfterCb(      thawTextStyle );     log_v("Attached onAfter");      }
-      if( !SDUCfg.onSplashPage ) { SDUCfg.setSplashPageCb( drawSDUSplashPage ); log_v("Attached onSplashPage"); }
-      if( !SDUCfg.onButtonDraw ) { SDUCfg.setButtonDrawCb( drawSDUPushButton ); log_v("Attached onButtonDraw"); }
-
+      if( !SDUCfg.Buttons[0].cb ) { SDUCfg.setSDUBtnA( SDU::buttonAPressed ); log_v("Attached buttonpressA"); }
+      if( !SDUCfg.Buttons[1].cb ) { SDUCfg.setSDUBtnB( SDU::buttonBPressed ); log_v("Attached buttonpressB"); }
+      if( !SDUCfg.Buttons[2].cb ) { SDUCfg.setSDUBtnC( SDU::buttonCPressed ); log_v("Attached buttonpressC"); }
+      if( !SDUCfg.buttonsUpdate ) { SDUCfg.setSDUBtnPoller( SDU::pollButtons ); log_v("Attached buttons poller"); }
+      if( !SDUCfg.onProgress   )  { SDUCfg.setProgressCb(   SDMenuProgressUI );  log_v("Attached onProgress");   }
+      if( !SDUCfg.onMessage    )  { SDUCfg.setMessageCb(    DisplayUpdateUI );   log_v("Attached onMessage");    }
+      if( !SDUCfg.onError      )  { SDUCfg.setErrorCb(      DisplayErrorUI );    log_v("Attached onError");      }
+      if( !SDUCfg.onBefore     )  { SDUCfg.setBeforeCb(     freezeTextStyle );   log_v("Attached onBefore");     }
+      if( !SDUCfg.onAfter      )  { SDUCfg.setAfterCb(      thawTextStyle );     log_v("Attached onAfter");      }
+      if( !SDUCfg.onSplashPage )  { SDUCfg.setSplashPageCb( drawSDUSplashPage ); log_v("Attached onSplashPage"); }
+      if( !SDUCfg.onButtonDraw )  { SDUCfg.setButtonDrawCb( drawSDUPushButton ); log_v("Attached onButtonDraw"); }
       #if defined SDU_HAS_TOUCH // default touch button support
         if ( !SDUCfg.onWaitForAction) { SDUCfg.setWaitForActionCb( assertStartUpdateFromTouchButton ); log_v("Attached onWaitForAction (touch)"); }
       #else // default momentary button support

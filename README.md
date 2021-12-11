@@ -95,6 +95,7 @@ The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as 
     // #include <M5GFX.h>
     // #include <ESP32-Chimera-Core.h>
     // #include <M5StickC.h>
+    // #include <M5Unified.h>
 
 ```
 
@@ -168,7 +169,21 @@ The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as 
 
     SDUCfg.setCSPin( TFCARD_CS_PIN );
     SDUCfg.setFS( &SD );
-    SDUCfg.setWaitForActionCb( mySerialActionTrigger ); // set your own serial input trigger
+
+    // set your own button response trigger
+
+    static int buttonState;
+
+    SDUCfg.setSDUBtnA( []() {
+      return buttonState==LOW ? true : false;
+    });
+
+    SDUCfg.setSDUBtnPoller( []() {
+      buttonState = digitalRead( 16 );
+    });
+
+    // Or set your own serial input trigger
+    // SDUCfg.setWaitForActionCb( mySerialActionTrigger );
 
     SDUpdater sdUpdater( &SDUCfg );
 
@@ -206,6 +221,7 @@ The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as 
   As a result, any atypical setup (e.g. headless+LittleFS) should make use of those callback setters:
 
 ```C++
+  SDUCfg.setCSPin       ( TFCARD_CS_PIN );      // const int
   SDUCfg.setFS          ( &FS );                // fs::FS* (SD, SD_MMC, SPIFFS, LittleFS, PSRamFS)
   SDUCfg.setProgressCb  ( myProgress );         // void (*myProgress)( int state, int size )
   SDUCfg.setMessageCb   ( myDrawMsg );          // void (*myDrawMsg)( const String& label )
@@ -215,8 +231,12 @@ The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as 
   SDUCfg.setSplashPageCb( myDrawSplashPage );   // void (*myDrawSplashPage)( const char* msg )
   SDUCfg.setButtonDrawCb( myDrawPushButton );   // void (*myDrawPushButton)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor )
   SDUCfg.setWaitForActionCb( myActionTrigger ); // int  (*myActionTrigger)( char* labelLoad, char* labelSkip, unsigned long waitdelay )
-```
+  SDUCfg.setSDUBtnPoller( myButtonPoller );     // void (*myButtonPoller)()
+  SDUCfg.setSDUBtnA( myBtnAPushedcb );          // bool (*myBtnAPushedcb )()
+  SDUCfg.setSDUBtnB( myBtnBPushedcb );          // bool (*myBtnBPushedcb )()
+  SDUCfg.setSDUBtnC( myBtnCPushedcb );          // bool (*myBtnCPushedcb )()
 
+```
 
 
 
@@ -225,6 +245,33 @@ Set custom action trigger for `update`, `rollback`, `save` and `skip` lobby opti
   // int myActionTrigger( char* labelLoad,  char* labelSkip, unsigned long waitdelay )
   // return values: 1=update, 0=rollback, -1=skip
   SDUCfg.setWaitForActionCb( myActionTrigger );
+
+  // Or separately if a UI is available:
+
+  static int buttonAState;
+  static int buttonBState;
+  static int buttonCState;
+
+  SDUCfg.setSDUBtnPoller( []() {
+    buttonAState = digitalRead( 32 );
+    buttonBState = digitalRead( 33 );
+    buttonCState = digitalRead( 13 );
+    delay(50);
+  });
+
+  SDUCfg.setSDUBtnA( []() {
+    return buttonState==LOW ? true : false;
+  });
+
+  SDUCfg.setSDUBtnB( []() {
+    return buttonState==LOW ? true : false;
+  });
+
+  SDUCfg.setSDUBtnC( []() {
+    return buttonState==LOW ? true : false;
+  });
+
+
 ```
 
   Example:
@@ -237,10 +284,10 @@ static int myActionTrigger( char* labelLoad,  char* labelSkip, char* labelSave, 
   do {
     if( Serial.available() ) {
       String out = Serial.readStringUntil('\n');
-      if(      out == "update" )  return  1; // load "/menu.bin"
-      else if( out == "rollback") return  0; // rollback to other OTA partition
-      else if( out == "save")     return  2; // save current sketch to SD card
-      else if( out == "skip" )    return -1; // do nothing
+      if(      out == "update" )  return SDU_BTNA_MENU; // load "/menu.bin"
+      else if( out == "rollback") return SDU_BTNA_ROLLBACK; // rollback to other OTA partition
+      else if( out == "save")     return SDU_BTNC_SAVE; // save current sketch to SD card
+      else if( out == "skip" )    return SDU_BTNB_SKIP; // do nothing
       else Serial.printf("Ignored command: %s\n", out.c_str() );
     }
   } while( msec > int64_t( millis() ) - int64_t( waitdelay ) );
@@ -252,6 +299,7 @@ void setup()
   Serial.begin(115200);
 
   SDUCfg.setAppName( "My Application" );         // lobby screen label: application name
+  SDUCfg.setAuthorName( "by @myself" );          // lobby screen label: application author
   SDUCfg.setBinFileName( "/MyApplication.bin" ); // if file path to bin is set for this app, it will be checked at boot and created if not exist
 
   SDUCfg.setWaitForActionCb( myActionTrigger );
@@ -303,6 +351,21 @@ Set buttons drawing function (useful with Touch displays)
   // void (*myDrawPushButton)( const char* label, uint8_t buttonIndex, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor )
   SDUCfg.setButtonDrawCb( myDrawPushButton );
 ```
+
+Set buttons state polling function (typically M5.update()
+```C++
+  // void(*myButtonPollCb)();
+  SDUCfg.setSDUBtnPoller( myButtonPollCb );
+```
+
+Set each button state getter function, it must return true when the state is "pushed".
+```C++
+  SDUCfg.setSDUBtnA( myBtnAPushedcb ); // bool (*myBtnAPushedcb )()
+  SDUCfg.setSDUBtnB( myBtnBPushedcb ); // bool (*myBtnBPushedcb )()
+  SDUCfg.setSDUBtnC( myBtnCPushedcb ); // bool (*myBtnCPushedcb )()
+```
+
+
 
 <br />
 <br />
@@ -357,7 +420,7 @@ The default SD-Menu application will scan for these file types:
 🔘 OPTIONAL:
 ------------
 
-- The lobby screen at boot can be customized using `SDUCfg.setAppName` and `SDUCfg.setBinFileName`.
+- The lobby screen at boot can be customized using `SDUCfg.setAppName`, `SDUCfg.setAuthorName` and `SDUCfg.setBinFileName`.
 When set, the app name and the binary path will be visible on the lobby screen, and an extra button `Button C` labelled `Save` is added to the UI.
 Pushing this button while the M5Stack is booting will create or overwrite the sketch binary to the SD Card.
 This can be triggered manually by using `saveSketchToFS(SD, fileName, TFCARD_CS_PIN)`.
