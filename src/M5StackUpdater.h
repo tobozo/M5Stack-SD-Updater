@@ -42,6 +42,8 @@
  *  // #include <M5Core2.h>
  *  // #include <ESP32-Chimera-Core.h>
  *  // #include <M5StickC.h>
+ *  // #include <M5Unified.h>
+ *  // #include <LovyanGFX.h>
  *
  * And add this:
  *
@@ -118,7 +120,7 @@ class SDUpdater
     SDUpdater( config_sdu_t* _cfg ) : cfg(_cfg) {
       if( SDUCfgLoader ) SDUCfgLoader();
       else SetupSDMenuConfig();
-      if( cfg->fs == nullptr ) log_w("No filesystem selected!");
+      //if( cfg->fs == nullptr ) log_w("No filesystem selected in constructor!");
     };
     // legacy constructor
     SDUpdater( const int TFCardCsPin_ = TFCARD_CS_PIN ) {
@@ -128,7 +130,7 @@ class SDUpdater
       cfg = &SDUCfg;
       if( SDUCfgLoader ) SDUCfgLoader();
       else SetupSDMenuConfig();
-      if( cfg->fs == nullptr ) log_w("No filesystem selected!");
+      //if( cfg->fs == nullptr ) log_w("No filesystem selected in constructor!");
     };
     // check methods
     void checkSDUpdaterHeadless( String fileName, unsigned long waitdelay );

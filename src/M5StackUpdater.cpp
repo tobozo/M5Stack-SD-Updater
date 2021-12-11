@@ -59,7 +59,6 @@ void SDUpdater::_error( const char **errMsgs, uint8_t msgCount, unsigned long wa
   for( int i=0; i<msgCount; i++ ) {
     _error( String(errMsgs[i]), i<msgCount-1?0:waitdelay );
   }
-  //_error( "", waitdelay );
 }
 
 
@@ -152,7 +151,6 @@ bool SDUpdater::compareFsPartition(const esp_partition_t* src1, fs::File* src2, 
 
 bool SDUpdater::copyFsPartition(File* dst, const esp_partition_t* src, size_t length)
 {
-  //tft.fillRect( 110, 112, 100, 20, 0);
   size_t lengthLeft = length;
   const size_t bufSize = SPI_FLASH_SEC_SIZE;
   std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
@@ -221,7 +219,6 @@ bool SDUpdater::saveSketchToFS( fs::FS &fs, const char* binfilename, bool skipIf
 }
 
 
-
 // rollback helper, save menu.bin meta info in NVS
 void SDUpdater::updateNVS()
 {
@@ -239,6 +236,7 @@ void SDUpdater::updateNVS()
   preferences.putBytes( "digest", nusketchMeta.image_digest, 32 );
   preferences.end();
 }
+
 
 // perform the actual update from a given stream
 void SDUpdater::performUpdate( Stream &updateSource, size_t updateSize, String fileName )
@@ -272,6 +270,7 @@ void SDUpdater::performUpdate( Stream &updateSource, size_t updateSize, String f
   }
 }
 
+
 // forced rollback (doesn't check NVS digest)
 void SDUpdater::doRollBack( const String& message )
 {
@@ -298,7 +297,6 @@ void SDUpdater::doRollBack( const String& message )
     _error( msg, 5 );
   }
 }
-
 
 
 // if NVS has info about MENU_BIN flash size and digest, try rollback()
@@ -345,7 +343,6 @@ void SDUpdater::tryRollback( String fileName )
 }
 
 
-
 // do perform update
 void SDUpdater::updateFromStream( Stream &stream, size_t updateSize, const String& fileName )
 {
@@ -360,12 +357,12 @@ void SDUpdater::updateFromStream( Stream &stream, size_t updateSize, const Strin
 }
 
 
-
 void SDUpdater::updateFromFS( fs::FS &fs, const String& fileName )
 {
   cfg->setFS( &fs );
   updateFromFS( fileName );
 }
+
 
 void SDUpdater::checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay )
 {
@@ -373,12 +370,12 @@ void SDUpdater::checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned lo
   checkSDUpdaterHeadless( fileName, waitdelay );
 }
 
+
 void SDUpdater::checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay )
 {
   cfg->setFS( &fs );
   checkSDUpdaterUI( fileName, waitdelay );
 }
-
 
 
 void SDUpdater::updateFromFS( const String& fileName )
@@ -404,7 +401,6 @@ void SDUpdater::updateFromFS( const String& fileName )
       log_d("Skipping rollback per config");
     }
   }
-
   // no rollback possible, start filesystem
   if( !_fsBegin() ) {
     const char* msg[] = {"No filesystem mounted.", "Can't load firmware."};
@@ -422,8 +418,6 @@ void SDUpdater::updateFromFS( const String& fileName )
     }
 
     size_t updateSize = updateBin.size();
-
-    //log_d("File %s exists (%d bytes)", fileName.c_str(), updateSize );
 
     updateFromStream( updateBin, updateSize, fileName );
 
@@ -446,14 +440,14 @@ void SDUpdater::checkSDUpdaterHeadless( String fileName, unsigned long waitdelay
 
   if( cfg->onWaitForAction ) {
     int ret = cfg->onWaitForAction( nullptr, nullptr, nullptr, waitdelay );
-    if ( ret == 1 ) {
+    if ( ret == SDU_BTNA_MENU ) {
       Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
       updateFromFS( fileName );
       ESP.restart();
     }
     if( cfg->binFileName != nullptr ) {
       log_d("Checking if %s needs saving", cfg->binFileName );
-      saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != 2 );
+      saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != SDU_BTNC_SAVE );
     }
   } else {
     _error( "Missing onWaitForAction!" );
@@ -494,7 +488,7 @@ void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
 
   if( cfg->onWaitForAction ) {
     int ret = cfg->onWaitForAction( isRollBack ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, (char*)cfg->labelSave, waitdelay );
-    if ( ret == 1 ) {
+    if ( ret == SDU_BTNA_MENU ) {
       if( isRollBack == false ) {
         Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
         updateFromFS( fileName );
@@ -506,7 +500,7 @@ void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
     }
     if( cfg->binFileName != nullptr ) {
       log_d("Checking if %s needs saving", cfg->binFileName );
-      saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != 2 );
+      saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != SDU_BTNC_SAVE );
     }
   } else {
     _error( "Missing onWaitForAction!" );
@@ -517,11 +511,3 @@ void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
     if( cfg->onAfter ) cfg->onAfter();
   }
 }
-
-
-
-
-
-
-
-

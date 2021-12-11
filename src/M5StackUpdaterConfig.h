@@ -47,6 +47,16 @@
   #define SDU_APP_AUTHOR nullptr
 #endif
 
+// to be returned by onWaitForActionCb
+enum SDUBtnActions
+{
+  SDU_BTNA_ROLLBACK =  0,
+  SDU_BTNA_MENU     =  1,
+  SDU_BTNB_SKIP     = -1,
+  SDU_BTNC_SAVE     =  2
+};
+
+
 // callback signatures
 typedef void (*onProgressCb)( int state, int size );
 typedef void (*onMessageCb)( const String& label );
@@ -57,6 +67,15 @@ typedef void (*onSplashPageCb)( const char* msg );
 typedef void (*onButtonDrawCb)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor, uint16_t shadowcolor );
 typedef int  (*onWaitForActionCb)( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay );
 typedef void (*onConfigLoad)();
+typedef void (*BtnPollCb)(); // called to poll button state e.g. like M5.update()
+typedef bool (*BtnXPressCb)(); // called when a button is pressed
+
+// button to action assignment
+struct BtnXAction
+{
+  BtnXPressCb cb;
+  SDUBtnActions val;
+};
 
 // SDUpdater config callbacks and params
 struct config_sdu_t
@@ -73,6 +92,13 @@ struct config_sdu_t
   const char* appName       = SDU_APP_NAME;
   const char* authorName    = SDU_APP_AUTHOR;
 
+  BtnXAction Buttons[3]     =
+  {
+    { nullptr, SDU_BTNA_MENU },
+    { nullptr, SDU_BTNB_SKIP },
+    { nullptr, SDU_BTNC_SAVE }
+  };
+  BtnPollCb         buttonsUpdate    = nullptr;
   onProgressCb      onProgress       = nullptr;
   onMessageCb       onMessage        = nullptr;
   onErrorCb         onError          = nullptr;
@@ -92,6 +118,7 @@ struct config_sdu_t
   void setSplashPageCb( onSplashPageCb cb )       { onSplashPage = cb; }
   void setButtonDrawCb( onButtonDrawCb cb )       { onButtonDraw = cb; }
   void setWaitForActionCb( onWaitForActionCb cb ) { onWaitForAction = cb; }
+  void setSDUBtnPoller( BtnPollCb cb )            { buttonsUpdate = cb; }
 
   void setLabelMenu( const char* label )          { labelMenu = label; }
   void setLabelSkip( const char* label )          { labelSkip = label; }
@@ -101,6 +128,22 @@ struct config_sdu_t
   void setAuthorName( const char* name )          { authorName = name; }
   void setBinFileName( const char* name )         { binFileName = name; }
   void useRolllback( bool use )                   { use_rollback = use; }
+
+  void setSDUBtnA( BtnXPressCb Btn )              { setSDUBtns(SDU_BTNA_MENU, Btn ); }
+  void setSDUBtnB( BtnXPressCb Btn )              { setSDUBtns(SDU_BTNB_SKIP, Btn ); }
+  void setSDUBtnC( BtnXPressCb Btn )              { setSDUBtns(SDU_BTNC_SAVE, Btn ); }
+  void setSDUBtns( SDUBtnActions BtnVal, BtnXPressCb cb )
+  {
+    int _id = -1;
+    switch( BtnVal ) {
+      case SDU_BTNA_MENU: _id = 0; break;
+      case SDU_BTNB_SKIP: _id = 1; break;
+      case SDU_BTNC_SAVE: _id = 2; break;
+      default: log_e("Invalid button val: %d", BtnVal ); return; break;
+    }
+    Buttons[_id].cb  = cb;
+    Buttons[_id].val = BtnVal;
+  }
 
 };
 
