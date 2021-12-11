@@ -28,6 +28,7 @@ jobs:
           - M5Core2-SD-Menu
           - M5Fire-SD-Menu
           - OdroidGo-SD-Menu
+          #- TTGO-LoRa32-V2-SDLoader-Snippet
 
         include:
           - matrix-context: M5Core2-SDLoader-Snippet
@@ -66,6 +67,11 @@ jobs:
             sketch-names: M5Stack-SD-Menu.ino
             bin-name: OdroidGo-Launcher.bin
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+          #- matrix-context: TTGO-LoRa32-V2-SDLoader-Snippet
+            #arduino-boards-fqbn: esp32:esp32:ttgo-lora32-v2
+            #sketch-names: TTGO-SDLoader-Snippet.ino
+            #required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+
 
       fail-fast: false
 
