@@ -401,7 +401,7 @@ void M5SAM::keyboardIRQ(){
 
 #ifdef ARDUINO_ODROID_ESP32
 
-  #define BUTTON_WIDTH 60
+  //#define BUTTON_WIDTH 60
   #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
   #define BUTTON_HEIGHT 28
   uint16_t buttonsXOffset[4] = {
@@ -423,7 +423,7 @@ void M5SAM::keyboardIRQ(){
 
 #else
 
-  #define BUTTON_WIDTH 60
+  //#define BUTTON_WIDTH 60
   #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
   #define BUTTON_HEIGHT 28
   uint16_t buttonsXOffset[3] =
