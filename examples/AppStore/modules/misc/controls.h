@@ -81,14 +81,13 @@ HIDSignal getControls()
     }
   }
   M5.update();
-  #if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE || defined ARDUINO_M5STACK_Core2
-    // legacy buttons support
-    bool a = M5.BtnA.wasPressed() || M5.BtnA.pressedFor( 500 );
-    bool b = M5.BtnB.wasPressed() || M5.BtnB.pressedFor( 500 );
-    bool c = M5.BtnC.wasPressed() || M5.BtnC.pressedFor( 500 );
-    //bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
-    //bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
-  #endif
+
+  // legacy buttons support
+  bool a = M5.BtnA.wasPressed() || M5.BtnA.pressedFor( 500 );
+  bool b = M5.BtnB.wasPressed() || M5.BtnB.pressedFor( 500 );
+  bool c = M5.BtnC.wasPressed() || M5.BtnC.pressedFor( 500 );
+  //bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
+  //bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
 
   //if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
   if( b ) return HIDFeedback( HID_PAGE_DOWN );
