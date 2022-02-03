@@ -38,7 +38,7 @@
   #warning M5STACK Core2 DETECTED !!
   #define PLATFORM_NAME "M5Core2"
   #define DEFAULT_REGISTRY_BOARD "m5core2"
-  #define USE_DOWNLOADER
+  //#define USE_DOWNLOADER
 #elif defined( ARDUINO_M5Stack_Core_ESP32 )
   #warning M5STACK CLASSIC DETECTED !!
   #define PLATFORM_NAME "M5Stack"
@@ -48,7 +48,7 @@
   #warning M5STACK FIRE DETECTED !!
   #define PLATFORM_NAME "M5Fire"
   #define DEFAULT_REGISTRY_BOARD "m5fire"
-  #define USE_DOWNLOADER
+  //#define USE_DOWNLOADER
 #elif defined( ARDUINO_ODROID_ESP32 )
   #warning ODROID DETECTED !!
   #define PLATFORM_NAME "Odroid-GO"
@@ -57,7 +57,7 @@
   #warning WROVER OR LOLIN_D32_PRO DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
-  #define USE_DOWNLOADER
+  //#define USE_DOWNLOADER
 #else
   #warning NOTHING DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "lambda"
@@ -131,12 +131,12 @@ M5SAM M5Menu;
 
 
 /* vMicro compliance, see https://github.com/tobozo/M5Stack-SD-Updater/issues/5#issuecomment-386749435 */
-void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta );
+//void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta );
 void freeAllMeta();
 void freeMeta();
 void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
-void qrRender( String text, float sizeinpixels );
+void qrRender( String text, float sizeinpixels, int xOffset=-1, int yOffset=-1 );
 
 static String heapState()
 {
@@ -252,8 +252,12 @@ void renderIcon( FileInfo &fileInfo )
 
   fs::File iconFile = M5_FS.open( fileInfo.iconName.c_str()  );
   if( !iconFile ) return;
-  tft.drawJpg( &iconFile, tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
+  tft.drawJpg( &iconFile, 190, 60/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
   iconFile.close();
+
+
+  qrRender( jsonMeta.projectURL, 50, 190, 60 );
+
   //tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
 }
 
@@ -288,17 +292,22 @@ void renderMeta( JSONMeta &jsonMeta )
   sprite.println( fileInfo[MenuID].fileName );
   sprite.println();
 
+  log_d("Rendering meta");
+
   if( jsonMeta.authorName!="" && jsonMeta.projectURL!="" ) { // both values provided
+    log_d("Rendering QRCode+author");
     sprite.print( AUTHOR_PREFIX );
     sprite.print( jsonMeta.authorName );
     sprite.println( AUTHOR_SUFFIX );
     sprite.println();
     qrRender( jsonMeta.projectURL, 160 );
   } else if( jsonMeta.projectURL!="" ) { // only projectURL
+    log_d("Rendering QRCode");
     sprite.println( jsonMeta.projectURL );
     sprite.println();
     qrRender( jsonMeta.projectURL, 160 );
   } else { // only authorName
+    log_d("Rendering Authorname");
     sprite.println( jsonMeta.authorName );
     sprite.println();
   }
@@ -331,7 +340,7 @@ uint8_t getLowestQRVersionFromString( String text, uint8_t ecc )
 }
 
 
-void qrRender( String text, float sizeinpixels )
+void qrRender( String text, float sizeinpixels, int xOffset, int yOffset )
 {
   // see https://github.com/Kongduino/M5_QR_Code/blob/master/M5_QRCode_Test.ino
   // Create the QR code
@@ -339,13 +348,20 @@ void qrRender( String text, float sizeinpixels )
 
   uint8_t ecc = 0; // QR on TFT can do with minimal ECC
   uint8_t version = getLowestQRVersionFromString( text, ecc );
+
+  log_d("Rendering QR Code on version #%d", version );
+
   uint8_t qrcodeData[qrcode_getBufferSize( version )];
   qrcode_initText( &qrcode, qrcodeData, version, ecc, text.c_str() );
 
   uint8_t thickness = sizeinpixels / qrcode.size;
   uint16_t lineLength = qrcode.size * thickness;
-  uint8_t xOffset = ( ( tft.width() - ( lineLength ) ) / 2 ) + 70;
-  uint8_t yOffset =  ( tft.height() - ( lineLength ) ) / 2;
+  if( xOffset == -1 ) {
+    xOffset = ( ( tft.width() - ( lineLength ) ) / 2 ) + 70;
+  }
+  if( yOffset == -1 ) {
+    yOffset =  ( tft.height() - ( lineLength ) ) / 2;
+  }
 
   tft.fillRect( xOffset-5, yOffset-5, lineLength+10, lineLength+10, TFT_WHITE );
 
@@ -383,7 +399,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
     } else {
       if( isValidAppName( sdUpdater->fs_file_path(&file) ) ) {
         if( process ) {
-          getFileInfo( fileInfo[appsCount], fs, file );
+          getFileInfo( fileInfo[appsCount], &file );
           if( appsCountProgress > 0 ) {
             float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
             tft.progressBar( 110, 112, 100, 20, progressRatio);
@@ -411,7 +427,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
   if( fs.exists( MENU_BIN ) ) {
     file = fs.open( MENU_BIN );
     if( process ) {
-      getFileInfo( fileInfo[appsCount], fs, file );
+      getFileInfo( fileInfo[appsCount], &file );
       if( appsCountProgress > 0 ) {
         float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
         tft.progressBar( 110, 112, 100, 20, progressRatio);

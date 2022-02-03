@@ -49,24 +49,28 @@ jobs:
             required-libraries: "LovyanGFX"
           - matrix-context: M5Stack-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
-            sketch-names: M5Stack-SD-Menu.ino
-            bin-name: M5stack-Launcher.bin
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
+            launcher-name: M5stack-Launcher.bin
+            appstore-name: M5stack-AppStore.bin
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: M5Core2-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-core2
-            sketch-names: M5Stack-SD-Menu.ino
-            bin-name: M5Core2-Launcher.bin
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
+            launcher-name: M5Core2-Launcher.bin
+            appstore-name: M5Core2-AppStore.bin
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: M5Fire-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-fire
-            sketch-names: M5Stack-SD-Menu.ino
-            bin-name: M5Fire-Launcher.bin
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
+            launcher-name: M5Fire-Launcher.bin
+            appstore-name: M5Fire-AppStore.bin
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: OdroidGo-SD-Menu
             arduino-boards-fqbn: esp32:esp32:odroid_esp32
-            sketch-names: M5Stack-SD-Menu.ino
-            bin-name: OdroidGo-Launcher.bin
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
+            launcher-name: OdroidGo-Launcher.bin
+            appstore-name: OdroidGo-AppStore.bin
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           #- matrix-context: TTGO-LoRa32-V2-SDLoader-Snippet
             #arduino-boards-fqbn: esp32:esp32:ttgo-lora32-v2
             #sketch-names: TTGO-SDLoader-Snippet.ino
@@ -87,6 +91,7 @@ jobs:
           arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
+          # extra-arduino-cli-args:
           sketch-names: ${{ matrix.sketch-names }}
           set-build-path: true
           #build-properties: ${{ toJson(matrix.build-properties) }}
@@ -94,13 +99,16 @@ jobs:
       - name: Copy compiled binary
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
-          cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.bin-name }}
-      - name: Upload artifact ${{ matrix.bin-name }}
+          cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}
+          cp examples/AppStore/build/AppStore.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}
+      - name: Upload artifact ${{ matrix.matrix-context }}
         uses: actions/upload-artifact@v2
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         with:
-          name: ${{ matrix.bin-name }}
-          path: examples/M5Stack-SD-Menu/build/${{ matrix.bin-name }}
+          name: ${{ matrix.matrix-context }}
+          path: |
+            examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}
+            examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}
 
   post_build:
     name: Gather Artefacts

@@ -170,30 +170,56 @@ struct FileInfo
 };
 
 
-void getMeta( fs::FS &fs, String metaFileName, JSONMeta &jsonMeta )
+void getMeta( FileInfo *fileInfo )
 {
-  File file = fs.open( metaFileName );
-  StaticJsonDocument<512> jsonMetaBuffer;
-  DeserializationError error = deserializeJson( jsonMetaBuffer, file );
-  if (error) return;
-  JsonObject root = jsonMetaBuffer.as<JsonObject>();
-  if ( !root.isNull() ) {
-    jsonMeta.width  = root["width"];
-    jsonMeta.height = root["height"];
-    jsonMeta.authorName = root["authorName"].as<String>();
-    jsonMeta.projectURL = root["projectURL"].as<String>();
-    jsonMeta.credits    = root["credits"].as<String>();
+
+  fs::File file = M5_FS.open( fileInfo->metaName );
+  if( !file ) {
+    log_e("Can't open %s", fileInfo->metaName  );
+    return;
   }
+  log_d("Fetching meta for %s (%d bytes)", fileInfo->metaName.c_str(), file.size() );
+  DynamicJsonDocument root(2048);
+  if( root.capacity() == 0 ) {
+    log_e("ArduinoJSON failed to allocate 2kb");
+    return;
+  }
+
+  DeserializationError error = deserializeJson( root, file );
+
+  if (error) {
+    log_e("JSON ERROR #%d : %s", error, error.c_str() );
+    file.close();
+    return;
+  }
+  // serializeJsonPretty(root, Serial);
+  if ( !root.isNull() ) {
+    JsonObject meta;
+    if( !root["json_meta"].isNull() ) {
+      meta = root["json_meta"].as<JsonObject>(); // new format
+    } else {
+      meta = root.as<JsonObject>();
+    }
+    fileInfo->jsonMeta.width      = meta["width"].as<size_t>();
+    fileInfo->jsonMeta.height     = meta["height"].as<size_t>();
+    fileInfo->jsonMeta.authorName = meta["authorName"].as<String>();
+    fileInfo->jsonMeta.projectURL = meta["projectURL"].as<String>();
+    fileInfo->jsonMeta.credits    = meta["credits"].as<String>();
+    log_d("Fetched values: w=%d, h=%d", fileInfo->jsonMeta.width, fileInfo->jsonMeta.height );
+  } else {
+    log_e("Unparsable JSON");
+  }
+  file.close();
 }
 
 
-void getFileInfo( FileInfo &fileInfo, fs::FS &fs, File &file, const char* binext=".bin" )
+void getFileInfo( FileInfo &fileInfo, File *file, const char* binext=".bin" )
 {
   String BINEXT = binext;
   BINEXT.toUpperCase();
-  String fileName   = sdUpdater->fs_file_path( &file ); //.name();
-  uint32_t fileSize = file.size();
-  time_t lastWrite = file.getLastWrite();
+  String fileName   = sdUpdater->fs_file_path( file ); //.name();
+  uint32_t fileSize = file->size();
+  time_t lastWrite = file->getLastWrite();
   struct tm * tmstruct = localtime(&lastWrite);
   char fileDate[64] = "1980-01-01 00:07:20";
   sprintf(fileDate, "%04d-%02d-%02d %02d:%02d:%02d",(tmstruct->tm_year)+1900,( tmstruct->tm_mon)+1, tmstruct->tm_mday,tmstruct->tm_hour , tmstruct->tm_min, tmstruct->tm_sec);
@@ -215,12 +241,12 @@ void getFileInfo( FileInfo &fileInfo, fs::FS &fs, File &file, const char* binext
   String currentDataFolder = appDataFolder + fileName;
   currentDataFolder.replace( binext, "" );
   currentDataFolder.replace( BINEXT, "" );
-  if( fs.exists( currentDataFolder.c_str() ) ) {
+  if( M5_FS.exists( currentDataFolder.c_str() ) ) {
     fileInfo.hasData = true; // TODO: actually use this feature
   }
 
   if( fileInfo.hasMeta() == true ) {
-    getMeta( fs, fileInfo.metaName, fileInfo.jsonMeta );
+    getMeta( &fileInfo );
   }
 }
 
