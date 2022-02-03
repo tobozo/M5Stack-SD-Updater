@@ -52,25 +52,25 @@ jobs:
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: M5stack-Launcher.bin
             appstore-name: M5stack-AppStore.bin
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: M5Core2-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-core2
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: M5Core2-Launcher.bin
             appstore-name: M5Core2-AppStore.bin
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: M5Fire-SD-Menu
             arduino-boards-fqbn: esp32:esp32:m5stack-fire
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: M5Fire-Launcher.bin
             appstore-name: M5Fire-AppStore.bin
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: OdroidGo-SD-Menu
             arduino-boards-fqbn: esp32:esp32:odroid_esp32
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: OdroidGo-Launcher.bin
             appstore-name: OdroidGo-AppStore.bin
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           #- matrix-context: TTGO-LoRa32-V2-SDLoader-Snippet
             #arduino-boards-fqbn: esp32:esp32:ttgo-lora32-v2
             #sketch-names: TTGO-SDLoader-Snippet.ino
