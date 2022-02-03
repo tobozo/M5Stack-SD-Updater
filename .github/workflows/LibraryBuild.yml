@@ -91,6 +91,7 @@ jobs:
           arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
+          # extra-arduino-cli-args:
           sketch-names: ${{ matrix.sketch-names }}
           set-build-path: true
           #build-properties: ${{ toJson(matrix.build-properties) }}
@@ -99,7 +100,7 @@ jobs:
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
           cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}
-          cp examples/M5Stack-SD-Menu/build/AppStore.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}
+          cp examples/AppStore/build/AppStore.ino.bin examples/AppStore/build/${{ matrix.appstore-name }}
       - name: Upload artifact ${{ matrix.matrix-context }}
         uses: actions/upload-artifact@v2
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
@@ -107,7 +108,7 @@ jobs:
           name: ${{ matrix.matrix-context }}
           path: |
             examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}
-            examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}
+            examples/AppStore/build/${{ matrix.appstore-name }}
 
   post_build:
     name: Gather Artefacts
