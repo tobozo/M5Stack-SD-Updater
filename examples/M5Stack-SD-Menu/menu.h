@@ -319,7 +319,7 @@ void renderMeta( JSONMeta &jsonMeta )
 uint8_t getLowestQRVersionFromString( String text, uint8_t ecc )
 {
   #define QR_MAX_VERSION 9
-  if(ecc>3) return QR_MAX_VERSION; // fail fast
+  if(ecc>QR_MAX_VERSION) return QR_MAX_VERSION; // fail fast
   uint16_t len = text.length();
   uint8_t QRMaxLenByECCLevel[4][QR_MAX_VERSION] = {
     // https://www.qrcode.com/en/about/version.html
