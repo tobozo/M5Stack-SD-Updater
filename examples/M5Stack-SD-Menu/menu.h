@@ -136,7 +136,8 @@ void freeAllMeta();
 void freeMeta();
 void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
-void qrRender( String text, float sizeinpixels, int xOffset=-1, int yOffset=-1 );
+//void qrRender( String text, float sizeinpixels, int xOffset=-1, int yOffset=-1 );
+void qrRender( LGFX* gfx, String text, int posX, int posY, uint32_t width, uint32_t height );
 
 static String heapState()
 {
@@ -254,10 +255,6 @@ void renderIcon( FileInfo &fileInfo )
   if( !iconFile ) return;
   tft.drawJpg( &iconFile, 190, 60/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
   iconFile.close();
-
-
-  qrRender( jsonMeta.projectURL, 50, 190, 60 );
-
   //tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
 }
 
@@ -300,12 +297,12 @@ void renderMeta( JSONMeta &jsonMeta )
     sprite.print( jsonMeta.authorName );
     sprite.println( AUTHOR_SUFFIX );
     sprite.println();
-    qrRender( jsonMeta.projectURL, 160 );
+    qrRender( &tft, jsonMeta.projectURL, 155, 45, 150, 150 );
   } else if( jsonMeta.projectURL!="" ) { // only projectURL
     log_d("Rendering QRCode");
     sprite.println( jsonMeta.projectURL );
     sprite.println();
-    qrRender( jsonMeta.projectURL, 160 );
+    qrRender( &tft, jsonMeta.projectURL, 155, 45, 150, 150 );
   } else { // only authorName
     log_d("Rendering Authorname");
     sprite.println( jsonMeta.authorName );
@@ -321,26 +318,29 @@ void renderMeta( JSONMeta &jsonMeta )
 /* give up on redundancy and ECC to produce less and bigger squares */
 uint8_t getLowestQRVersionFromString( String text, uint8_t ecc )
 {
-  if(ecc>3) return 4; // fail fast
+  #define QR_MAX_VERSION 9
+  if(ecc>3) return QR_MAX_VERSION; // fail fast
   uint16_t len = text.length();
-  uint8_t QRMaxLenByECCLevel[4][3] = {
+  uint8_t QRMaxLenByECCLevel[4][QR_MAX_VERSION] = {
     // https://www.qrcode.com/en/about/version.html
-    { 41, 77, 127 }, // L
-    { 34, 63, 101 }, // M
-    { 27, 48, 77 },  // Q
-    { 17, 34, 58 }   // H
+    // Handling version 1-9 only since there's no point with M5Stack's 320x240 display (next version is at 271)
+    { 17, 32, 53, 78, 106, 134, 154, 192, 230 }, // L
+    { 14, 26, 45, 62, 84,  106, 122, 152, 180 }, // M
+    { 11, 20, 32, 46, 60,  74,  86,  108, 130 }, // Q
+    { 7,  14, 24, 34, 44,  58,  64,  84,  98  }  // H
   };
-  for( uint8_t i=0; i<3; i++ ) {
+  for( uint8_t i=0; i<QR_MAX_VERSION; i++ ) {
     if( len <= QRMaxLenByECCLevel[ecc][i] ) {
-      return i+2;
+      log_d("string len=%d bytes, fits in version %d / ecc %d (max=%d)", len, i+1, ecc, QRMaxLenByECCLevel[ecc][i] );
+      return i+1;
     }
   }
-  // there's no point in doing higher with M5Stack's display
-  return 4;
+  log_e("String length exceeds output parameters");
+  return QR_MAX_VERSION;
 }
 
 
-void qrRender( String text, float sizeinpixels, int xOffset, int yOffset )
+void qrRender( LGFX* gfx, String text, int posX, int posY, uint32_t width, uint32_t height )
 {
   // see https://github.com/Kongduino/M5_QR_Code/blob/master/M5_QRCode_Test.ino
   // Create the QR code
@@ -349,28 +349,32 @@ void qrRender( String text, float sizeinpixels, int xOffset, int yOffset )
   uint8_t ecc = 0; // QR on TFT can do with minimal ECC
   uint8_t version = getLowestQRVersionFromString( text, ecc );
 
-  log_d("Rendering QR Code on version #%d", version );
+  uint8_t qrcodeData[lgfx_qrcode_getBufferSize( version )];
+  lgfx_qrcode_initText( &qrcode, qrcodeData, version, ecc, text.c_str() );
 
-  uint8_t qrcodeData[qrcode_getBufferSize( version )];
-  qrcode_initText( &qrcode, qrcodeData, version, ecc, text.c_str() );
-
-  uint8_t thickness = sizeinpixels / qrcode.size;
-  uint16_t lineLength = qrcode.size * thickness;
-  if( xOffset == -1 ) {
-    xOffset = ( ( tft.width() - ( lineLength ) ) / 2 ) + 70;
+  uint32_t gridSize  = (qrcode.size + 4);   // margin: 2 dots
+  uint32_t dotWidth  = width / gridSize;    // rounded
+  uint32_t dotHeight = height / gridSize;   // rounded
+  uint32_t realWidth  = dotWidth*gridSize;  // recalculated
+  uint32_t realHeight = dotHeight*gridSize; // recalculated
+  if( realWidth > width || realHeight > height ) {
+    log_e("Can't fit QR with gridsize(%d),dotSize(%d) =>[%dx%d] => [%dx%d]", gridSize, dotWidth, realWidth, realHeight, width, height );
+    return;
+  } else {
+    log_d("Rendering QR Code '%s' (%d bytes) on version #%d on [%dx%d] => [%dx%d] grid", text.c_str(), text.length(), version, qrcode.size, qrcode.size, realWidth, realHeight );
   }
-  if( yOffset == -1 ) {
-    yOffset =  ( tft.height() - ( lineLength ) ) / 2;
-  }
 
-  tft.fillRect( xOffset-5, yOffset-5, lineLength+10, lineLength+10, TFT_WHITE );
+  uint8_t marginX = (width  - qrcode.size*dotWidth)/2;
+  uint8_t marginY = (height - qrcode.size*dotHeight)/2;
+
+  gfx->fillRect( posX, posY, width, height, TFT_WHITE );
 
   for ( uint8_t y = 0; y < qrcode.size; y++ ) {
     // Each horizontal module
     for ( uint8_t x = 0; x < qrcode.size; x++ ) {
-      bool q = qrcode_getModule( &qrcode, x, y );
+      bool q = lgfx_qrcode_getModule( &qrcode, x, y );
       if (q) {
-        tft.fillRect( x * thickness + xOffset, y * thickness + yOffset, thickness, thickness, TFT_BLACK );
+        gfx->fillRect( x*dotWidth +posX+marginX, y*dotHeight +posY+marginY, dotWidth, dotHeight, TFT_BLACK );
       }
     }
   }
