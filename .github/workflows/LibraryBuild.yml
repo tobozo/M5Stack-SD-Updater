@@ -47,47 +47,47 @@ jobs:
             platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.2_index.json
 
           - matrix-context: M5Core2-SDLoader-Snippet
-            arduino-boards-fqbn: esp32:esp32:m5stack-core2
+            arduino-board: m5stack-core2
             sketch-names: M5Stack-SDLoader-Snippet.ino
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Stack-SDLoader-Snippet
-            arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
+            arduino-board: m5stack-core-esp32
             sketch-names: M5Stack-SDLoader-Snippet.ino
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5StickC-SPIFFS-Snippet
-            arduino-boards-fqbn: esp32:esp32:m5stick-c
+            arduino-board: m5stick-c
             sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino
             required-libraries: "M5StickC"
           - matrix-context: M5Stack-LGFX-Loader-Snippet
-            arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
+            arduino-board: m5stack-core-esp32
             sketch-names: LGFX-SDLoader-Snippet.ino
             required-libraries: "LovyanGFX"
           - matrix-context: M5Stack-SD-Menu
-            arduino-boards-fqbn: esp32:esp32:m5stack-core-esp32
+            arduino-board: m5stack-core-esp32
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: M5stack-Launcher
             appstore-name: M5stack-AppStore
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: M5Core2-SD-Menu
-            arduino-boards-fqbn: esp32:esp32:m5stack-core2
+            arduino-board: m5stack-core2
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: M5Core2-Launcher
             appstore-name: M5Core2-AppStore
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: M5Fire-SD-Menu
-            arduino-boards-fqbn: esp32:esp32:m5stack-fire
+            arduino-board: m5stack-fire
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: M5Fire-Launcher
             appstore-name: M5Fire-AppStore
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: OdroidGo-SD-Menu
-            arduino-boards-fqbn: esp32:esp32:odroid_esp32
+            arduino-board: odroid_esp32
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: OdroidGo-Launcher
             appstore-name: OdroidGo-AppStore
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           #- matrix-context: TTGO-LoRa32-V2-SDLoader-Snippet
-            #arduino-boards-fqbn: esp32:esp32:ttgo-lora32-v2
+            #arduino-board: ttgo-lora32-v2
             #sketch-names: TTGO-SDLoader-Snippet.ino
             #required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
 
@@ -103,7 +103,7 @@ jobs:
         uses: ArminJo/arduino-test-compile@v3
         with:
           platform-url: ${{ matrix.platform-url }} # https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
-          arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
+          arduino-board-fqbn: esp32-${{ matrix.sdk-version }}:esp32-${{ matrix.sdk-version }}:${{ matrix.arduino-board}}
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
           # extra-arduino-cli-args:
