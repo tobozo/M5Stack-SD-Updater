@@ -275,9 +275,9 @@ void SDUpdater::performUpdate( Stream &updateSource, size_t updateSize, String f
 void SDUpdater::doRollBack( const String& message )
 {
   log_d("Wil check for rollback capability");
-  if( !cfg->onMessage)   log_d("No message reporting");
+  if( !cfg->onMessage)   { log_d("No message reporting"); }
   //if( !cfg->onError )    log_d("No error reporting");
-  if( !cfg->onProgress ) log_d("No progress reporting");
+  if( !cfg->onProgress ) { log_d("No progress reporting"); }
 
   if( Update.canRollBack() ) {
     _message( message );

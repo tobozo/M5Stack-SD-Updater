@@ -245,17 +245,18 @@ namespace FSUtils
 
     File file = root.openNextFile();
     while( file ) {
+      const char* path = fs_file_path(&file);
       if(file.isDirectory()){
         // go recursive
-        cleanDir( file.path() );
-        M5_FS.rmdir( file.path() );
-        Serial.printf( CLEANDIR_REMOVED, file.path() );
+        cleanDir( path );
+        M5_FS.rmdir( path );
+        Serial.printf( CLEANDIR_REMOVED, path );
         file = root.openNextFile();
         continue;
       }
-      Serial.printf( CLEANDIR_REMOVED, file.path() );
-      if( Console ) Console->log( file.path() );
-      M5_FS.remove( file.path() );
+      Serial.printf( CLEANDIR_REMOVED, path );
+      if( Console ) Console->log( path );
+      M5_FS.remove( path );
       file = root.openNextFile();
     }
     root.close();

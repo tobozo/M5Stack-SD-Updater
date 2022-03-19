@@ -493,7 +493,7 @@ static void SDMenuProgressHeadless( int state, int size )
     SDU_GFX.setTextSize( 2 );
     SDU_GFX.setTextFont( 0 );
     uint8_t headerHeight = SDU_GFX.fontHeight()*1.8; // = 28px
-    log_d("Header height: %d", headerHeight );
+    log_v("Header height: %d", headerHeight );
     if( msgposy == 0 ) {
       SDU_GFX.fillRect( 0, headerHeight+1, SDU_GFX.width(), SDU_GFX.height()-headerHeight, TFT_BLACK );
     }

@@ -3,6 +3,7 @@
 #define LANG_EN 0xff
 #define LANG_JP 0x12
 #define LANG_CN 0x07
+#define LANG_KR 0x14
 
 #define I18N_LANG LANG_EN
 
@@ -33,6 +34,14 @@
   #define HeaderFont     &lgfxJapanGothic_12
   #define LIFont         &lgfxJapanGothic_12
   #define InfoWindowFont &lgfxJapanGothic_12
+
+#elif I18N_LANG == LANG_KR
+
+  #include "lang/i18n.kr.h"
+  #define ButtonFont     &efontKR_10
+  #define HeaderFont     &efontKR_12_b
+  #define LIFont         &efontKR_10_b
+  #define InfoWindowFont &efontKR_12
 
 #else
 

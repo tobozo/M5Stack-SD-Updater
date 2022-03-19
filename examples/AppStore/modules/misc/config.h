@@ -102,5 +102,34 @@ uint16_t buttonsXOffset[BUTTONS_COUNT] =
 #endif
 
 
+#undef FS_CAN_CREATE_PATH
 
+#include "esp32-hal-log.h"
+
+#if defined ESP_ARDUINO_VERSION_VAL
+  #if __has_include("core_version.h") // for platformio
+    #include "core_version.h"
+  #endif
+
+  #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(2,0,1) || ARDUINO_ESP32_GIT_VER == 0x15bbd0a1 || ARDUINO_ESP32_GIT_VER == 0xd218e58f || ARDUINO_ESP32_GIT_VER == 0xcaef4006
+    // #pragma message "Filesystem can create subfolders on file creation"
+    #define FS_CAN_CREATE_PATH
+  #endif
+
+  #if ARDUINO_ESP32_GIT_VER == 0x15bbd0a1
+    //#pragma message "ESP32 Arduino 2.0.1 RC1 (0x15bbd0a1) is only partially supported"
+
+  #elif ARDUINO_ESP32_GIT_VER == 0xd218e58f
+    //#pragma message "ESP32 Arduino 2.0.1 (0xd218e58f) has OTA support broken!!"
+
+  #elif ARDUINO_ESP32_GIT_VER == 0xcaef4006
+    // readRAW() / writeRAW() / numSectors() / sectorSize() support
+    //#pragma message "ESP32 Arduino 2.0.2 (0xcaef4006) has SD support broken!!"
+
+  #else
+    // unknown but probably 2.0.0
+    //#pragma message "ESP32 Arduino 2.x.x (unknown)"
+    #undef FS_CAN_CREATE_PATH
+  #endif
+#endif
 

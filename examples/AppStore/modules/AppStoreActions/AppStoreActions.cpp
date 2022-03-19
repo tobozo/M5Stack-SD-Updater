@@ -385,22 +385,22 @@ namespace AppRenderer
       }
       drawTextShadow( _gfx, authorString.c_str(), AppInfoPosX, AppInfoPosY, theme->TextColor, theme->TextShadowColor, &FreeMono9pt7b, ML_DATUM );
       AppInfoPosY += 21;
-    } else log_v("NO AUTHOR");
+    } else { log_v("NO AUTHOR"); }
     if( assetsCount > 0 ) {
       String assetsString = "Assets: " + String( assetsCount );
       drawTextShadow( _gfx, assetsString.c_str(), AppInfoPosX, AppInfoPosY, theme->TextColor, theme->TextShadowColor, &FreeMono9pt7b, ML_DATUM );
       AppInfoPosY += 21;
-    } else log_v("NO ASSETS");
+    } else { log_v("NO ASSETS"); }
     if( binSize > 0 ) {
       String sizeString   = "Bin.: " + String(formatBytes( binSize, formatBuffer ));
       drawTextShadow( _gfx, sizeString.c_str(), AppInfoPosX, AppInfoPosY, theme->TextColor, theme->TextShadowColor, &FreeMono9pt7b, ML_DATUM );
       AppInfoPosY += 21;
-    } else log_v("NO BIN SIZE");
+    } else { log_v("NO BIN SIZE"); }
     if( packageSize > 0 ) {
       String totalSize    = "Tot.: " + String(formatBytes( packageSize, formatBuffer ));
       drawTextShadow( _gfx, totalSize.c_str(), AppInfoPosX, AppInfoPosY, theme->TextColor, theme->TextShadowColor, &FreeMono9pt7b, ML_DATUM );
       AppInfoPosY += 21;
-    } else log_v("NO PACK SIZE");
+    } else { log_v("NO PACK SIZE"); }
     if( rawtime > 0 ) {
       struct tm * timeinfo;
       //time (&rawtime);
@@ -416,7 +416,7 @@ namespace AppRenderer
       strftime( formatBuffer, 64, "%T", timeinfo ); // to ISO time format
       String binTimeStr = String( formatBuffer );
       drawTextShadow( _gfx, binTimeStr.c_str(), AppInfoPosX+12, AppInfoPosY, theme->TextColor, theme->TextShadowColor, &FreeMono9pt7b, ML_DATUM );
-    } else log_v("NO DATETIME");
+    } else { log_v("NO DATETIME"); }
     lastrender = millis();
   }
 
@@ -496,7 +496,7 @@ namespace UIShow
     UpdateIcon.draw( UI->getGfx(), theme->assetPosX, theme->assetPosY );
   }
 
-  void deleteShowAppImage()
+  void showDeleteAppImage()
   {
     String _ms = ""; // for macro separation
     String imageLocal  =                     DIR_jpg + String(UI->getListItemTitle()) + EXT_jpg;
@@ -507,13 +507,13 @@ namespace UIShow
     String imageRender = "";
     if( M5_FS.exists( imageLocal ) ) {
       appIcon.path = imageLocal.c_str();
-      log_v("local image");
+      log_d("local image");
     } else if( M5_FS.exists( imageRemote ) ) {
       appIcon.path = imageRemote.c_str();
-      log_v("remote image");
+      log_d("remote image");
     } else {
       appIcon = UnknownAppIcon;
-      log_v("default image");
+      log_d("default image");
     }
     drawAssetReveal( &appIcon, UI->getGfx(), theme->assetPosX, theme->assetPosY );
   }
@@ -523,10 +523,10 @@ namespace UIShow
   {
     showAppImage( UI->getList()->assets_folder, "");
     if( strcmp( UI->getListItemTitle(), appInfo.appNameStr.c_str() ) != 0 ) {
-      log_v("AppInfo expired (expecting:%s, got:%s)", UI->getListItemTitle(), appInfo.appNameStr.c_str() );
+      log_d("AppInfo expired (expecting:%s, got:%s)", UI->getListItemTitle(), appInfo.appNameStr.c_str() );
       getAppInfo( &appInfo, UI->getList()->assets_folder[0] == '0' ? JSON_LOCAL : JSON_REMOTE );
     } else {
-      log_v("re-using existing appinfo");
+      log_d("re-using existing appinfo");
     }
     appInfo.lastrender = millis();
   }
@@ -562,7 +562,7 @@ namespace UIShow
     DynamicJsonDocument jsonBuffer( 8192 );
     if( !getJson( jsonFile.c_str(), root, jsonBuffer ) ) {
       appInfo->type = NOREG;
-      log_v("NOREG: '%s' has no JSON", jsonFile.c_str() );
+      log_d("NOREG: '%s' has no JSON", jsonFile.c_str() );
       return;
     }
     if ( root.isNull() ) {
@@ -581,7 +581,7 @@ namespace UIShow
         appInfo->authorNameStr  = root["authorName"].isNull()  ? "" : root["authorName"].as<String>();
         appInfo->projectURLStr  = root["projectURL"].isNull()  ? "" : root["projectURL"].as<String>();
         appInfo->creditsStr     = root["credits"].isNull()     ? "" : root["credits"].as<String>();
-        log_v("JSON_LOCAL: %s (%d bytes)", appInfo->appNameStr.c_str(), appInfo->binSize );
+        log_d("JSON_LOCAL: %s (%d bytes)", appInfo->appNameStr.c_str(), appInfo->binSize );
       break;
       case JSON_REMOTE:
         if( !root["name"].as<String>().equals( appInfo->appNameStr ) ) {
@@ -600,7 +600,7 @@ namespace UIShow
           return;
         }
         appInfo->parseAssets( root );
-        log_v("JSON_REMOTE: %s (%d bytes)", appInfo->appNameStr.c_str(), appInfo->binSize );
+        log_d("JSON_REMOTE: %s (%d bytes)", appInfo->appNameStr.c_str(), appInfo->binSize );
       break;
       default:
        log_e("INVALID TYPE");
@@ -862,7 +862,7 @@ namespace UILists
         log_v("[#%d] mb=updateMetaShowAppImage(%s)", i, files[i].c_str() );
         MyAppsMenuGroup.push( files[i].c_str(), &UpdateMetaCallbacks, nullptr, isLauncher(files[i].c_str())?LAUNCHER_COLOR:TEXT_COLOR );
       } else { // "BINARY INSTALLED" && "NOT IN REGISTRY" => only suggest delete
-        log_v("[#%d] mb=deleteShowAppImage(%s)", i, files[i].c_str() );
+        log_v("[#%d] mb=showDeleteAppImage(%s)", i, files[i].c_str() );
         MyAppsMenuGroup.push( files[i].c_str(), &DeleteAppCallbacks, nullptr, isLauncher(files[i].c_str())?LAUNCHER_COLOR:TEXT_COLOR );
       }
     }
