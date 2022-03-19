@@ -98,10 +98,10 @@ jobs:
             launcher-name: OdroidGo-Launcher
             appstore-name: OdroidGo-AppStore
             #extra-arduino-cli-args:
-            build-properties:
-              All:
-                -DARDUINO_ODROID_ESP32
-            extra-fqbn: ":PartitionScheme=default_8MB"
+            #build-properties:
+              #All:
+                #-DARDUINO_ODROID_ESP32
+            extra-fqbn: ":PartitionScheme=min_spiffs"
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           #- matrix-context: TTGO-LoRa32-V2-SDLoader-Snippet
             #arduino-board: ttgo-lora32-v2
