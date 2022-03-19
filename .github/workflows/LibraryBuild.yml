@@ -31,6 +31,7 @@ jobs:
           - M5StickC-SPIFFS-Snippet
           - M5Stack-LGFX-Loader-Snippet
           - M5Stack-SD-Menu
+          - M5Unified
           - M5Core2-SD-Menu
           - M5Fire-SD-Menu
           - OdroidGo-SD-Menu
@@ -46,6 +47,7 @@ jobs:
           - sdk-version: 2.0.2
             platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.2_index.json
 
+          # library health test sketches
           - matrix-context: M5Core2-SDLoader-Snippet
             arduino-board: m5stack-core2
             sketch-names: M5Stack-SDLoader-Snippet.ino
@@ -54,6 +56,10 @@ jobs:
             arduino-board: m5stack-core-esp32
             sketch-names: M5Stack-SDLoader-Snippet.ino
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+          - matrix-context: M5Unified
+            arduino-board: m5stack-core2
+            sketch-names: M5Unified.ino
+            required-libraries: "M5GFX,M5Unified"
           - matrix-context: M5StickC-SPIFFS-Snippet
             arduino-board: m5stick-c
             sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino
@@ -62,6 +68,8 @@ jobs:
             arduino-board: m5stack-core-esp32
             sketch-names: LGFX-SDLoader-Snippet.ino
             required-libraries: "LovyanGFX"
+
+          # Launcher and Appstore
           - matrix-context: M5Stack-SD-Menu
             arduino-board: m5stack-core-esp32
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
