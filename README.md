@@ -383,8 +383,8 @@ Ideally that SD-Menu application should list all available apps on the sdcard an
 
 For example in the SD-Menu application provided with the examples of this repository, booting the M5Stack with the `Button A` pushed will power it off.
 
-The build-in Download utility of the SD-Menu is currently limited to ESP32-Wrover builds as it uses a significant part of memory and flash space.
-While it is being reworked and moved to an external app, moving the files manually is the only solution for non-psram devices.
+The built-in Download utility of the SD-Menu is has been moved to the `AppStore.ino` example, as a result the menu.bin size is reduced and loads faster.
+This is still being reworked though.
 
 Along with the default SD-Menu example of this repository, some artwork/credits can be added for every uploaded binary.
 The default SD-Menu application will scan for these file types:
@@ -412,10 +412,11 @@ The default SD-Menu application will scan for these file types:
 
 🚫 LIMITATIONS:
 ---------------
-- SD Library limits file names (including path) to 32 chars but 16 is recommended.
+- SPIFFS/LittleFS libraries limit their file names (including path) to 32 chars but 16 is recommended as it is also printed in the lobby screen.
+- Long file names will eventually get covered by the jpg image, better stay under 16 chars (not including the extension).
 - Short file names may be treated as 8.3 (e.g 2048.bin becomes 2048.BIN).
 - FAT specifications prevent having more than 512 files on the SD Card, but this menu is limited to 256 Items anyway.
-- Long file names will eventually get covered by the jpg image, better stay under 16 chars (not including the extension).
+
 
 <br />
 
@@ -440,7 +441,7 @@ This can be triggered manually by using `saveSketchToFS(SD, fileName, TFCARD_CS_
 ```
 
 
-- Although not recommended (because not extensevely tested), the default binary name to be loaded (`/menu.bin`) can be changed at compilation time by defining the `MENU_BIN` constant:
+- Although not extensively tested, the default binary name to be loaded (`/menu.bin`) can be changed at compilation time by defining the `MENU_BIN` constant:
 
 ```C++
 #define MENU_BIN "/my_custom_launcher.bin"
@@ -457,7 +458,7 @@ This can be triggered manually by using `saveSketchToFS(SD, fileName, TFCARD_CS_
 ------------
 
 - `SD was not declared in this scope`: make sure your `#include <SD.h>` is made *before* including `<M5StackUpdater.h>`
-- Serial message `[ERROR] No filesystem selected` or `[ERROR] No valid filesystem selected`: try `SDUCfg.setFS( &SD )` prior to calling the SDUpdater
+- Serial message `[ERROR] No filesystem selected` or `[ERROR] No valid filesystem selected`: try `SDUCfg.setFS( &SD )` prior to calling the SDUpdater.
 
 
 <br />
@@ -466,7 +467,7 @@ This can be triggered manually by using `saveSketchToFS(SD, fileName, TFCARD_CS_
 ----------
 - Completely detach the UI/Display/Touch/Buttons from the codebase
 - Support gzipped binaries
-- Migrate Downloader / WiFiManager to external apps
+~~- Migrate Downloader / WiFiManager to external apps~~
 - esp-idf support
 - Contributors welcome!
 
