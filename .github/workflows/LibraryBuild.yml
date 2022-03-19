@@ -104,7 +104,7 @@ jobs:
         uses: ArminJo/arduino-test-compile@v3
         with:
           platform-url: ${{ matrix.platform-url }}
-          arduino-board-fqbn: esp32-${{ matrix.sdk-version }}:esp32:${{ matrix.arduino-board}}${{ extra-fqbn }}
+          arduino-board-fqbn: esp32-${{ matrix.sdk-version }}:esp32:${{ matrix.arduino-board}}${{ matrix.extra-fqbn }}
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
           #extra-arduino-cli-args: ${{ matrix.extra-arduino-cli-args }}
