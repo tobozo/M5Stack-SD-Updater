@@ -103,7 +103,7 @@ jobs:
         uses: ArminJo/arduino-test-compile@v3
         with:
           platform-url: ${{ matrix.platform-url }} # https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
-          arduino-board-fqbn: esp32-${{ matrix.sdk-version }}:esp32-${{ matrix.sdk-version }}:${{ matrix.arduino-board}}
+          arduino-board-fqbn: esp32-${{ matrix.sdk-version }}:esp32:${{ matrix.arduino-board}}
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
           # extra-arduino-cli-args:
