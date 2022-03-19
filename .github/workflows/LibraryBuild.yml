@@ -97,7 +97,7 @@ jobs:
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: OdroidGo-Launcher
             appstore-name: OdroidGo-AppStore
-            extra-fqbn: ${{ ":PartitionScheme=", matrix.huge-partition}}
+            extra-fqbn: ${{ format('{0}{1}', ":PartitionScheme=", matrix.huge-partition ) }}
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           #- matrix-context: TTGO-LoRa32-V2-SDLoader-Snippet
             #arduino-board: ttgo-lora32-v2
