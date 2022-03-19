@@ -40,12 +40,16 @@ jobs:
         include:
           - sdk-version: 1.0.6
             platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-1.0.6_index.json
+            huge-partition: default_8MB
           - sdk-version: 2.0.0
             platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.0_index.json
+            huge-partition: default_16MB
           - sdk-version: 2.0.1
             platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.1_index.json
+            huge-partition: default_16MB
           - sdk-version: 2.0.2
             platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.2_index.json
+            huge-partition: default_16MB
 
           # library health test sketches
           - matrix-context: M5Core2-SDLoader-Snippet
@@ -93,7 +97,7 @@ jobs:
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: OdroidGo-Launcher
             appstore-name: OdroidGo-AppStore
-            extra-fqbn: ":PartitionScheme=default_16MB"
+            extra-fqbn: ${{ ":PartitionScheme=", matrix.huge-partition}}
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           #- matrix-context: TTGO-LoRa32-V2-SDLoader-Snippet
             #arduino-board: ttgo-lora32-v2
