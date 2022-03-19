@@ -56,11 +56,11 @@ jobs:
           # library health test sketches
           - matrix-context: M5Core2-test
             arduino-board: m5stack-core2
-            sketch-names: M5Stack-test.ino
+            sketch-names: M5Stack-SDLoader-Snippet.ino
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Stack-test
             arduino-board: m5stack-core-esp32
-            sketch-names: M5Stack-test.ino
+            sketch-names: M5Stack-SDLoader-Snippet.ino
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Unified-test
             arduino-board: m5stack-core2
@@ -72,7 +72,7 @@ jobs:
             required-libraries: "M5StickC"
           - matrix-context: LGFX-test
             arduino-board: m5stack-core-esp32
-            sketch-names: LGFX-test.ino
+            sketch-names: LGFX-SDLoader-Snippet.ino
             required-libraries: "LovyanGFX"
 
           # Launcher and Appstore
