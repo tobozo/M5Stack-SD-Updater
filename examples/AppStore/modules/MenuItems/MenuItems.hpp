@@ -104,7 +104,7 @@ namespace MenuItems
   // callbacks for menuitem events:                 select         /      render      /             idle     /       modal
   MenuItemCallBacks UpdateCheckCallbacks        = { &showAppInfo,         &updateCheckShowAppImage, &cycleAppAssets, &scrollAppInfo };
   MenuItemCallBacks UpdateMetaCallbacks         = { &showAppInfo,         &updateMetaShowAppImage,  &cycleAppAssets, &scrollAppInfo };
-  MenuItemCallBacks DeleteAppCallbacks          = { &showAppInfo,         &deleteShowAppImage,      &cycleAppAssets, &scrollAppInfo };
+  MenuItemCallBacks DeleteAppCallbacks          = { &showAppInfo,         &showDeleteAppImage,      &cycleAppAssets, &scrollAppInfo };
   MenuItemCallBacks AppStoreCallbacks           = { &showAppInfo,         &showAppImage,            &cycleAppAssets, &scrollAppInfo };
   MenuItemCallBacks HiddenAppsCallbacks         = { &showAppInfo,         &showAppImage,            &cycleAppAssets, &scrollAppInfo };
   MenuItemCallBacks NtpItemCallbacks            = { &setNtpServer,        &showNTPImage,            nullptr,         nullptr };

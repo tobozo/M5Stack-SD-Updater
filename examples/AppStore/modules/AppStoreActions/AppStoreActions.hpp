@@ -121,7 +121,7 @@ namespace UIShow
 
   void updateCheckShowAppImage();
   void updateMetaShowAppImage();
-  void deleteShowAppImage();
+  void showDeleteAppImage();
   void handleModalAction( AppInfo * appInfo );
 
   void showAppInfo();

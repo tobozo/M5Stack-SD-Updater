@@ -830,7 +830,7 @@ namespace UIUtils
   uint8_t getLowestQRVersionFromString( String text, uint8_t ecc )
   {
     #define QR_MAX_VERSION 9
-    if(ecc>3) return QR_MAX_VERSION; // fail fast
+    if(ecc>QR_MAX_VERSION) return QR_MAX_VERSION; // fail fast
     uint16_t len = text.length();
     uint8_t QRMaxLenByECCLevel[4][QR_MAX_VERSION] = {
       // https://www.qrcode.com/en/about/version.html
@@ -853,6 +853,11 @@ namespace UIUtils
 
   void qrRender( LGFX* gfx, String text, int posX, int posY, uint32_t width, uint32_t height )
   {
+    if( text.length()==0 ) {
+      log_d("Cowardly refusing to qRender an empty string");
+      return; // empty string for some reason
+    }
+
     // see https://github.com/Kongduino/M5_QR_Code/blob/master/M5_QRCode_Test.ino
     // Create the QR code
     QRCode qrcode;
