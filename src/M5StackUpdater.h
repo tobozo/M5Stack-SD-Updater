@@ -184,7 +184,6 @@ class SDUpdater
     {
       if( _fs_begun ) return true;
       bool mounted = false;
-      size_t tried = 0;
       const char* msg[] = {nullptr, "ABORTING"};
       #if defined _SPIFFS_H_
         log_d("Checking for SPIFFS Support");
@@ -193,7 +192,7 @@ class SDUpdater
             msg[0] = "SPIFFS MOUNT FAILED";
             if( report_errors ) _error( msg, 2 );
             return false;
-          } else log_d("SPIFFS Successfully mounted");
+          } else { log_d("SPIFFS Successfully mounted"); }
           mounted = true;
         }
       #endif
@@ -204,7 +203,7 @@ class SDUpdater
             msg[0] = "LittleFS MOUNT FAILED";
             if( report_errors ) _error( msg, 2 );
             return false;
-          } else log_d("LittleFS Successfully mounted");
+          } else { log_d("LittleFS Successfully mounted"); }
           mounted = true;
         }
       #endif
@@ -215,7 +214,7 @@ class SDUpdater
             msg[0] = String("SD MOUNT FAILED (pin #" + String(cfg->TFCardCsPin) + ")").c_str();
             if( report_errors ) _error( msg, 2 );
             return false;
-          } else log_d( "SD Successfully mounted (pin #%d)", cfg->TFCardCsPin );
+          } else { log_d( "SD Successfully mounted (pin #%d)", cfg->TFCardCsPin ); }
           mounted = true;
         }
       #endif
@@ -226,7 +225,7 @@ class SDUpdater
             msg[0] = "SD_MMC FAILED";
             if( report_errors ) _error( msg, 2 );
             return false;
-          } else log_d( "SD_MMC Successfully mounted");
+          } else { log_d( "SD_MMC Successfully mounted"); }
           mounted = true;
         }
       #endif
@@ -237,7 +236,7 @@ class SDUpdater
             msg[0] = "PSRamFS FAILED";
             if( report_errors ) _error( msg, 2 );
             return false;
-          } else log_d( "PSRamFS Successfully mounted");
+          } else { log_d( "PSRamFS Successfully mounted"); }
           mounted = true;
         }
       #endif
