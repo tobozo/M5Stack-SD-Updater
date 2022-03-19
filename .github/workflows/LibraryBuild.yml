@@ -38,7 +38,7 @@ jobs:
           #- TTGO-LoRa32-V2-SDLoader-Snippet
 
         exclude:
-          # excludes OdroidGo with 1.0.6 (16MB partitions don't exist yet)
+          # excludes OdroidGo with 1.0.6 (sketch size exceeds partition size)
           - matrix-context: OdroidGo-SD-Menu
             sdk-version: 1.0.6
 
@@ -98,7 +98,8 @@ jobs:
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: OdroidGo-Launcher
             appstore-name: OdroidGo-AppStore
-            extra-arduino-cli-args: "-DARDUINO_ODROID_ESP32"
+            #extra-arduino-cli-args:
+            build-properties: -DARDUINO_ODROID_ESP32
             extra-fqbn: ":PartitionScheme=default_16MB"
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           #- matrix-context: TTGO-LoRa32-V2-SDLoader-Snippet
@@ -121,10 +122,10 @@ jobs:
           arduino-board-fqbn: esp32-${{ matrix.sdk-version }}:esp32:${{ matrix.arduino-board}}${{ matrix.extra-fqbn }}
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
-          extra-arduino-cli-args: ${{ matrix.extra-arduino-cli-args }}
+          # extra-arduino-cli-args: ${{ matrix.extra-arduino-cli-args }}
           sketch-names: ${{ matrix.sketch-names }}
           set-build-path: true
-          #build-properties: ${{ toJson(matrix.build-properties) }}
+          build-properties: ${{ toJson(matrix.build-properties) }}
           #debug-install: true
       - name: Copy compiled binary
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
