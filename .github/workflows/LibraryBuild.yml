@@ -94,10 +94,11 @@ jobs:
             appstore-name: M5Fire-AppStore
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           - matrix-context: OdroidGo-SD-Menu
-            arduino-board: odroid_esp32
+            arduino-board: esp32wrover
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: OdroidGo-Launcher
             appstore-name: OdroidGo-AppStore
+            extra-arduino-cli-args: "-DARDUINO_ODROID_ESP32"
             extra-fqbn: ":PartitionScheme=default_16MB"
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
           #- matrix-context: TTGO-LoRa32-V2-SDLoader-Snippet
@@ -120,7 +121,7 @@ jobs:
           arduino-board-fqbn: esp32-${{ matrix.sdk-version }}:esp32:${{ matrix.arduino-board}}${{ matrix.extra-fqbn }}
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
-          #extra-arduino-cli-args: ${{ matrix.extra-arduino-cli-args }}
+          extra-arduino-cli-args: ${{ matrix.extra-arduino-cli-args }}
           sketch-names: ${{ matrix.sketch-names }}
           set-build-path: true
           #build-properties: ${{ toJson(matrix.build-properties) }}
