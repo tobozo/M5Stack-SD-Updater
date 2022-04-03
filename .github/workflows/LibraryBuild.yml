@@ -24,6 +24,7 @@ jobs:
           - 2.0.0
           - 2.0.1
           - 2.0.2
+          - 2.0.3-RC1
 
         matrix-context:
 
@@ -32,7 +33,7 @@ jobs:
           - M5StickC-test
           - LGFX-test
           - M5Unified-test
-
+          #- S3Box-Test
           - M5Stack
           - M5Core2
           - M5Fire
@@ -44,6 +45,8 @@ jobs:
         #    sdk-version: 1.0.6
 
         include:
+
+          # testable sdk versions
           - sdk-version: 1.0.6
             platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-1.0.6_index.json
           - sdk-version: 2.0.0
@@ -52,16 +55,24 @@ jobs:
             platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.1_index.json
           - sdk-version: 2.0.2
             platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.2_index.json
+          - sdk-version: 2.0.3-RC1
+            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.3-RC1_index.json
 
           # library health test sketches
           - matrix-context: M5Core2-test
             arduino-board: m5stack-core2
             sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX"
           - matrix-context: M5Stack-test
             arduino-board: m5stack-core-esp32
             sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX"
+
+          #- matrix-context: S3Box-Test
+            #arduino-board: esp32s3box
+            #sketch-names: M5Stack-SDLoader-Snippet.ino
+            #required-libraries: "ESP32-Chimera-Core,LovyanGFX"
+
           - matrix-context: M5Unified-test
             arduino-board: m5stack-core2
             sketch-names: M5Unified.ino
@@ -126,7 +137,7 @@ jobs:
           set-build-path: true
           build-properties: ${{ toJson(matrix.build-properties) }}
           #debug-install: true
-      - name: Copy compiled binary
+      - name: Copy compiled binaries
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
           cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}-${{ matrix.sdk-version }}.bin
