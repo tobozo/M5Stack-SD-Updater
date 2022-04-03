@@ -21,7 +21,7 @@ jobs:
 
         sdk-version:
           - 1.0.6
-          #- 2.0.0
+          - 2.0.0
           - 2.0.1
           #- 2.0.2 # has broken SD Support
           - 2.0.3-RC1
@@ -48,8 +48,8 @@ jobs:
           # There's no esp32s3box support before 2.0.3
           - matrix-context: S3Box-Test
             sdk-version: 1.0.6
-          #- matrix-context: S3Box-Test
-            #sdk-version: 2.0.0
+          - matrix-context: S3Box-Test
+            sdk-version: 2.0.0
           - matrix-context: S3Box-Test
             sdk-version: 2.0.1
           #- matrix-context: S3Box-Test
@@ -60,7 +60,7 @@ jobs:
 
           # buildable sdk versions
           - sdk-version: 1.0.6
-          #- sdk-version: 2.0.0
+          - sdk-version: 2.0.0
           - sdk-version: 2.0.1
           #- sdk-version: 2.0.2 # has broken SD Support
           - sdk-version: 2.0.3-RC1
