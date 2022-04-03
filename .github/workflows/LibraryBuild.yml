@@ -23,7 +23,8 @@ jobs:
           - 1.0.6
           - 2.0.0
           - 2.0.1
-          - 2.0.2
+          # 2.0.2 has broken SD Support
+          # - 2.0.2
           - 2.0.3-RC1
 
         matrix-context:
@@ -33,7 +34,7 @@ jobs:
           - M5StickC-test
           - LGFX-test
           - M5Unified-test
-          #- S3Box-Test
+          - S3Box-Test
           - M5Stack
           - M5Core2
           - M5Fire
@@ -44,19 +45,31 @@ jobs:
         #  - matrix-context: OdroidGo-SD-Menu
         #    sdk-version: 1.0.6
 
+        exclude:
+          # There's no esp32s3box support before 2.0.3
+          - matrix-context: S3Box-Test
+            sdk-version: 1.0.6
+          - matrix-context: S3Box-Test
+            sdk-version: 2.0.0
+          - matrix-context: S3Box-Test
+            sdk-version: 2.0.1
+          - matrix-context: S3Box-Test
+            sdk-version: 2.0.2
+
+
         include:
 
           # testable sdk versions
           - sdk-version: 1.0.6
-            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-1.0.6_index.json
+            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-1.0.6_index.json
           - sdk-version: 2.0.0
-            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.0_index.json
+            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.0_index.json
           - sdk-version: 2.0.1
-            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.1_index.json
+            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.1_index.json
           - sdk-version: 2.0.2
-            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.2_index.json
+            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.2_index.json
           - sdk-version: 2.0.3-RC1
-            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.3-RC1_index.json
+            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.3-RC1_index.json
 
           # library health test sketches
           - matrix-context: M5Core2-test
@@ -68,10 +81,10 @@ jobs:
             sketch-names: M5Stack-SDLoader-Snippet.ino
             required-libraries: "ESP32-Chimera-Core,LovyanGFX"
 
-          #- matrix-context: S3Box-Test
-            #arduino-board: esp32s3box
-            #sketch-names: M5Stack-SDLoader-Snippet.ino
-            #required-libraries: "ESP32-Chimera-Core,LovyanGFX"
+          - matrix-context: S3Box-Test
+            arduino-board: esp32s3box
+            sketch-names: M5Stack-SDLoader-Snippet.ino
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX"
 
           - matrix-context: M5Unified-test
             arduino-board: m5stack-core2
@@ -128,8 +141,10 @@ jobs:
       - name: ${{ matrix.matrix-context }}
         uses: ArminJo/arduino-test-compile@v3
         with:
-          platform-url: ${{ matrix.platform-url }}
-          arduino-board-fqbn: esp32-${{ matrix.sdk-version }}:esp32:${{ matrix.arduino-board}}${{ matrix.extra-fqbn }}
+          platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
+          #platform-url: ${{ matrix.platform-url }}
+          arduino-board-fqbn: esp32:esp32:${{ matrix.arduino-board}}${{ matrix.extra-fqbn }}
+          arduino-platform: esp32:esp32@${{ matrix.sdk-version }}
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
           # extra-arduino-cli-args: ${{ matrix.extra-arduino-cli-args }}
