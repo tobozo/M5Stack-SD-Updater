@@ -21,10 +21,10 @@ jobs:
 
         sdk-version:
           - 1.0.6
-          - 2.0.0
+          #- 2.0.0
           - 2.0.1
-          # 2.0.2 has broken SD Support
-          # - 2.0.2
+          #- 2.0.2 # has broken SD Support
+          - 2.0.2
           - 2.0.3-RC1
 
         matrix-context:
@@ -49,27 +49,22 @@ jobs:
           # There's no esp32s3box support before 2.0.3
           - matrix-context: S3Box-Test
             sdk-version: 1.0.6
-          - matrix-context: S3Box-Test
-            sdk-version: 2.0.0
+          #- matrix-context: S3Box-Test
+            #sdk-version: 2.0.0
           - matrix-context: S3Box-Test
             sdk-version: 2.0.1
-          - matrix-context: S3Box-Test
-            sdk-version: 2.0.2
+          #- matrix-context: S3Box-Test
+          #  sdk-version: 2.0.2
 
 
         include:
 
-          # testable sdk versions
+          # buildable sdk versions
           - sdk-version: 1.0.6
-            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-1.0.6_index.json
-          - sdk-version: 2.0.0
-            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.0_index.json
+          #- sdk-version: 2.0.0
           - sdk-version: 2.0.1
-            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.1_index.json
-          - sdk-version: 2.0.2
-            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.2_index.json
+          #- sdk-version: 2.0.2 # has broken SD Support
           - sdk-version: 2.0.3-RC1
-            #platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.3-RC1_index.json
 
           # library health test sketches
           - matrix-context: M5Core2-test
