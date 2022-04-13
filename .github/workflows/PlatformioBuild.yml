@@ -1,0 +1,85 @@
+name: PlatformIOBuild
+
+env:
+  PROJECT_DIR: examples/Test/build_test
+
+on:
+  push:
+    paths:
+    - '**.ino'
+    - '**.cpp'
+    - '**.hpp'
+    - '**.h'
+    - '**.c'
+    - '**PlatformioBuild.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.piocontext }}@${{ matrix.platform-version }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+
+        piocontext:
+          - lgfx
+          - m5stick-c
+          - m5stack-core-esp32
+          - m5stack-core2
+          - m5unified
+          - s3box
+
+        platform-version:
+          - 1.0.6
+          #- 2.0.0
+          - 2.0.1
+          - 2.0.2
+          - 2.0.3-RC1
+
+        exclude:
+          - { piocontext: esp32-s3, platform-version: 1.0.6 }
+          - { piocontext: esp32-s3, platform-version: 2.0.1 }
+          - { piocontext: esp32-s3, platform-version: 2.0.2 }
+
+        include:
+          - piocontext: lgfx
+          - piocontext: m5stick-c
+          - piocontext: m5stack-core-esp32
+          - piocontext: m5stack-core2
+          - piocontext: m5unified
+          - piocontext: s3box
+
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Cache PlatformIO
+        uses: actions/cache@v2
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+
+      - name: Run PlatformIO
+        run: cd ${{ env.PROJECT_DIR }} && pio run -e "${{ matrix.piocontext }}@${{ matrix.platform-version }}"
+

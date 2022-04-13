@@ -1,11 +1,11 @@
-name: LibraryBuild
+name: ArduinoBuild
 on:
   push:
     paths:
     - '**.ino'
     - '**.cpp'
     - '**.h'
-    - '**LibraryBuild.yml'
+    - '**ArduinoBuild.yml'
   pull_request:
   release:
     types: [published]
