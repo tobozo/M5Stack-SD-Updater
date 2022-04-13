@@ -17,6 +17,8 @@ on:
   workflow_dispatch:
 
 jobs:
+
+
   build:
     name: ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
@@ -85,15 +87,10 @@ jobs:
           pio update
           pio upgrade
 
-      - name: Copy compiled binaries
-        if: github.base_ref != 'master'
-        run |
-          echo "Base ref is ${{github.base_ref}}"
-
-
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
           pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install file://$(realpath ../../../)
+          [[ "${{github.base_ref}}" != "master" ]] && echo "base href = ${{github.base_ref}}" || true
           pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
