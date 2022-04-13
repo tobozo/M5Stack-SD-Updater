@@ -75,6 +75,8 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
       - name: Set up Python
         uses: actions/setup-python@v2
+      - name: Install realpath
+        run: sudo apt-get install -y realpath
 
       - name: Install PlatformIO
         run: |
@@ -84,6 +86,7 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
+          export lib_path=
           pio lib -e "${{ matrix.piocontext }}@${{ matrix.platform-version }}" --no-save file://`realpath ../../../`
           pio run -e "${{ matrix.piocontext }}@${{ matrix.platform-version }}"
 
