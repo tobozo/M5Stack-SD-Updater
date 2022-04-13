@@ -2,6 +2,7 @@ name: PlatformIOBuild
 
 env:
   PROJECT_DIR: examples/Test/build_test
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 on:
   push:
@@ -91,6 +92,6 @@ jobs:
         run: |
           cd ${{ env.PROJECT_DIR }}
           pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install file://$(realpath ../../../)
-          [[ "${GITHUB_REF##*/}" != "master" ]] && echo "base href = ${GITHUB_REF##*/}" || true
+          [[ "${{ env.BRANCH_NAME }}" != "master" ]] && echo "base href = ${{ env.BRANCH_NAME }}" || true
           pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
