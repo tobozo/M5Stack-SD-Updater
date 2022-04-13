@@ -83,8 +83,6 @@ jobs:
 
       - name: Run PlatformIO
         run: |
-#          mkdir -p /tmp/piolib
-#          cp -R ../M5Stack-SD-Updater /tmp/piolib/
           cd ${{ env.PROJECT_DIR }}
           pio lib -e "${{ matrix.piocontext }}@${{ matrix.platform-version }}" --no-save file://`realpath ../../../`
           pio run -e "${{ matrix.piocontext }}@${{ matrix.platform-version }}"
