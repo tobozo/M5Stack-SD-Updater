@@ -91,6 +91,6 @@ jobs:
         run: |
           cd ${{ env.PROJECT_DIR }}
           pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install file://$(realpath ../../../)
-          [[ "${{github.base_ref}}" != "master" ]] && echo "base href = ${{github.base_ref}}" || true
+          [[ "${GITHUB_REF##*/}" != "master" ]] && echo "base href = ${GITHUB_REF##*/}" || true
           pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
