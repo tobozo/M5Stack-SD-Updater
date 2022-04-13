@@ -91,7 +91,7 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
-          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm platformio_lib_deps.dev.ini || echo "Develop!"
+          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!"
           pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install file://$(realpath ../../../)
           pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
