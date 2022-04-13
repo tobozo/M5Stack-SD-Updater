@@ -68,8 +68,8 @@ jobs:
           # library health test sketches
           - matrix-context: M5Core2-test
             arduino-board: m5stack-core2
-            sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX"
+            sketch-names: M5Core2-SDLoader-Snippet.ino
+            required-libraries: "M5Core2"
           - matrix-context: M5Stack-test
             arduino-board: m5stack-core-esp32
             sketch-names: M5Stack-SDLoader-Snippet.ino
