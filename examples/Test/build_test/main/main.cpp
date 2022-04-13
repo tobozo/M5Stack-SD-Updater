@@ -1,4 +1,3 @@
-//#include <Arduino.h>
 
 #if defined TEST_LGFX
 

@@ -35,13 +35,15 @@ jobs:
 
         platform-version:
           - 1.0.6
-          #- 2.0.0
+          # platform-version 2.0.0 has no valid core
+          - 2.0.0
           - 2.0.1
           - 2.0.2
           - 2.0.3-RC1
 
         exclude:
           - { piocontext: s3box, platform-version: 1.0.6 }
+          - { piocontext: s3box, platform-version: 2.0.0 }
           - { piocontext: s3box, platform-version: 2.0.1 }
           - { piocontext: s3box, platform-version: 2.0.2 }
 
@@ -82,6 +84,12 @@ jobs:
           pip install --upgrade platformio
           pio update
           pio upgrade
+
+      - name: Copy compiled binaries
+        if: github.base_ref != 'master'
+        run |
+          echo "Base ref is ${{github.base_ref}}"
+
 
       - name: Run PlatformIO
         run: |
