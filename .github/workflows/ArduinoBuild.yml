@@ -23,38 +23,29 @@ jobs:
           - 1.0.6
           - 2.0.0
           - 2.0.1
-          #- 2.0.2 # has broken SD Support
+          - 2.0.2 # has broken SD Support
           - 2.0.3-RC1
 
         matrix-context:
-
           - M5Core2-test
           - M5Stack-test
           - M5StickC-test
           - LGFX-test
           - M5Unified-test
           - S3Box-Test
+          #- TTGO-LoRa32-V2-test
           - M5Stack
           - M5Core2
           - M5Fire
           - OdroidGo
-          #- TTGO-LoRa32-V2-test
-
-        #exclude:
-        #  - matrix-context: OdroidGo-SD-Menu
-        #    sdk-version: 1.0.6
 
         exclude:
+          - sdk-version: 2.0.2 # has broken SD Support
           # There's no esp32s3box support before 2.0.3
-          - matrix-context: S3Box-Test
-            sdk-version: 1.0.6
-          - matrix-context: S3Box-Test
-            sdk-version: 2.0.0
-          - matrix-context: S3Box-Test
-            sdk-version: 2.0.1
-          #- matrix-context: S3Box-Test
-          #  sdk-version: 2.0.2
-
+          - { matrix-context: S3Box-Test, sdk-version: 1.0.6 }
+          - { matrix-context: S3Box-Test, sdk-version: 2.0.0 }
+          - { matrix-context: S3Box-Test, sdk-version: 2.0.1 }
+          #- { matrix-context: S3Box-Test sdk-version: 2.0.2 }
 
         include:
 
@@ -62,36 +53,15 @@ jobs:
           - sdk-version: 1.0.6
           - sdk-version: 2.0.0
           - sdk-version: 2.0.1
-          #- sdk-version: 2.0.2 # has broken SD Support
           - sdk-version: 2.0.3-RC1
 
           # library health test sketches
-          - matrix-context: M5Core2-test
-            arduino-board: m5stack-core2
-            sketch-names: M5Core2-SDLoader-Snippet.ino
-            required-libraries: "M5Core2"
-          - matrix-context: M5Stack-test
-            arduino-board: m5stack-core-esp32
-            sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX"
-
-          - matrix-context: S3Box-Test
-            arduino-board: esp32s3box
-            sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX"
-
-          - matrix-context: M5Unified-test
-            arduino-board: m5stack-core2
-            sketch-names: M5Unified.ino
-            required-libraries: "M5GFX,M5Unified"
-          - matrix-context: M5StickC-test
-            arduino-board: m5stick-c
-            sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino
-            required-libraries: "M5StickC"
-          - matrix-context: LGFX-test
-            arduino-board: m5stack-core-esp32
-            sketch-names: LGFX-SDLoader-Snippet.ino
-            required-libraries: "LovyanGFX"
+          - { matrix-context: M5Core2-test,   arduino-board: m5stack-core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
+          - { matrix-context: M5Stack-test,   arduino-board: m5stack-core-esp32, sketch-names: M5Stack-SDLoader-Snippet.ino,       required-libraries: "ESP32-Chimera-Core,LovyanGFX", ... }
+          - { matrix-context: S3Box-Test,     arduino-board: esp32s3box,         sketch-names: M5Stack-SDLoader-Snippet.ino,       required-libraries: "ESP32-Chimera-Core,LovyanGFX", ... }
+          - { matrix-context: M5Unified-test, arduino-board: m5stack-core2,      sketch-names: M5Unified.ino,                      required-libraries: "M5GFX,M5Unified", ... }
+          - { matrix-context: M5StickC-test,  arduino-board: m5stick-c,          sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino, required-libraries: "M5StickC", ... }
+          - { matrix-context: LGFX-test,      arduino-board: m5stack-core-esp32, sketch-names: LGFX-SDLoader-Snippet.ino,          required-libraries: "LovyanGFX", ... }
 
           # Launcher and Appstore
           - matrix-context: M5Stack
@@ -123,7 +93,6 @@ jobs:
             #arduino-board: ttgo-lora32-v2
             #sketch-names: TTGO-test.ino
             #required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
-
 
       fail-fast: false
 
