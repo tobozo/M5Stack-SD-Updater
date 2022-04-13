@@ -92,6 +92,6 @@ jobs:
         run: |
           cd ${{ env.PROJECT_DIR }}
           pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install file://$(realpath ../../../)
-          [[ "${{ env.BRANCH_NAME }}" != "master" ]] && echo "base href = ${{ env.BRANCH_NAME }}" || true
+          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm platformio_lib_deps.dev.ini || rm platformio_lib_deps.release.ini
           pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
