@@ -81,7 +81,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade platformio
 
-
       - name: Run PlatformIO
-        run: cd ${{ env.PROJECT_DIR }} && pio run -e "${{ matrix.piocontext }}@${{ matrix.platform-version }}"
+        run: |
+          mkdir -p /tmp/piolib
+          cp -R ../M5Stack-SD-Updater /tmp/piolib/
+          cd ${{ env.PROJECT_DIR }} && pio run -e "${{ matrix.piocontext }}@${{ matrix.platform-version }}"
 
