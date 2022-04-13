@@ -93,8 +93,7 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
-          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && echo "Release" || pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install --no-save git+https://github.com/lovyan03/LovyanGFX#develop
-          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && echo "Release" || pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install --no-save git+https://github.com/tobozo/ESP32-Chimera-Core#1.4.2
+          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!"
           pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install --no-save file://$(realpath ../../../)
           pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
