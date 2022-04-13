@@ -44,6 +44,8 @@ jobs:
           - 2.0.2
           - 2.0.3-RC1
 
+
+
         exclude:
           - { piocontext: s3box, platform-version: 1.0.6 }
           - { piocontext: s3box, platform-version: 2.0.0 }
@@ -91,8 +93,8 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
-          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && echo "Release" || pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install git+https://github.com/lovyan03/LovyanGFX#develop
-          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && echo "Release" || pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install git+https://github.com/tobozo/ESP32-Chimera-Core#1.4.2
-          pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install file://$(realpath ../../../)
+          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && echo "Release" || pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install --no-save git+https://github.com/lovyan03/LovyanGFX#develop
+          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && echo "Release" || pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install --no-save git+https://github.com/tobozo/ESP32-Chimera-Core#1.4.2
+          pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install --no-save file://$(realpath ../../../)
           pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
