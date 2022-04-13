@@ -41,9 +41,9 @@ jobs:
           - 2.0.3-RC1
 
         exclude:
-          - { piocontext: esp32-s3, platform-version: 1.0.6 }
-          - { piocontext: esp32-s3, platform-version: 2.0.1 }
-          - { piocontext: esp32-s3, platform-version: 2.0.2 }
+          - { piocontext: s3box, platform-version: 1.0.6 }
+          - { piocontext: s3box, platform-version: 2.0.1 }
+          - { piocontext: s3box, platform-version: 2.0.2 }
 
         include:
           - piocontext: lgfx
