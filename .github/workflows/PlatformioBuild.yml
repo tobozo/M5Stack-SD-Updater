@@ -86,8 +86,6 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
-          export libpath=$(realpath ../../../)
-          echo "libpath=file://$realpath`" >> $GITHUB_ENV
-          pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} ${{env.libpath}}
+          pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install file://$(realpath ../../../)
           pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
