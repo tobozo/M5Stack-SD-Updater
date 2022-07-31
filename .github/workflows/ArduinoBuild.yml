@@ -21,8 +21,8 @@ jobs:
 
         sdk-version:
           - 1.0.6
-          - 2.0.0
-          - 2.0.1
+          #- 2.0.0
+          #- 2.0.1
           # - 2.0.2 # has broken SD Support
           - 2.0.3
           - 2.0.4
@@ -44,9 +44,10 @@ jobs:
           - sdk-version: 2.0.2 # has broken SD Support
           # There's no esp32s3box support before 2.0.3
           - { matrix-context: S3Box-Test, sdk-version: 1.0.6 }
-          - { matrix-context: S3Box-Test, sdk-version: 2.0.0 }
-          - { matrix-context: S3Box-Test, sdk-version: 2.0.1 }
+          #- { matrix-context: S3Box-Test, sdk-version: 2.0.0 }
+          #- { matrix-context: S3Box-Test, sdk-version: 2.0.1 }
           #- { matrix-context: S3Box-Test sdk-version: 2.0.2 }
+          - { matrix-context: M5Core2-test, sdk-version: 1.0.6 } # M5Core2.h suddenly ceased to support 1.0.6 (I2S and I2C broken)
 
         include:
 

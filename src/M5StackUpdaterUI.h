@@ -500,7 +500,7 @@ static void SDMenuProgressHeadless( int state, int size )
         xpos = 0 ;
       }
     }
-    int posX = (SDU_GFX.width() - ProgressStyle.width+2) >> 1;
+    //int posX = (SDU_GFX.width() - ProgressStyle.width+2) >> 1;
     int posY = (SDU_GFX.height()- ProgressStyle.height+2) >> 1;
     SDU_GFX.setCursor( xpos, posY - 20 );
     SDU_GFX.print( label );
