@@ -23,8 +23,9 @@ jobs:
           - 1.0.6
           - 2.0.0
           - 2.0.1
-          - 2.0.2 # has broken SD Support
-          - 2.0.3-RC1
+          # - 2.0.2 # has broken SD Support
+          - 2.0.3
+          - 2.0.4
 
         matrix-context:
           - M5Core2-test
@@ -53,7 +54,8 @@ jobs:
           - sdk-version: 1.0.6
           - sdk-version: 2.0.0
           - sdk-version: 2.0.1
-          - sdk-version: 2.0.3-RC1
+          - sdk-version: 2.0.3
+          - sdk-version: 2.0.4
 
           # library health test sketches
           - { matrix-context: M5Core2-test,   arduino-board: m5stack-core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
