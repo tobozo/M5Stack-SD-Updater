@@ -136,6 +136,23 @@ static void SDMenuProgressHeadless( int state, int size )
     #endif
   #endif
 
+  #if defined ARDUINO_ESP32_S3_BOX
+    // this is temporary and may change later
+    namespace SDU
+    {
+      static int lastbtnstate = digitalRead( GPIO_NUM_1 );
+      static bool MuteChanged()
+      {
+        if( digitalRead( GPIO_NUM_1 ) != lastbtnstate ) {
+          lastbtnstate = 1-lastbtnstate;
+          log_d("btnstate: %d", lastbtnstate );
+          return true;
+        }
+        return false;
+      }
+    }
+  #endif
+
   // theme selector
   #ifdef ARDUINO_ODROID_ESP32 // Odroid-GO has 4 buttons under the TFT
     #define BUTTON_WIDTH 60
@@ -359,9 +376,9 @@ static void SDMenuProgressHeadless( int state, int size )
       SDUCfg.onBefore();
       SDUCfg.onSplashPage( BTN_HINT_MSG );
       BtnStyles btns;
-      SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
-      SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
-      if( SDUCfg.binFileName != nullptr ) {
+      if( SDUCfg.Buttons[0].cb) SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
+      if( SDUCfg.Buttons[1].cb) SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
+      if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].cb ) {
         SDUCfg.onButtonDraw( labelSave, 2, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor, btns.Save.ShadowColor );
       }
     }
@@ -379,7 +396,10 @@ static void SDMenuProgressHeadless( int state, int size )
     do {
       if( SDUCfg.buttonsUpdate ) SDUCfg.buttonsUpdate();
       for( int i=0; i<3; i++ ) {
-        if( SDUCfg.Buttons[i].cb && SDUCfg.Buttons[i].cb() ) { ret = SDUCfg.Buttons[i].val; goto _endAssert; }
+        if( SDUCfg.Buttons[i].cb && SDUCfg.Buttons[i].cb() ) {
+          log_v("SDUCfg.Buttons[%d] was triggered", i);
+          ret = SDUCfg.Buttons[i].val; goto _endAssert;
+        }
       }
       if( SDUCfg.onProgress   ) {
         float barprogress = float(millis() - msec) / float(waitdelay);
@@ -480,7 +500,7 @@ static void SDMenuProgressHeadless( int state, int size )
         xpos = 0 ;
       }
     }
-    int posX = (SDU_GFX.width() - ProgressStyle.width+2) >> 1;
+    //int posX = (SDU_GFX.width() - ProgressStyle.width+2) >> 1;
     int posY = (SDU_GFX.height()- ProgressStyle.height+2) >> 1;
     SDU_GFX.setCursor( xpos, posY - 20 );
     SDU_GFX.print( label );
@@ -520,6 +540,14 @@ static void SDMenuProgressHeadless( int state, int size )
       if( !SDUCfg.onAfter      )  { SDUCfg.setAfterCb(      thawTextStyle );     log_v("Attached onAfter");      }
       if( !SDUCfg.onSplashPage )  { SDUCfg.setSplashPageCb( drawSDUSplashPage ); log_v("Attached onSplashPage"); }
       if( !SDUCfg.onButtonDraw )  { SDUCfg.setButtonDrawCb( drawSDUPushButton ); log_v("Attached onButtonDraw"); }
+      #if defined ARDUINO_ESP32_S3_BOX
+        SDUCfg.setSDUBtnA( SDU::MuteChanged ); log_v("Attached Mute Read");
+        SDUCfg.setSDUBtnB( nullptr );          log_v("Detached BtnB");
+        SDUCfg.setSDUBtnC( nullptr );          log_v("Detached BtnC");
+        SDUCfg.setLabelSkip( nullptr );        log_v("Disabled Skip");
+        SDUCfg.setLabelRollback( nullptr );    log_v("Disabled Rollback");
+        SDUCfg.setLabelSave( nullptr );        log_v("Disabled Save");
+      #endif
       #if defined SDU_HAS_TOUCH // default touch button support
         if ( !SDUCfg.onWaitForAction) { SDUCfg.setWaitForActionCb( assertStartUpdateFromTouchButton ); log_v("Attached onWaitForAction (touch)"); }
       #else // default momentary button support

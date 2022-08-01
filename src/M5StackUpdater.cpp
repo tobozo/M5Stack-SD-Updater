@@ -487,7 +487,11 @@ void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
   }
 
   if( cfg->onWaitForAction ) {
+    [[maybe_unused]] unsigned long startwait = millis();
     int ret = cfg->onWaitForAction( isRollBack ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, (char*)cfg->labelSave, waitdelay );
+    [[maybe_unused]] unsigned long actualwaitdelay = millis()-startwait;
+    log_v("Action '%d' was triggered after %d ms (waidelay=%d)", ret, actualwaitdelay, waitdelay );
+
     if ( ret == SDU_BTNA_MENU ) {
       if( isRollBack == false ) {
         Serial.printf( SDU_LOAD_TPL, fileName.c_str() );

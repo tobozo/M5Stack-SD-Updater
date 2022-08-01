@@ -295,6 +295,10 @@ __attribute__((unused)) static void checkSDUpdater( fs::FS &fs, String fileName 
       //case 14 : log_d("EXT_CPU_RESET");break;                 // 14, for APP CPU, reseted by PRO CPU
       //case 15 : log_d("RTCWDT_BROWN_OUT_RESET");break;        // 15, Reset when the vdd voltage is not stable
       case 16 : log_d("RTCWDT_RTC_RESET"); waitdelay=500; break;// 16, RTC Watch dog reset digital core and rtc module
+      // case 21:  log_d("USB_UART_CHIP_RESET"); waitdelay=2000; break;// Various reset reasons for ESP32-S3
+      // case 22:  log_d("USB_JTAG_CHIP_RESET"); waitdelay=2000; break;// Various reset reasons for ESP32-S3
+      // case 24:  log_d("JTAG_RESET"); waitdelay=2000; break;         // Various reset reasons for ESP32-S3
+
       default : log_d("NO_MEAN"); waitdelay=100;
     }
   }

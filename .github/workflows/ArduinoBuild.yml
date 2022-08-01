@@ -1,11 +1,11 @@
-name: LibraryBuild
+name: ArduinoBuild
 on:
   push:
     paths:
     - '**.ino'
     - '**.cpp'
     - '**.h'
-    - '**LibraryBuild.yml'
+    - '**ArduinoBuild.yml'
   pull_request:
   release:
     types: [published]
@@ -13,7 +13,7 @@ on:
 jobs:
 
   matrix_build:
-    name: ${{ matrix.matrix-context }} (${{ matrix.sketch-names }}@${{ matrix.sdk-version }})
+    name: ${{ matrix.matrix-context }}@${{ matrix.sdk-version }})
     runs-on: ubuntu-latest
 
     strategy:
@@ -21,59 +21,52 @@ jobs:
 
         sdk-version:
           - 1.0.6
-          - 2.0.0
-          - 2.0.1
-          - 2.0.2
+          #- 2.0.0
+          #- 2.0.1
+          # - 2.0.2 # has broken SD Support
+          - 2.0.3
+          - 2.0.4
 
         matrix-context:
-
           - M5Core2-test
           - M5Stack-test
           - M5StickC-test
           - LGFX-test
           - M5Unified-test
-
+          - S3Box-Test
+          #- TTGO-LoRa32-V2-test
           - M5Stack
           - M5Core2
           - M5Fire
           - OdroidGo
-          #- TTGO-LoRa32-V2-test
 
-        #exclude:
-        #  - matrix-context: OdroidGo-SD-Menu
-        #    sdk-version: 1.0.6
+        exclude:
+          - sdk-version: 2.0.2 # has broken SD Support
+          # There's no esp32s3box support before 2.0.3
+          - { matrix-context: S3Box-Test, sdk-version: 1.0.6 }
+          #- { matrix-context: S3Box-Test, sdk-version: 2.0.0 }
+          #- { matrix-context: S3Box-Test, sdk-version: 2.0.1 }
+          #- { matrix-context: S3Box-Test sdk-version: 2.0.2 }
+          - { matrix-context: S3Box-Test, sdk-version: 2.0.4 } # will be fixed in 2.0.5 https://github.com/espressif/arduino-esp32/pull/6962/files
+          - { matrix-context: M5Core2-test, sdk-version: 1.0.6 } # M5Core2.h suddenly ceased to support 1.0.6 (I2S and I2C broken)
+
 
         include:
+
+          # buildable sdk versions
           - sdk-version: 1.0.6
-            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-1.0.6_index.json
-          - sdk-version: 2.0.0
-            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.0_index.json
-          - sdk-version: 2.0.1
-            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.1_index.json
-          - sdk-version: 2.0.2
-            platform-url: https://phpsecu.re/esp32/packages/package_esp32_esp32-2.0.2_index.json
+          #- sdk-version: 2.0.0
+          #- sdk-version: 2.0.1
+          - sdk-version: 2.0.3
+          - sdk-version: 2.0.4
 
           # library health test sketches
-          - matrix-context: M5Core2-test
-            arduino-board: m5stack-core2
-            sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
-          - matrix-context: M5Stack-test
-            arduino-board: m5stack-core-esp32
-            sketch-names: M5Stack-SDLoader-Snippet.ino
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
-          - matrix-context: M5Unified-test
-            arduino-board: m5stack-core2
-            sketch-names: M5Unified.ino
-            required-libraries: "M5GFX,M5Unified"
-          - matrix-context: M5StickC-test
-            arduino-board: m5stick-c
-            sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino
-            required-libraries: "M5StickC"
-          - matrix-context: LGFX-test
-            arduino-board: m5stack-core-esp32
-            sketch-names: LGFX-SDLoader-Snippet.ino
-            required-libraries: "LovyanGFX"
+          - { matrix-context: M5Core2-test,   arduino-board: m5stack-core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
+          - { matrix-context: M5Stack-test,   arduino-board: m5stack-core-esp32, sketch-names: M5Stack-SDLoader-Snippet.ino,       required-libraries: "ESP32-Chimera-Core,LovyanGFX", ... }
+          - { matrix-context: S3Box-Test,     arduino-board: esp32s3box,         sketch-names: M5Stack-SDLoader-Snippet.ino,       required-libraries: "ESP32-Chimera-Core,LovyanGFX", ... }
+          - { matrix-context: M5Unified-test, arduino-board: m5stack-core2,      sketch-names: M5Unified.ino,                      required-libraries: "M5GFX,M5Unified", ... }
+          - { matrix-context: M5StickC-test,  arduino-board: m5stick-c,          sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino, required-libraries: "M5StickC", ... }
+          - { matrix-context: LGFX-test,      arduino-board: m5stack-core-esp32, sketch-names: LGFX-SDLoader-Snippet.ino,          required-libraries: "LovyanGFX", ... }
 
           # Launcher and Appstore
           - matrix-context: M5Stack
@@ -106,7 +99,6 @@ jobs:
             #sketch-names: TTGO-test.ino
             #required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
 
-
       fail-fast: false
 
     steps:
@@ -117,16 +109,19 @@ jobs:
       - name: ${{ matrix.matrix-context }}
         uses: ArminJo/arduino-test-compile@v3
         with:
-          platform-url: ${{ matrix.platform-url }}
-          arduino-board-fqbn: esp32-${{ matrix.sdk-version }}:esp32:${{ matrix.arduino-board}}${{ matrix.extra-fqbn }}
+          platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
+          #platform-url: ${{ matrix.platform-url }}
+          arduino-board-fqbn: esp32:esp32:${{ matrix.arduino-board}}${{ matrix.extra-fqbn }}
+          arduino-platform: esp32:esp32@${{ matrix.sdk-version }}
           required-libraries: ${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
           # extra-arduino-cli-args: ${{ matrix.extra-arduino-cli-args }}
+          extra-arduino-cli-args: "--warnings default " # see https://github.com/ArminJo/arduino-test-compile/issues/28
           sketch-names: ${{ matrix.sketch-names }}
           set-build-path: true
           build-properties: ${{ toJson(matrix.build-properties) }}
           #debug-install: true
-      - name: Copy compiled binary
+      - name: Copy compiled binaries
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
           cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}-${{ matrix.sdk-version }}.bin

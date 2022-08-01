@@ -165,8 +165,11 @@ extern "C" {
     #include <esp32s2/rom/rtc.h>
   #elif defined CONFIG_IDF_TARGET_ESP32C3
     #include <esp32c3/rom/rtc.h>
+  #elif defined CONFIG_IDF_TARGET_ESP32S3
+    #include <rom/rtc.h>
   #else
-    #error Target CONFIG_IDF_TARGET is not supported
+    #warning "Target CONFIG_IDF_TARGET is unknown"
+    #include <rom/rtc.h>
   #endif
 #else
   #include <rom/rtc.h>

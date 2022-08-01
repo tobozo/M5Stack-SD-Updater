@@ -1,9 +1,10 @@
 [![License: MIT](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tobozo/M5Stack-SD-Updater/blob/master/LICENSE)
-[![Build Status](https://travis-ci.com/tobozo/M5Stack-SD-Updater.svg?branch=master)](https://travis-ci.com/github/tobozo/M5Stack-SD-Updater)
 [![Gitter](https://badges.gitter.im/M5Stack-SD-Updater/community.svg)](https://gitter.im/M5Stack-SD-Updater/community)
 [![arduino-library-badge](https://www.ardu-badge.com/badge/M5Stack-SD-Updater.svg?)](https://www.ardu-badge.com/M5Stack-SD-Updater)
 [![PlatformIO Registry](https://badges.registry.platformio.org/packages/tobozo/library/M5Stack-SD-Updater.svg?)](https://registry.platformio.org/packages/libraries/tobozo/M5Stack-SD-Updater)
 
+![Arduino Build](https://github.com/tobozo/M5Stack-SD-Updater/actions/workflows/ArduinoBuild.yml/badge.svg?branch=master)
+![Platformio Build](https://github.com/tobozo/M5Stack-SD-Updater/actions/workflows/PlatformioBuild.yml/badge.svg?branch=master)
 
 # M5Stack-SD-Updater
 

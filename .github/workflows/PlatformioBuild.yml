@@ -1,0 +1,99 @@
+name: PlatformIOBuild
+
+env:
+  PROJECT_DIR: examples/Test/build_test
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
+on:
+  push:
+    paths:
+    - '**.ino'
+    - '**.ini'
+    - '**.cpp'
+    - '**.hpp'
+    - '**.h'
+    - '**.c'
+    - '**PlatformioBuild.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+
+
+  build:
+    name: ${{ matrix.piocontext }}@${{ matrix.platform-version }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+
+        piocontext:
+          - lgfx
+          - m5stick-c
+          - m5stack-core-esp32
+          - m5stack-core2
+          - m5unified
+          - s3box
+
+        platform-version:
+          - 1.0.6
+          - 2.0.0
+          - 2.0.1
+          #- 2.0.2 # has broken SD Support
+          - 2.0.3
+          - 2.0.4
+
+        exclude:
+          - { piocontext: s3box, platform-version: 1.0.6 }
+          - { piocontext: s3box, platform-version: 2.0.0 }
+          - { piocontext: s3box, platform-version: 2.0.1 }
+          #- { piocontext: s3box, platform-version: 2.0.2 }
+          - { piocontext: m5stack-core2, platform-version: 1.0.6 } # M5Core2.h broken I2S support with 1.0.6
+          - { piocontext: m5stack-core2, platform-version: 2.0.0 } # M5Core2.h broken I2S support with 2.0.0
+
+        include:
+          - piocontext: lgfx
+          - piocontext: m5stick-c
+          - piocontext: m5stack-core-esp32
+          - piocontext: m5stack-core2
+          - piocontext: m5unified
+          - piocontext: s3box
+
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Cache PlatformIO
+        uses: actions/cache@v2
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+          pio update
+          pio upgrade
+
+      - name: Run PlatformIO
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
+          pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install --no-save file://$(realpath ../../../)
+          pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
+
