@@ -102,7 +102,8 @@
   #include <LittleFS.h>
 #endif
 #if __has_include(<LITTLEFS.h>) || defined _LIFFLEFS_H_
-  #include <LITTLEFS.h>
+  // probably platformio too dumb to realize LittleFS is now part of esp32 package
+  #error "this version of LittleFS is unsupported, use #include <LittleFS.h> instead, if using platformio add LittleFS(esp32)@^2.0.0 to lib_deps"
 #endif
 #if __has_include(<PSRamFS.h>) || defined _PSRAMFS_H_
   #include <PSRamFS.h>

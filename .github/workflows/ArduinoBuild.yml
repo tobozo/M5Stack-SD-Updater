@@ -127,7 +127,7 @@ jobs:
           cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}-${{ matrix.sdk-version }}.bin
           cp examples/AppStore/build/AppStore.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin
       - name: Upload artifact ${{ matrix.matrix-context }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         with:
           name: ${{ matrix.matrix-context }}
@@ -147,7 +147,7 @@ jobs:
         #if: startsWith(github.ref, 'refs/tags/')
         run: mkdir -p /home/runner/builds
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         #if: startsWith(github.ref, 'refs/tags/')
         with:
           path: builds
