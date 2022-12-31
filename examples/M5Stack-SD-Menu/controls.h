@@ -26,7 +26,7 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
   bool JOY_X_pressed = false;
 #endif
 
-#if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE || defined ARDUINO_M5STACK_ATOM_AND_TFCARD
+#if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE
 #define CAN_I_HAZ_M5FACES
 #endif
 

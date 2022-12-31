@@ -79,9 +79,11 @@
 #include "LGFX_8BIT_CVBS.h"
 #define USE_DISPLAY
 #define LGFX_ONLY
+#define TFCARD_CS_PIN -1
+
 static LGFX_8BIT_CVBS tft;
 #define LGFX LGFX_8BIT_CVBS
-#define BUTTON_WIDTH 60
+//#define BUTTON_WIDTH 60
 #define SDU_APP_NAME "Application Launcher"
 #include <M5StackUpdater.h>
 static LGFX_Sprite sprite(&tft);
