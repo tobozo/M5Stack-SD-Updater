@@ -2,8 +2,12 @@
 
 
 void setup() {
-
-  M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
+#if defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
+	setSDUGfx(&tft);
+	tft.init();
+#else
+	M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
+#endif
 
   SDUCfg.setFS( &M5_FS );
   SDUCfg.setCSPin( TFCARD_CS_PIN );

@@ -26,8 +26,8 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
   bool JOY_X_pressed = false;
 #endif
 
-#if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE
-  #define CAN_I_HAZ_M5FACES
+#if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE || defined ARDUINO_M5STACK_ATOM_AND_TFCARD
+#define CAN_I_HAZ_M5FACES
 #endif
 
 
@@ -255,12 +255,19 @@ HIDSignal getControls()
       bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
       bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
 
+	  if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
+	  if( b ) return HIDFeedback( HID_PAGE_DOWN );
+	  if( c ) return HIDFeedback( HID_DOWN );
+	  if( a ) return HIDFeedback( HID_SELECT );
+
+    #elif defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
+	  //TODO Button2を使ったコードを書くこと
     #endif
 
-    if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
-    if( b ) return HIDFeedback( HID_PAGE_DOWN );
-    if( c ) return HIDFeedback( HID_DOWN );
-    if( a ) return HIDFeedback( HID_SELECT );
+    // if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
+    // if( b ) return HIDFeedback( HID_PAGE_DOWN );
+    // if( c ) return HIDFeedback( HID_DOWN );
+    // if( a ) return HIDFeedback( HID_SELECT );
 
   #endif
 
