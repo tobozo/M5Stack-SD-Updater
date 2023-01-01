@@ -15,11 +15,10 @@ enum HIDSignal
   HID_SCREENSHOT = 6
 };
 
-
 #define FAST_REPEAT_DELAY 50 // ms, push delay
 #define SLOW_REPEAT_DELAY 500 // ms, must be higher than FAST_REPEAT_DELAY and smaller than LONG_DELAY_BEFORE_REPEAT
 #define LONG_DELAY_BEFORE_REPEAT 1000 // ms, delay before slow repeat enables
-unsigned long fastRepeatDelay = FAST_REPEAT_DELAY;
+	unsigned long fastRepeatDelay = FAST_REPEAT_DELAY;
 unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
 #if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
   bool JOY_Y_pressed = false;
@@ -140,28 +139,66 @@ static bool M5FacesEnabled = false;
 
 #endif
 
-
-void HIDInit()
-{
-  #if defined CAN_I_HAZ_M5FACES
-    Wire.begin(SDA, SCL);
-    M5FacesEnabled = Faces.canControlFaces();
-    if( M5FacesEnabled ) {
-      // set the interrupt
-      attachInterrupt(5, M5FacesIsr, FALLING); // 5 = KEYBOARD_INT from M5Faces.cpp
-      Serial.println("M5Faces enabled and listening");
-    }
-  #endif
-}
-
-
-
 HIDSignal HIDFeedback( HIDSignal signal, int ms = 50 )
 {
   if( signal != HID_INERT ) {
     HIDFeedback( ms );
   }
   return signal;
+}
+
+static HIDSignal _button;
+
+void handler(Button2 &btn)
+{
+  switch (btn.getType())
+  {
+  case clickType::single_click:
+	Serial.print("single ");
+	_button = HIDFeedback(HID_DOWN);
+	break;
+  case clickType::double_click:
+	Serial.print("double ");
+	_button = HIDFeedback(HID_PAGE_DOWN);
+	break;
+  case clickType::triple_click:
+	Serial.print("triple ");
+	_button = HIDFeedback(HID_PAGE_UP);
+	break;
+  case clickType::long_click:
+	Serial.print("long ");
+	_button = HIDFeedback(HID_SELECT);
+	break;
+  case clickType::empty:
+	break;
+  default:
+	break;
+  }
+
+  Serial.print("click");
+  Serial.print(" (");
+  Serial.print(btn.getNumberOfClicks());
+  Serial.println(")");
+}
+
+void HIDInit()
+{
+#if defined CAN_I_HAZ_M5FACES
+  Wire.begin(SDA, SCL);
+  M5FacesEnabled = Faces.canControlFaces();
+  if( M5FacesEnabled ) {
+  	// set the interrupt
+  	attachInterrupt(5, M5FacesIsr, FALLING); // 5 = KEYBOARD_INT from M5Faces.cpp
+  	Serial.println("M5Faces enabled and listening");
+  }
+#endif
+
+  // G39 button
+  button.setClickHandler(handler);
+  button.setDoubleClickHandler(handler);
+  button.setTripleClickHandler(handler);
+  button.setLongClickHandler(handler);
+  button.begin(39);
 }
 
 
@@ -261,7 +298,10 @@ HIDSignal getControls()
 	  if( a ) return HIDFeedback( HID_SELECT );
 
     #elif defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
-	  //TODO Button2を使ったコードを書くこと
+	  button.loop();
+	  HIDSignal temp = _button;
+	  _button = HID_INERT;
+	  return temp;
     #endif
 
     // if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716

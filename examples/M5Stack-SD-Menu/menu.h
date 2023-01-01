@@ -77,6 +77,7 @@
 #else
 #include <SD.h>
 #include "LGFX_8BIT_CVBS.h"
+#include <Button2.h>
 #define USE_DISPLAY
 #define LGFX_ONLY
 #define TFCARD_CS_PIN -1
@@ -88,6 +89,8 @@ static LGFX_8BIT_CVBS tft;
 #include <M5StackUpdater.h>
 static LGFX_Sprite sprite(&tft);
 fs::SDFS &M5_FS(SD);
+
+Button2 button;//for G39
 
 #endif
 
