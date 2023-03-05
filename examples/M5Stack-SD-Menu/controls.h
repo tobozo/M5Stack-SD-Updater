@@ -227,6 +227,8 @@ HIDSignal getControls()
   }
 
   #if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
+    M5.update();
+
     // Odroid-Go buttons support ** with repeat delay **
     if( M5.JOY_Y.pressedFor( fastRepeatDelay ) ) {
       uint8_t updown = M5.JOY_Y.isAxisPressed();
@@ -291,6 +293,8 @@ HIDSignal getControls()
     }
 
     #if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE || defined ARDUINO_M5STACK_Core2
+
+      M5.update();
 
       // legacy buttons support
       bool a = M5.BtnA.wasPressed();
