@@ -211,8 +211,11 @@ class SDUpdater
       #if defined (_SD_H_)
         log_d(" Checking for SD Support (pin #%d)",  cfg->TFCardCsPin );
         if( &fs == &SD ) {
-          SPI.begin(_CLK, _MISO, _MOSI, cfg->TFCardCsPin);
-          SPI.setDataMode(SPI_MODE3);
+          // user provided specific pinout via build extra flags
+          #if defined _CLK && defined _MISO && defined _MOSI
+            SPI.begin(_CLK, _MISO, _MOSI, cfg->TFCardCsPin);
+            SPI.setDataMode(SPI_MODE3);
+          #endif
           if (!SD.begin(cfg->TFCardCsPin, SPI, 80000000)) {  // 80MHz(MAX)
             msg[0] = String("SD MOUNT FAILED (pin #" + String(cfg->TFCardCsPin) + ")").c_str();
             if( report_errors ) _error( msg, 2 );
