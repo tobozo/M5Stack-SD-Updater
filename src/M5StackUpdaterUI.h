@@ -332,12 +332,21 @@ static void SDMenuProgressHeadless( int state, int size )
   {
     int32_t centerX = SDU_GFX.width() >> 1;
 
-    auto fontSize = SDU_GFX.getTextSizeX();
 
-    SDU_GFX.setTextSize( fontSize*2.0 );
-    uint8_t lineHeightBig = SDU_GFX.fontHeight();
-    SDU_GFX.setTextFont( fontSize );
-    uint8_t lineHeightSmall = SDU_GFX.fontHeight();
+
+    #if defined HAS_LGFX
+      auto fontSize = SDU_GFX.getTextSizeX();
+      SDU_GFX.setTextSize( fontSize*2.0 );
+      uint8_t lineHeightBig = SDU_GFX.fontHeight();
+      SDU_GFX.setTextFont( fontSize );
+      uint8_t lineHeightSmall = SDU_GFX.fontHeight();
+    #else
+      //int fontSize = 1;//SDU_GFX.textWidth("0");
+      uint8_t lineHeightBig = 14;
+      uint8_t lineHeightSmall = 8;
+    #endif
+
+
     uint8_t appNamePosy     = lineHeightBig*1.8+lineHeightSmall;
     uint8_t authorNamePosY  = appNamePosy + lineHeightBig*1.8;
     uint8_t binFileNamePosY = authorNamePosY+lineHeightSmall*1.8;
