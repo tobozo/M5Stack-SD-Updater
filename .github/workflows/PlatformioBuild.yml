@@ -48,7 +48,7 @@ jobs:
           - 2.0.6
           - 2.0.7
 
-        exclude:
+        #exclude:
           #- { piocontext: s3box, platform-version: 1.0.6 }
           #- { piocontext: s3box, platform-version: 2.0.0 }
           #- { piocontext: s3box, platform-version: 2.0.1 }
