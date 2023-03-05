@@ -502,3 +502,4 @@ This can be triggered manually by using `saveSketchToFS(SD, fileName, TFCARD_CS_
 | 👍     | @PartsandCircuits   | PartsandCircuits | https://github.com/PartsandCircuits          |
 | 👍     | @lovyan03           | らびやん           | https://github.com/lovyan03                  |
 | 👍     | @matsumo            | Matsumo          | https://github.com/matsumo                   |
+| 👍     | @riraosan           | Riraosan         | https://github.com/riraosan                  |
