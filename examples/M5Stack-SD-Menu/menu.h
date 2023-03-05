@@ -828,10 +828,11 @@ void UISetup()
   }
   tft.setTextDatum(TL_DATUM);
 
-  unsigned long longPush = 10000;
-  unsigned long shortPush = 5000;
-
   #if defined USE_DOWNLOADER
+
+    unsigned long longPush = 10000;
+    unsigned long shortPush = 5000;
+
     if( M5.BtnB.isPressed() )
     {
       unsigned long pushStart = millis();

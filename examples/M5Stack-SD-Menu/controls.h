@@ -147,58 +147,65 @@ HIDSignal HIDFeedback( HIDSignal signal, int ms = 50 )
   return signal;
 }
 
-static HIDSignal _button;
 
-void handler(Button2 &btn)
-{
-  switch (btn.getType())
+#if defined ARDUINO_M5STACK_ATOM_AND_TFCARD
+
+  static HIDSignal _button;
+
+  void handler(Button2 &btn)
   {
-  case clickType::single_click:
-	Serial.print("single ");
-	_button = HIDFeedback(HID_DOWN);
-	break;
-  case clickType::double_click:
-	Serial.print("double ");
-	_button = HIDFeedback(HID_PAGE_DOWN);
-	break;
-  case clickType::triple_click:
-	Serial.print("triple ");
-	_button = HIDFeedback(HID_PAGE_UP);
-	break;
-  case clickType::long_click:
-	Serial.print("long ");
-	_button = HIDFeedback(HID_SELECT);
-	break;
-  case clickType::empty:
-	break;
-  default:
-	break;
+    switch (btn.getType())
+    {
+      case clickType::single_click:
+      Serial.print("single ");
+      _button = HIDFeedback(HID_DOWN);
+      break;
+      case clickType::double_click:
+      Serial.print("double ");
+      _button = HIDFeedback(HID_PAGE_DOWN);
+      break;
+      case clickType::triple_click:
+      Serial.print("triple ");
+      _button = HIDFeedback(HID_PAGE_UP);
+      break;
+      case clickType::long_click:
+      Serial.print("long ");
+      _button = HIDFeedback(HID_SELECT);
+      break;
+      case clickType::empty:
+      break;
+      default:
+      break;
+    }
+
+    Serial.print("click");
+    Serial.print(" (");
+    Serial.print(btn.getNumberOfClicks());
+    Serial.println(")");
   }
 
-  Serial.print("click");
-  Serial.print(" (");
-  Serial.print(btn.getNumberOfClicks());
-  Serial.println(")");
-}
+#endif
 
 void HIDInit()
 {
-#if defined CAN_I_HAZ_M5FACES
-  Wire.begin(SDA, SCL);
-  M5FacesEnabled = Faces.canControlFaces();
-  if( M5FacesEnabled ) {
-  	// set the interrupt
-  	attachInterrupt(5, M5FacesIsr, FALLING); // 5 = KEYBOARD_INT from M5Faces.cpp
-  	Serial.println("M5Faces enabled and listening");
-  }
-#endif
+  #if defined CAN_I_HAZ_M5FACES
+    Wire.begin(SDA, SCL);
+    M5FacesEnabled = Faces.canControlFaces();
+    if( M5FacesEnabled ) {
+      // set the interrupt
+      attachInterrupt(5, M5FacesIsr, FALLING); // 5 = KEYBOARD_INT from M5Faces.cpp
+      Serial.println("M5Faces enabled and listening");
+    }
+  #endif
 
-  // G39 button
-  button.setClickHandler(handler);
-  button.setDoubleClickHandler(handler);
-  button.setTripleClickHandler(handler);
-  button.setLongClickHandler(handler);
-  button.begin(39);
+  #if defined ARDUINO_M5STACK_ATOM_AND_TFCARD
+    // G39 button
+    button.setClickHandler(handler);
+    button.setDoubleClickHandler(handler);
+    button.setTripleClickHandler(handler);
+    button.setLongClickHandler(handler);
+    button.begin(39);
+  #endif
 }
 
 
@@ -292,22 +299,19 @@ HIDSignal getControls()
       bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
       bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
 
-	  if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
-	  if( b ) return HIDFeedback( HID_PAGE_DOWN );
-	  if( c ) return HIDFeedback( HID_DOWN );
-	  if( a ) return HIDFeedback( HID_SELECT );
+      if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
+      if( b ) return HIDFeedback( HID_PAGE_DOWN );
+      if( c ) return HIDFeedback( HID_DOWN );
+      if( a ) return HIDFeedback( HID_SELECT );
 
     #elif defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
-	  button.loop();
-	  HIDSignal temp = _button;
-	  _button = HID_INERT;
-	  return temp;
-    #endif
 
-    // if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
-    // if( b ) return HIDFeedback( HID_PAGE_DOWN );
-    // if( c ) return HIDFeedback( HID_DOWN );
-    // if( a ) return HIDFeedback( HID_SELECT );
+      button.loop();
+      HIDSignal temp = _button;
+      _button = HID_INERT;
+      return temp;
+
+    #endif
 
   #endif
 

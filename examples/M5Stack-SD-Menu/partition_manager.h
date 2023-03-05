@@ -180,19 +180,22 @@ void copyPartition( const char* binfilename = PROGMEM {MENU_BIN} )
 }
 
 
-
-struct {
-  String toString( uint8_t dig[32] ) {
-    static String digest;
-    digest = "";
-    char hex[3] = {0};
-    for(int i=0;i<32;i++) {
-      snprintf( hex, 3, "%02x", dig[i] );
-      digest += String(hex);
+#if defined ESP_PARTITION_TYPE_ANY
+  struct digest_t {
+    String toString( uint8_t dig[32] ) {
+      static String digest;
+      digest = "";
+      char hex[3] = {0};
+      for(int i=0;i<32;i++) {
+        snprintf( hex, 3, "%02x", dig[i] );
+        digest += String(hex);
+      }
+      return digest;
     }
-    return digest;
-  }
-} digest;
+  } ;
+
+  digest_t digest;
+#endif
 
 
 void lsPart()
