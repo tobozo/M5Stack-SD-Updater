@@ -58,6 +58,10 @@
   #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
   //#define USE_DOWNLOADER
+#elif defined( ARDUINO_M5STACK_ATOM_AND_TFCARD )
+  #warning M5Stack ATOM DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "m5atom"
+  #define PLATFORM_NAME "M5 ATOM(matrix/lite)"
 #else
   #warning NOTHING DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "lambda"
@@ -68,14 +72,33 @@
 //#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 //#define M5_FS SD
 
+#if !defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
 #include "core.h"
+#else
+#include <SD.h>
+#include "LGFX_8BIT_CVBS.h"
+#include <Button2.h>
+#define USE_DISPLAY
+#define LGFX_ONLY
+#define TFCARD_CS_PIN -1
 
+static LGFX_8BIT_CVBS tft;
+#define LGFX LGFX_8BIT_CVBS
+//#define BUTTON_WIDTH 60
+#define SDU_APP_NAME "Application Launcher"
+#include <M5StackUpdater.h>
+static LGFX_Sprite sprite(&tft);
+fs::SDFS &M5_FS(SD);
+
+Button2 button;//for G39
+
+#endif
 
 #include <sys/time.h>
 #include "compile_time.h"
 //#include <SPIFFS.h>
 
-#if defined(_CHIMERA_CORE_)
+#if defined(_CHIMERA_CORE_) || defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
   #include "lgfx/utility/lgfx_qrcode.h"
   #define qrcode_getBufferSize lgfx_qrcode_getBufferSize
   #define qrcode_initText lgfx_qrcode_initText
@@ -157,15 +180,15 @@ void gotoSleep()
     //M5.Axp.DeepSleep();
   #else
     #if !defined _CHIMERA_CORE_ || defined HAS_POWER || defined HAS_IP5306
-      M5.setWakeupButton( BUTTON_B_PIN );
-      M5.powerOFF();
+      //M5.setWakeupButton( BUTTON_B_PIN );
+      //M5.powerOFF();
     #else
     #endif
   #endif
   delay(100);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  M5.Lcd.sleep();
-  M5.Lcd.waitDisplay();
+  //M5.Lcd.fillScreen(TFT_BLACK);
+  //M5.Lcd.sleep();
+  //M5.Lcd.waitDisplay();
   esp_deep_sleep_start();
 }
 
@@ -783,7 +806,7 @@ void UISetup()
   tft.setTextSize( 1 );
   tft.drawString( SD_LOADING_MESSAGE, 160, 142, 1 );
 
-  M5.update();
+  //M5.update();
 
   bool toggle = true;
 #ifdef _CHIMERA_CORE_
@@ -988,7 +1011,7 @@ void HIDMenuObserve() {
       }
     break;
   }
-  M5.update();
+  //M5.update();
 }
 
 

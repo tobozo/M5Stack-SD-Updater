@@ -105,8 +105,10 @@ void copyFsPartition( fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} )
 */
 
 #pragma once
-#include "core.h"
 
+#if !defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
+#include "core.h"
+#endif
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
 bool comparePartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length)

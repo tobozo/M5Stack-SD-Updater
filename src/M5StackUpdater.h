@@ -211,11 +211,15 @@ class SDUpdater
       #if defined (_SD_H_)
         log_d(" Checking for SD Support (pin #%d)",  cfg->TFCardCsPin );
         if( &fs == &SD ) {
-          if( !SD.begin( cfg->TFCardCsPin ) ) {
+          SPI.begin(_CLK, _MISO, _MOSI, cfg->TFCardCsPin);
+          SPI.setDataMode(SPI_MODE3);
+          if (!SD.begin(cfg->TFCardCsPin, SPI, 80000000)) {  // 80MHz(MAX)
             msg[0] = String("SD MOUNT FAILED (pin #" + String(cfg->TFCardCsPin) + ")").c_str();
             if( report_errors ) _error( msg, 2 );
             return false;
-          } else { log_d( "SD Successfully mounted (pin #%d)", cfg->TFCardCsPin ); }
+          } else {
+            log_d("SD Successfully mounted (pin #%d)", cfg->TFCardCsPin);
+          }
           mounted = true;
         }
       #endif
