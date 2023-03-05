@@ -20,12 +20,15 @@ jobs:
       matrix:
 
         sdk-version:
-          - 1.0.6
+          #- 1.0.6
           #- 2.0.0
           #- 2.0.1
           # - 2.0.2 # has broken SD Support
-          - 2.0.3
-          - 2.0.4
+          #- 2.0.3
+          #- 2.0.4
+          - 2.0.5
+          - 2.0.6
+          - 2.0.7
 
         matrix-context:
           - M5Core2-test
@@ -40,25 +43,26 @@ jobs:
           - M5Fire
           - OdroidGo
 
-        exclude:
-          - sdk-version: 2.0.2 # has broken SD Support
+        #exclude:
+          #- sdk-version: 2.0.2 # has broken SD Support
           # There's no esp32s3box support before 2.0.3
-          - { matrix-context: S3Box-Test, sdk-version: 1.0.6 }
+          #- { matrix-context: S3Box-Test, sdk-version: 1.0.6 }
           #- { matrix-context: S3Box-Test, sdk-version: 2.0.0 }
           #- { matrix-context: S3Box-Test, sdk-version: 2.0.1 }
           #- { matrix-context: S3Box-Test sdk-version: 2.0.2 }
-          - { matrix-context: S3Box-Test, sdk-version: 2.0.4 } # will be fixed in 2.0.5 https://github.com/espressif/arduino-esp32/pull/6962/files
-          - { matrix-context: M5Core2-test, sdk-version: 1.0.6 } # M5Core2.h suddenly ceased to support espressif package 1.0.6/2.0.0 (I2S and I2C broken)
+          #- { matrix-context: S3Box-Test, sdk-version: 2.0.4 } # will be fixed in 2.0.5 https://github.com/espressif/arduino-esp32/pull/6962/files
+          #- { matrix-context: M5Core2-test, sdk-version: 1.0.6 } # M5Core2.h suddenly ceased to support espressif package 1.0.6/2.0.0 (I2S and I2C broken)
 
 
         include:
 
           # buildable sdk versions
-          - sdk-version: 1.0.6
+          #- sdk-version: 1.0.6
           #- sdk-version: 2.0.0
           #- sdk-version: 2.0.1
-          - sdk-version: 2.0.3
-          - sdk-version: 2.0.4
+          - sdk-version: 2.0.5
+          - sdk-version: 2.0.6
+          - sdk-version: 2.0.7
 
           # library health test sketches
           - { matrix-context: M5Core2-test,   arduino-board: m5stack-core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
@@ -93,7 +97,7 @@ jobs:
             launcher-name: OdroidGo-Launcher
             appstore-name: OdroidGo-AppStore
             extra-fqbn: ":PartitionScheme=min_spiffs"
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz,Button2"
           #- matrix-context: TTGO-LoRa32-V2-test
             #arduino-board: ttgo-lora32-v2
             #sketch-names: TTGO-test.ino
