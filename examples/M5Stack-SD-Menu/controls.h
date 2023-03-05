@@ -26,8 +26,8 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
 #endif
 
 #if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE
-
-#define CAN_I_HAZ_M5FACES
+  #define CAN_I_HAZ_M5FACES
+#endif
 
 
 #if defined ARDUINO_M5STACK_Core2
