@@ -35,7 +35,7 @@ jobs:
           - m5stack-core2
           - m5unified
           - s3box
-          - M5AtomLite
+          - m5stack-atom
 
         platform-version:
           #- 1.0.6
