@@ -3,6 +3,10 @@
 
 void setup() {
 
+  #ifdef ARDUINO_M5STACK_FIRE
+    spicommon_periph_free( VSPI_HOST ); // fix 2.0.4 psramInit mess
+  #endif
+
   M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable
 
   SDUCfg.setFS( &M5_FS );

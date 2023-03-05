@@ -165,9 +165,9 @@ static void SDMenuProgressHeadless( int state, int size )
       0, 0, 0, 0
     };
   #else // assuming landscape mode /w 320x240 display
-    #define BUTTON_WIDTH 68
-    #define BUTTON_HWIDTH BUTTON_WIDTH/2 // button half width
-    #define BUTTON_HEIGHT 28
+    static uint16_t BUTTON_WIDTH = 68;
+    static uint16_t BUTTON_HWIDTH = BUTTON_WIDTH/2; // button half width
+    static uint16_t BUTTON_HEIGHT = 28;
     static int16_t SDUButtonsXOffset[3] = {
       31, 125, 219
     };
@@ -221,15 +221,16 @@ static void SDMenuProgressHeadless( int state, int size )
   struct BtnStyles
   {
     //                Border                                Fill                                  Text       Shadow
-    BtnStyle Load = { SDU_GFX.color565( 0x75, 0x75, 0x75 ), SDU_GFX.color565( 0x60, 0x60, 0x60 ), TFT_WHITE, TFT_BLACK };
-    BtnStyle Skip = { SDU_GFX.color565( 0x75, 0x75, 0x75 ), SDU_GFX.color565( 0x40, 0x40, 0x40 ), TFT_WHITE, TFT_BLACK };
-    BtnStyle Save = { SDU_GFX.color565( 0x75, 0x75, 0x75 ), SDU_GFX.color565( 0x20, 0x20, 0x20 ), TFT_WHITE, TFT_BLACK };
-    uint16_t height          = BUTTON_HEIGHT;
-    uint16_t width           = BUTTON_WIDTH;
-    uint16_t hwidth          = BUTTON_HWIDTH;
-    uint8_t  FontSize        = 1; // buttons font size
-    uint8_t  MsgFontSize     = 2; // welcome message font size
-    uint16_t MsgFontFolor[2] = {TFT_WHITE, TFT_BLACK}; // foreground, background
+    BtnStyle Load{ SDU_GFX.color565( 0x75, 0x75, 0x75 ), SDU_GFX.color565( 0x60, 0x60, 0x60 ), TFT_WHITE, TFT_BLACK };
+    BtnStyle Skip{ SDU_GFX.color565( 0x75, 0x75, 0x75 ), SDU_GFX.color565( 0x40, 0x40, 0x40 ), TFT_WHITE, TFT_BLACK };
+    BtnStyle Save{ SDU_GFX.color565( 0x75, 0x75, 0x75 ), SDU_GFX.color565( 0x20, 0x20, 0x20 ), TFT_WHITE, TFT_BLACK };
+    uint16_t height{BUTTON_HEIGHT};
+    uint16_t width{BUTTON_WIDTH};
+    uint16_t hwidth{BUTTON_HWIDTH};
+    uint8_t  FontSize{1}; // buttons font size
+    uint8_t  BtnFontNumber{1};
+    uint8_t  MsgFontSize{2}; // welcome message font size
+    uint16_t MsgFontFolor[2]{TFT_WHITE, TFT_BLACK}; // foreground, background
   };
 
   static BtnStyles DefaultBtnStyle;
@@ -330,9 +331,12 @@ static void SDMenuProgressHeadless( int state, int size )
   static void drawSDUSplashPage( const char* msg )
   {
     int32_t centerX = SDU_GFX.width() >> 1;
-    SDU_GFX.setTextSize( 2 );
+
+    auto fontSize = SDU_GFX.getTextSizeX();
+
+    SDU_GFX.setTextSize( fontSize*2.0 );
     uint8_t lineHeightBig = SDU_GFX.fontHeight();
-    SDU_GFX.setTextFont( 1 );
+    SDU_GFX.setTextFont( fontSize );
     uint8_t lineHeightSmall = SDU_GFX.fontHeight();
     uint8_t appNamePosy     = lineHeightBig*1.8+lineHeightSmall;
     uint8_t authorNamePosY  = appNamePosy + lineHeightBig*1.8;
@@ -363,7 +367,7 @@ static void SDMenuProgressHeadless( int state, int size )
     SDU_GFX.drawRoundRect( bx, by, bs->width, bs->height, 3, outlinecolor );
     SDU_GFX.setTextSize( bs->FontSize );
     SDU_GFX.setTextDatum( MC_DATUM );
-    SDU_GFX.setTextFont( 2 );
+    SDU_GFX.setTextFont( bs->BtnFontNumber );
     drawTextShadow( label, bx+bs->width/2, by+bs->height/2, textcolor, shadowcolor );
   }
 
