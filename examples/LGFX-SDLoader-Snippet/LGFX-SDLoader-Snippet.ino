@@ -7,11 +7,16 @@
 // #define LGFX M5GFX // just alias to LGFX for SD-Updater
 
 #include "M5Stack_Buttons.h" // stolen from M5Stack Core
-#define TFCARD_CS_PIN 22
 
 #define LGFX_ONLY
 #define SDU_APP_NAME "LGFX Loader Snippet"
 #include <M5StackUpdater.h>
+
+// #define TFCARD_CS_PIN 22
+#define BUTTON_A_PIN 39
+#define BUTTON_B_PIN 38
+#define BUTTON_C_PIN 37
+
 
 static LGFX tft;
 
@@ -19,11 +24,7 @@ static Button *BtnA;
 static Button *BtnB;
 static Button *BtnC;
 
-bool buttonAPressed() { return BtnA->isPressed(); }
-bool buttonBPressed() { return BtnB->isPressed(); }
-bool buttonCPressed() { return BtnC->isPressed(); }
-
-void ButtonUpdate()
+static void ButtonUpdate()
 {
   BtnA->read();
   BtnB->read();
@@ -34,19 +35,23 @@ void ButtonUpdate()
 void setup()
 {
   Serial.begin(115200);
+  Serial.println("LGFX Example");
 
   tft.init();
+  tft.fillRect( 10, 10, 100, 100, TFT_BLUE );
+  delay(1000);
 
-  BtnA = new Button(32, true, 10);
-  BtnB = new Button(33, true, 10);
-  BtnC = new Button(13, true, 10);
+  BtnA = new Button(BUTTON_A_PIN, true, 10);
+  BtnB = new Button(BUTTON_B_PIN, true, 10);
+  BtnC = new Button(BUTTON_C_PIN, true, 10);
   ButtonUpdate();
 
-  setSDUGfx( &tft ); // attach LGFX to SD-Updater
-  SDUCfg.setSDUBtnA( &buttonAPressed );
-  SDUCfg.setSDUBtnB( &buttonBPressed );
-  SDUCfg.setSDUBtnC( &buttonCPressed );
-  SDUCfg.setSDUBtnPoller( &ButtonUpdate );
+  SDUCfg.setDisplay( &tft ); // attach LGFX to SD-Updater
+
+  SDUCfg.setSDUBtnPoller( [](){ ButtonUpdate(); } );
+  SDUCfg.setBtnAChecker( []() -> bool{ return BtnA->isPressed(); } );
+  SDUCfg.setBtnBChecker( []() -> bool{ return BtnB->isPressed(); } );
+  SDUCfg.setBtnCChecker( []() -> bool{ return BtnC->isPressed(); } );
 
   // SDUCfg.setProgressCb  ( myProgress );       // void (*onProgress)( int state, int size )
   // SDUCfg.setMessageCb   ( myDrawMsg );        // void (*onMessage)( const String& label )
