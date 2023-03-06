@@ -70,7 +70,7 @@
     #ifndef SDU_GFX // M5.Lcd can be either from Chimera-Core or M5Cores (or even TFT_eSPI)
       //#define undef_tft
       #if defined __M5UNIFIED_HPP__
-        #define DISPLAY_TYPE M5FX*
+        #define DISPLAY_TYPE M5GFX*
         #define HAS_LGFX
         #define SDUSprite LGFX_Sprite
       #else
