@@ -4,7 +4,9 @@ on:
     paths:
     - '**.ino'
     - '**.cpp'
+    - '**.hpp'
     - '**.h'
+    - '**.c'
     - '**ArduinoBuild.yml'
   pull_request:
   release:
