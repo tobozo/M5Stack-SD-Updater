@@ -47,7 +47,7 @@ namespace SDUpdaterNS
           #define SDU_TouchButton TouchButton
         #endif
 
-        namespace UI
+        namespace SDU_UI
         {
 
           struct TouchStyles

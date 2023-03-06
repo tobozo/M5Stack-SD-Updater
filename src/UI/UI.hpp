@@ -8,7 +8,7 @@
 namespace SDUpdaterNS
 {
 
-  namespace UI
+  namespace SDU_UI
   {
     void SDMenuProgressUI( int state, int size );
     void DisplayUpdateUI( const String& label );
@@ -47,13 +47,13 @@ namespace SDUpdaterNS
           if( !SDUCfg.Buttons[2].cb ) { SDUCfg.setSDUBtnC( config::buttonCPressed ); log_v("Attached buttonpressC"); }
 
           if( !SDUCfg.buttonsUpdate ) { SDUCfg.setSDUBtnPoller( config::pollButtons ); log_v("Attached buttons poller"); }
-          if( !SDUCfg.onProgress   )  { SDUCfg.setProgressCb(   UI::SDMenuProgressUI );  log_v("Attached onProgress");   }
-          if( !SDUCfg.onMessage    )  { SDUCfg.setMessageCb(    UI::DisplayUpdateUI );   log_v("Attached onMessage");    }
-          if( !SDUCfg.onError      )  { SDUCfg.setErrorCb(      UI::DisplayErrorUI );    log_v("Attached onError");      }
-          if( !SDUCfg.onBefore     )  { SDUCfg.setBeforeCb(     UI::freezeTextStyle );   log_v("Attached onBefore");     }
-          if( !SDUCfg.onAfter      )  { SDUCfg.setAfterCb(      UI::thawTextStyle );     log_v("Attached onAfter");      }
-          if( !SDUCfg.onSplashPage )  { SDUCfg.setSplashPageCb( UI::drawSDUSplashPage ); log_v("Attached onSplashPage"); }
-          if( !SDUCfg.onButtonDraw )  { SDUCfg.setButtonDrawCb( UI::drawSDUPushButton ); log_v("Attached onButtonDraw"); }
+          if( !SDUCfg.onProgress   )  { SDUCfg.setProgressCb(   SDU_UI::SDMenuProgressUI );  log_v("Attached onProgress");   }
+          if( !SDUCfg.onMessage    )  { SDUCfg.setMessageCb(    SDU_UI::DisplayUpdateUI );   log_v("Attached onMessage");    }
+          if( !SDUCfg.onError      )  { SDUCfg.setErrorCb(      SDU_UI::DisplayErrorUI );    log_v("Attached onError");      }
+          if( !SDUCfg.onBefore     )  { SDUCfg.setBeforeCb(     SDU_UI::freezeTextStyle );   log_v("Attached onBefore");     }
+          if( !SDUCfg.onAfter      )  { SDUCfg.setAfterCb(      SDU_UI::thawTextStyle );     log_v("Attached onAfter");      }
+          if( !SDUCfg.onSplashPage )  { SDUCfg.setSplashPageCb( SDU_UI::drawSDUSplashPage ); log_v("Attached onSplashPage"); }
+          if( !SDUCfg.onButtonDraw )  { SDUCfg.setButtonDrawCb( SDU_UI::drawSDUPushButton ); log_v("Attached onButtonDraw"); }
           #if defined ARDUINO_ESP32_S3_BOX
             SDUCfg.setSDUBtnA( config::MuteChanged );   log_v("Attached Mute Read");
             SDUCfg.setSDUBtnB( nullptr );       log_v("Detached BtnB");
@@ -71,8 +71,8 @@ namespace SDUpdaterNS
       } else {
         log_v("Headless SD Menu Config (ptr=%d)", SDUCfg.display );
         if( SDUCfg.load_defaults ) {
-          if( !SDUCfg.onProgress      ) { SDUCfg.setProgressCb(      UI::SDMenuProgressHeadless );      log_v("Attached onProgress"); }
-          if( !SDUCfg.onMessage       ) { SDUCfg.setMessageCb(       UI::DisplayUpdateHeadless );       log_v("Attached onMessage"); }
+          if( !SDUCfg.onProgress      ) { SDUCfg.setProgressCb(      SDU_UI::SDMenuProgressHeadless );      log_v("Attached onProgress"); }
+          if( !SDUCfg.onMessage       ) { SDUCfg.setMessageCb(       SDU_UI::DisplayUpdateHeadless );       log_v("Attached onMessage"); }
           if( !SDUCfg.onWaitForAction ) { SDUCfg.setWaitForActionCb( TriggerSource::serial );           log_v("Attached onWaitForAction (serial)"); }
         }
       }
@@ -223,7 +223,7 @@ namespace SDUpdaterNS
 
     static SDUTextStyle_t SDUTextStyle; // temporary style holder
 
-    namespace UI
+    namespace SDU_UI
     {
 
 
@@ -544,7 +544,7 @@ namespace SDUpdaterNS
     };
 
 
-    namespace UI
+    namespace SDU_UI
     {
 
       void DisplayUpdateHeadless( const String& label )
