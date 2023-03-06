@@ -174,7 +174,14 @@ namespace SDUpdaterNS
           setSDUBtnPoller( []() { M5.update(); } );
           setBtnAChecker( []() -> bool { return M5.BtnA.isPressed(); } );
           setBtnBChecker( []() -> bool { return M5.BtnB.isPressed(); } );
-          setBtnCChecker( []() -> bool { return M5.BtnC.isPressed(); } );
+          setBtnCChecker( []() -> bool {
+            #if defined _M5STICKC_H_
+              return false;
+            #else
+              return M5.BtnC.isPressed();
+            #endif
+          });
+
         #endif
         return display ? display : (void*)SDU_GFX;
       }
