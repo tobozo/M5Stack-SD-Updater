@@ -28,18 +28,19 @@
  *
  */
 
-#include "M5StackUpdater.h"
+#include "M5StackUpdater.hpp"
 
 
 namespace SDUpdaterNS
 {
 
+  //using namespace ConfigManager;
 
-  namespace config
+
+  namespace ConfigManager
   {
     config_sdu_t SDUCfg;
   };
-
 
 
   // provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater
@@ -117,8 +118,8 @@ namespace SDUpdaterNS
   // constructor with config
   SDUpdater::SDUpdater( config_sdu_t* _cfg ) : cfg(_cfg)
   {
-    if( SDUCfgLoader ) SDUCfgLoader();
-    else config::setup();
+    if( ConfigManager::SDUCfgLoader ) ConfigManager::SDUCfgLoader();
+    else ConfigManager::setup();
     _fs_begun = _fsBegin( false );
     //if( cfg->fs == nullptr ) log_w("No filesystem selected in constructor!");
   };
@@ -131,8 +132,8 @@ namespace SDUpdaterNS
     //SDUCfg.setSDU( this ); // attach this to SDUCfg.sdUpdater
     SDUCfg.setCSPin( TFCardCsPin_ );
     cfg = &SDUCfg;
-    if( SDUCfgLoader ) SDUCfgLoader();
-    else config::setup();
+    if( ConfigManager::SDUCfgLoader ) ConfigManager::SDUCfgLoader();
+    else ConfigManager::setup();
     _fs_begun = _fsBegin( false );
     //if( cfg->fs == nullptr ) log_w("No filesystem selected in constructor!");
   };
@@ -174,19 +175,22 @@ namespace SDUpdaterNS
       }
     #endif
     #if defined (_SD_H_)
-      log_d(" Checking for SD Support (pin #%d)",  cfg->TFCardCsPin );
+      log_d("[%d] Checking for SD Support (pin #%d)", ESP.getFreeHeap(), cfg->TFCardCsPin );
       if( &fs == &SD ) {
         // user provided specific pinout via build extra flags
         #if defined _CLK && defined _MISO && defined _MOSI
           SPI.begin(_CLK, _MISO, _MOSI, cfg->TFCardCsPin);
           SPI.setDataMode(SPI_MODE3);
+          if (!SD.begin(cfg->TFCardCsPin, SPI, 80000000)) // 80MHz(MAX)
+        #else
+          if (!SD.begin(cfg->TFCardCsPin))
         #endif
-        if (!SD.begin(cfg->TFCardCsPin, SPI, 80000000)) {  // 80MHz(MAX)
+        {
           msg[0] = String("SD MOUNT FAILED (pin #" + String(cfg->TFCardCsPin) + ")").c_str();
           if( report_errors ) _error( msg, 2 );
           return false;
         } else {
-          log_d("SD Successfully mounted (pin #%d)", cfg->TFCardCsPin);
+          log_d("[%d] SD Successfully mounted (pin #%d)", ESP.getFreeHeap(), cfg->TFCardCsPin );
         }
         mounted = true;
       }
@@ -214,6 +218,16 @@ namespace SDUpdaterNS
       }
     #endif
     return mounted;
+  }
+
+
+  const char* SDUpdater::fs_file_path( fs::File *file )
+  {
+    #if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
+      return file->path();
+    #else
+      return file->name();
+    #endif
   }
 
 
@@ -600,14 +614,14 @@ namespace SDUpdaterNS
 
     if( cfg->onWaitForAction ) {
       int ret = cfg->onWaitForAction( nullptr, nullptr, nullptr, waitdelay );
-      if ( ret == SDU_BTNA_MENU ) {
+      if ( ret == ConfigManager::SDU_BTNA_MENU ) {
         Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
         updateFromFS( fileName );
         ESP.restart();
       }
       if( cfg->binFileName != nullptr ) {
         log_d("Checking if %s needs saving", cfg->binFileName );
-        saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != SDU_BTNC_SAVE );
+        saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != ConfigManager::SDU_BTNC_SAVE );
       }
     } else {
       _error( "Missing onWaitForAction!" );
@@ -650,9 +664,10 @@ namespace SDUpdaterNS
       [[maybe_unused]] unsigned long startwait = millis();
       int ret = cfg->onWaitForAction( isRollBack ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, (char*)cfg->labelSave, waitdelay );
       [[maybe_unused]] unsigned long actualwaitdelay = millis()-startwait;
+
       log_v("Action '%d' was triggered after %d ms (waidelay=%d)", ret, actualwaitdelay, waitdelay );
 
-      if ( ret == SDU_BTNA_MENU ) {
+      if ( ret == ConfigManager::SDU_BTNA_MENU ) {
         if( isRollBack == false ) {
           Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
           updateFromFS( fileName );
@@ -664,7 +679,7 @@ namespace SDUpdaterNS
       }
       if( cfg->binFileName != nullptr ) {
         log_d("Checking if %s needs saving", cfg->binFileName );
-        saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != SDU_BTNC_SAVE );
+        saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != ConfigManager::SDU_BTNC_SAVE );
       }
     } else {
       _error( "Missing onWaitForAction!" );

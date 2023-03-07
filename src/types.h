@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdint.h>
+
+
 namespace SDUpdaterNS
 {
 
@@ -29,6 +32,8 @@ namespace SDUpdaterNS
 
   struct BtnStyle_t
   {
+    BtnStyle_t( const uint16_t _BorderColor, const uint16_t _FillColor, const uint16_t _TextColor, const uint16_t _ShadowColor ) :
+      BorderColor(_BorderColor), FillColor(_FillColor), TextColor(_TextColor), ShadowColor(_ShadowColor) { }
     const uint16_t BorderColor;
     const uint16_t FillColor;
     const uint16_t TextColor;

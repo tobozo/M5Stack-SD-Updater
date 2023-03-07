@@ -29,84 +29,14 @@
  */
 #pragma once
 
-#define ROLLBACK_LABEL   "Rollback" // reload app from the "other" OTA partition
-#define LAUNCHER_LABEL   "Launcher" // load Launcher (typically menu.bin)
-#define SKIP_LABEL       "Skip >>|" // resume normal operations (=no action taken)
-#define SAVE_LABEL       "Save"     // copy sketch binary to FS
-#define BTN_HINT_MSG     "SD-Updater Lobby"
-#define SDU_LOAD_TPL     "Will Load menu binary : %s\n"
-#define SDU_ROLLBACK_MSG "Will Roll back"
-
-#if !defined SDU_APP_PATH
-  #define SDU_APP_PATH nullptr
-#endif
-#if !defined SDU_APP_NAME
-  #define SDU_APP_NAME nullptr
-#endif
-#if !defined SDU_APP_AUTHOR
-  #define SDU_APP_AUTHOR nullptr
-#endif
-
-#ifndef MENU_BIN
-  #define MENU_BIN "/menu.bin"
-#endif
-
-#if !defined SDU_HEADLESS && (defined _CHIMERA_CORE_ || defined _M5STICKC_H_ || defined _M5STACK_H_ || defined _M5Core2_H_ || defined LGFX_ONLY || defined __M5UNIFIED_HPP__ || defined LOVYANGFX_HPP_ )
-
-  #define USE_DISPLAY
-  #if defined _M5Core2_H_
-    //#define SDU_HAS_TOUCH
-  #endif
-
-  // display driver selector
-  #if defined LGFX_ONLY
-    #define DISPLAY_TYPE LGFX*
-    #ifndef SDU_GFX
-      //#define undef_tft
-      #define HAS_LGFX
-      #define SDUSprite LGFX_Sprite
-    #endif
-  #else
-    #ifndef SDU_GFX // M5.Lcd can be either from Chimera-Core or M5Cores (or even TFT_eSPI)
-      //#define undef_tft
-      #if defined __M5UNIFIED_HPP__
-        #define DISPLAY_TYPE M5GFX*
-        #define HAS_LGFX
-        #define SDUSprite LGFX_Sprite
-      #else
-        #define DISPLAY_TYPE M5Display*
-        #if defined _CHIMERA_CORE_H_
-          #define HAS_LGFX
-          #define SDUSprite LGFX_Sprite
-        #else
-          #define SDUSprite TFT_eSprite
-        #endif
-      #endif
-    #endif
-  #endif
-
-#else
-  // #warning SD-Updater will run in Headless mode
-#endif
-
-#if !defined(TFCARD_CS_PIN) // override this from your sketch if the guess is wrong
-  #if defined( ARDUINO_LOLIN_D32_PRO ) || defined( ARDUINO_M5STACK_Core2  ) || defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE)
-    #define TFCARD_CS_PIN  4
-  #elif defined( ARDUINO_ESP32_WROVER_KIT ) || defined( ARDUINO_ODROID_ESP32 )
-    #define TFCARD_CS_PIN 22
-  #elif defined ARDUINO_TWATCH_BASE || defined ARDUINO_TWATCH_2020_V1 || defined ARDUINO_TWATCH_2020_V2 || defined(ARDUINO_TTGO_T1)
-    #define TFCARD_CS_PIN 13
-  #else
-    #define TFCARD_CS_PIN SS
-  #endif
-#endif
-
-
+#include "./config.h"
 
 namespace SDUpdaterNS
 {
 
-  namespace config
+  struct Theme_t;
+
+  namespace ConfigManager
   {
 
     // to be returned by onWaitForActionCb
@@ -119,23 +49,25 @@ namespace SDUpdaterNS
     };
 
     // callback signatures
-    typedef void (*onProgressCb)( int state, int size );
-    typedef void (*onMessageCb)( const String& label );
-    typedef void (*onErrorCb)( const String& message, unsigned long delay );
-    typedef void (*onBeforeCb)();
-    typedef void (*onAfterCb)();
-    typedef void (*onSplashPageCb)( const char* msg );
+    typedef void (*onProgressCb)( int state, int size ); // progress bar when updating/saving
+    typedef void (*onMessageCb)( const String& label );  // misc info messages
+    typedef void (*onErrorCb)( const String& message, unsigned long delay ); // error messages
+    typedef void (*onBeforeCb)(); // called before using display
+    typedef void (*onAfterCb)();  // called after using display
+    typedef void (*onSplashPageCb)( const char* msg ); // lobby page
     typedef void (*onButtonDrawCb)( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor, uint16_t shadowcolor );
-    typedef int  (*onWaitForActionCb)( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay );
-    typedef void (*onConfigLoad)();
+    typedef int  (*onWaitForActionCb)( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay ); // action trigger
+    typedef void (*onConfigLoad)(); // external config loader, if set, will be called by SDUpdater constructor
     typedef void (*BtnPollCb)(); // called to poll button state e.g. like M5.update()
     typedef bool (*BtnXPressCb)(); // called when a button is pressed
 
-    typedef bool(*btnAChecker)();   // M5.BtnA.wasPressed()
-    typedef bool(*btnBChecker)();   // M5.BtnB.wasPressed()
-    typedef bool(*btnCChecker)();   // M5.BtnC.wasPressed()
 
-    static void setup(); // overloaded in UI.hpp
+    typedef void(*pollChecker)(); // M5.update()
+    typedef bool(*btnAChecker)(); // M5.BtnA.wasPressed()
+    typedef bool(*btnBChecker)(); // M5.BtnB.wasPressed()
+    typedef bool(*btnCChecker)(); // M5.BtnC.wasPressed()
+
+    void setup(); // overloaded in UI.hpp
     static void pollButtons(); // overloaded in UI.hpp
     static bool buttonAPressed(); // overloaded in UI.hpp
     static bool buttonBPressed(); // overloaded in UI.hpp
@@ -154,8 +86,20 @@ namespace SDUpdaterNS
     // SDUpdater config callbacks and params
     struct config_sdu_t
     {
+
+      config_sdu_t()
+      {
+        setSDUBtnA( buttonAPressed ); //log_v("Attached buttonpressA");
+        setSDUBtnB( buttonBPressed ); //log_v("Attached buttonpressB");
+        setSDUBtnC( buttonCPressed ); //log_v("Attached buttonpressC");
+        setSDUBtnChecker( pollButtons ); //log_v("Attached buttons poller");
+        setDisplay();
+        setButtons();
+      };
+
       fs::FS *fs = nullptr;
       void *display = nullptr; // dereferenced display object
+      Theme_t *theme = nullptr; // buttons theme
       int TFCardCsPin = -1;
       bool load_defaults = true;
       bool use_rollback = true;
@@ -173,7 +117,9 @@ namespace SDUpdaterNS
         { nullptr, SDU_BTNB_SKIP },
         { nullptr, SDU_BTNC_SAVE }
       };
+
       BtnPollCb         buttonsUpdate    = nullptr;
+      pollChecker       buttonsPoll      = nullptr;
       btnAChecker       btnAPressed      = nullptr;
       btnBChecker       btnBPressed      = nullptr;
       btnCChecker       btnCPressed      = nullptr;
@@ -186,9 +132,8 @@ namespace SDUpdaterNS
       onButtonDrawCb    onButtonDraw     = nullptr;
       onWaitForActionCb onWaitForAction  = nullptr;
 
-      void* getDisplay(); // overloaded in UI.hpp
-      void setDisplay() { display=getDisplay(); }
-      void setDisplay( void *ptr ) { display=ptr; }
+      void setDisplay( void* ptr=nullptr );// overloaded in UI.hpp
+      void setButtons();// overloaded in UI.hpp
 
       void setCSPin( const int param )                { TFCardCsPin = param; }
       void setFS( fs::FS *param )                     { fs = param; }
@@ -200,7 +145,6 @@ namespace SDUpdaterNS
       void setSplashPageCb( onSplashPageCb cb )       { onSplashPage = cb; }
       void setButtonDrawCb( onButtonDrawCb cb )       { onButtonDraw = cb; }
       void setWaitForActionCb( onWaitForActionCb cb ) { onWaitForAction = cb; }
-      void setSDUBtnPoller( BtnPollCb cb )            { buttonsUpdate = cb; }
 
       void setLabelMenu( const char* label )          { labelMenu = label; }
       void setLabelSkip( const char* label )          { labelSkip = label; }
@@ -211,6 +155,11 @@ namespace SDUpdaterNS
       void setBinFileName( const char* name )         { binFileName = name; }
       void useRolllback( bool use )                   { use_rollback = use; }
 
+      void setButtonsTheme( Theme_t *_theme )         { theme = _theme; }
+
+      void setSDUBtnPoller( BtnPollCb cb )            { buttonsUpdate = cb; }
+
+      void setSDUBtnChecker( pollChecker cb )         { buttonsPoll = cb; }
       void setBtnAChecker( btnAChecker fn )           { btnAPressed = fn; }
       void setBtnBChecker( btnBChecker fn )           { btnBPressed = fn; }
       void setBtnCChecker( btnCChecker fn )           { btnCPressed = fn; }
@@ -237,36 +186,37 @@ namespace SDUpdaterNS
     [[maybe_unused]] static onConfigLoad SDUCfgLoader = nullptr;
     extern config_sdu_t SDUCfg;
 
+
+    void pollButtons()
+    {
+      if(SDUCfg.buttonsUpdate) SDUCfg.buttonsUpdate();
+    }
+
+    bool buttonAPressed()
+    {
+      if(SDUCfg.btnAPressed) return SDUCfg.btnAPressed();
+      else return false;
+    }
+
+    bool buttonBPressed()
+    {
+      if(SDUCfg.btnBPressed) return SDUCfg.btnBPressed();
+      else return false;
+    }
+
+    bool buttonCPressed()
+    {
+      if(SDUCfg.btnCPressed) return SDUCfg.btnCPressed();
+      else return false;
+    }
+
+
   };
 
-  using namespace config;
+  using ConfigManager::SDUCfg;
 
 }; // end namespace
 
 
-// Fancy names for detected boards
-#if defined ARDUINO_M5Stick_C
-  #define SD_PLATFORM_NAME "M5StickC"
-#elif defined ARDUINO_ODROID_ESP32
-  #define SD_PLATFORM_NAME "Odroid-GO"
-#elif defined ARDUINO_M5Stack_Core_ESP32
-  #define SD_PLATFORM_NAME "M5Stack"
-#elif defined ARDUINO_M5STACK_FIRE
-  #define SD_PLATFORM_NAME "M5Stack-Fire"
-#elif defined ARDUINO_M5STACK_Core2
-  #define SD_PLATFORM_NAME "M5StackCore2"
-#elif defined ARDUINO_ESP32_WROVER_KIT
-  #define SD_PLATFORM_NAME "Wrover-Kit"
-#elif defined ARDUINO_TTGO_T1             // TTGO T1
-  #define SD_PLATFORM_NAME "TTGO-T1"
-#elif defined ARDUINO_LOLIN_D32_PRO       // LoLin D32 Pro
-  #define SD_PLATFORM_NAME "LoLin D32 Pro"
-#elif defined ARDUINO_T_Watch             // TWatch, all models
-  #define SD_PLATFORM_NAME "TTGO TWatch"
-#elif defined ARDUINO_M5STACK_ATOM_AND_TFCARD
-  #define SD_PLATFORM_NAME "Atom"
-#else
-  //#pragma message ("Custom ESP32 board detected")
-  #define SD_PLATFORM_NAME "ESP32"
-#endif
+
 
