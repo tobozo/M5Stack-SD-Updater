@@ -403,7 +403,7 @@ void M5SAM::keyboardIRQ(){
 
 #ifdef ARDUINO_ODROID_ESP32
 
-  //#define BUTTON_WIDTH 60
+  #define BUTTON_WIDTH 60
   #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
   #define BUTTON_HEIGHT 28
   uint16_t buttonsXOffset[4] = {
@@ -425,7 +425,7 @@ void M5SAM::keyboardIRQ(){
 
 #else
 
-  //#define BUTTON_WIDTH 60
+  #define BUTTON_WIDTH 60
   #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
   #define BUTTON_HEIGHT 28
   uint16_t buttonsXOffset[3] =
@@ -437,6 +437,7 @@ void M5SAM::keyboardIRQ(){
 
 void M5SAM::btnRestore()
 {
+  //using namespace SDU_UI;
   tft.setTextColor(menutextcolor);
   tft.fillRoundRect(0,tft.height()-BUTTON_HEIGHT,tft.width(),BUTTON_HEIGHT,3,0x00);
   for( byte i=0; i<BUTTONS_COUNT; i++ ) {
