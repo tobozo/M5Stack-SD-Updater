@@ -1,9 +1,7 @@
 
 #include "./UI.hpp"
 
-#if defined USE_DISPLAY
-  #include "assets.h"
-#endif
+
 
 #define FN_LAMBDA_VOID(x) []() { x; }
 #define FN_LAMBDA_BOOL(x) []() -> bool { return x; }

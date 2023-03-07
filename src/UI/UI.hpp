@@ -2,7 +2,9 @@
 
 #include "../M5StackUpdater.hpp"
 #include "../types.h"
-
+#if defined USE_DISPLAY
+  #include "assets.h"
+#endif
 
 namespace SDUpdaterNS
 {
