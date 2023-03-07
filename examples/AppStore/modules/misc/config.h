@@ -57,7 +57,7 @@
 #endif
 
 #if !defined BUTTON_WIDTH
-  #define BUTTON_HEIGHT  60
+  #define BUTTON_WIDTH  60
 #endif
 
 #if !defined BUTTON_HWIDTH
