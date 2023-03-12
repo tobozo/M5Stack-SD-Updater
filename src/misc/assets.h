@@ -1,5 +1,6 @@
 #pragma once
-#if defined USE_DISPLAY
+
+#include <stdint.h>
 
 const uint16_t sdUpdaterIcon15x16_raw[] = {
   0x0000, 0x1000, 0x3000, 0x107c, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000,
@@ -277,4 +278,4 @@ const unsigned char sdUpdaterIcon32x40_jpg[] = {
 };
 const unsigned int sdUpdaterIcon32x40_jpg_len = 1855;
 
-#endif
+//#endif

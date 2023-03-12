@@ -73,24 +73,25 @@
 //#define M5_FS SD
 
 #if !defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
-#include "core.h"
+  #include "core.h"
 #else
-#include <SD.h>
-#include "LGFX_8BIT_CVBS.h"
-#include <Button2.h>
-#define USE_DISPLAY
-#define LGFX_ONLY
-#define TFCARD_CS_PIN -1
+  #include <SD.h>
+  #include "LGFX_8BIT_CVBS.h"
+  #include <Button2.h>
 
-static LGFX_8BIT_CVBS tft;
-#define LGFX LGFX_8BIT_CVBS
-//#define BUTTON_WIDTH 60
-#define SDU_APP_NAME "Application Launcher"
-#include <M5StackUpdater.h>
-static LGFX_Sprite sprite(&tft);
-fs::SDFS &M5_FS(SD);
+  #define USE_DISPLAY
+  #define LGFX_ONLY
+  #define TFCARD_CS_PIN -1
 
-Button2 button;//for G39
+  static LGFX_8BIT_CVBS tft;
+  #define LGFX LGFX_8BIT_CVBS
+  //#define BUTTON_WIDTH 60
+  #define SDU_APP_NAME "Application Launcher"
+  #include <M5StackUpdater.h>
+  static LGFX_Sprite sprite(&tft);
+  fs::SDFS &M5_FS(SD);
+
+  Button2 button;//for G39
 
 #endif
 

@@ -86,62 +86,48 @@
  */
 
 #include "gitTagVersion.h"
-#include <esp_partition.h> // required by getSketchMeta(), compareFsPartition() and copyFsPartition() methods
-extern "C" {
-  #include "esp_ota_ops.h"
-  #include "esp_image_format.h"
-}
-// required to guess the reset reason
-#if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
-  #if defined CONFIG_IDF_TARGET_ESP32
-    #include <esp32/rom/rtc.h>
-  #elif defined CONFIG_IDF_TARGET_ESP32S2
-    #include <esp32s2/rom/rtc.h>
-  #elif defined CONFIG_IDF_TARGET_ESP32C3
-    #include <esp32c3/rom/rtc.h>
-  #elif defined CONFIG_IDF_TARGET_ESP32S3
-    #include <rom/rtc.h>
-  #else
-    #warning "Target CONFIG_IDF_TARGET is unknown"
-    #include <rom/rtc.h>
-  #endif
-#else
-  #include <rom/rtc.h>
-#endif
+#include "./misc/assets.h"
+#include <FS.h>
 
 #define resetReason (int)rtc_get_reset_reason(0)
 
-
-#include <FS.h>
-#include <Update.h>
-// required to store the MENU_BIN hash
-#include <Preferences.h>
 // inherit filesystem includes from sketch
-#if __has_include(<SD.h>) || defined _SD_H_
+#if defined _SD_H_
   #define SDU_HAS_SD
-  #include <SD.h>
+  #if defined _CLK && defined _MISO && defined _MOSI
+    // user provided specific pinout via build extra flags
+    #if !defined SDU_SPI_MODE
+      #define SDU_SPI_MODE SPI_MODE3
+    #endif
+    #if !defined SDU_SPI_FREQ
+      #define SDU_SPI_FREQ 80000000
+    #endif
+    #pragma message "SD has custom SPI pins"
+    #define SDU_SD_BEGIN [](int csPin)->bool{ SPI.begin(_CLK, _MISO, _MOSI, csPin); SPI.setDataMode(SDU_SPI_MODE); return SD.begin(csPin, SPI, SDU_SPI_FREQ); }
+  #else
+    #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
+  #endif
 #endif
-#if __has_include(<SD_MMC.h>) || defined _SD_MMC_H_
+#if defined _SD_MMC_H_
   #define SDU_HAS_SD_MMC
-  #include <SD_MMC.h>
+  /*#include <SD_MMC.h>*/
 #endif
-#if __has_include(<SPIFFS.h>) || defined _SPIFFS_H_
+#if defined _SPIFFS_H_
   #define SDU_HAS_SPIFFS
-  #include <SPIFFS.h>
+  /*#include <SPIFFS.h>*/
 #endif
-#if __has_include(<LittleFS.h>) || defined _LiffleFS_H_
+#if defined _LiffleFS_H_
   #define SDU_HAS_LITTLEFS
-  #include <LittleFS.h>
+  /*#include <LittleFS.h>*/
 #endif
-#if __has_include(<PSRamFS.h>) || defined _PSRAMFS_H_
-  #include <PSRamFS.h>
-#endif
+
 #if __has_include(<LITTLEFS.h>) || defined _LIFFLEFS_H_
   // LittleFS is now part of esp32 package, the older, external version isn't supported
   #warning "Older version of <LITTLEFS.h> is unsupported, use builtin version with #include <LittleFS.h> instead, if using platformio add LittleFS(esp32)@^2.0.0 to lib_deps"
 #endif
 
 #define SDU_HAS_FS (defined SDU_HAS_SD || defined SDU_HAS_SD_MMC || defined SDU_HAS_SPIFFS || defined SDU_HAS_LITTLEFS )
+
 #if ! SDU_HAS_FS
   #pragma message "SDUpdater didn't detect any  preselected filesystem, will use SD as default"
   #define SDU_HAS_SD
@@ -149,174 +135,381 @@ extern "C" {
   //TODO: implement FILE/fopen()
 #endif
 
-#if !defined(TFCARD_CS_PIN) // override this from your sketch if the guess is wrong
-  #if defined( ARDUINO_LOLIN_D32_PRO ) || defined( ARDUINO_M5STACK_Core2  ) || defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE)
-    #define TFCARD_CS_PIN  4
-  #elif defined( ARDUINO_ESP32_WROVER_KIT ) || defined( ARDUINO_ODROID_ESP32 )
-    #define TFCARD_CS_PIN 22
-  #elif defined ARDUINO_TWATCH_BASE || defined ARDUINO_TWATCH_2020_V1 || defined ARDUINO_TWATCH_2020_V2 || defined(ARDUINO_TTGO_T1)
-    #define TFCARD_CS_PIN 13
+
+#if !defined SDU_NO_AUTODETECT
+
+  #if !defined SDU_HEADLESS
+    #define SDU_USE_DISPLAY // any detected display is default enabled unless SDU_HEADLESS mode is selected
+  #endif
+
+  #define HAS_M5_API // This is M5Stack Updater, assume it has the M5.xxx() API, will be undef'd otherwise
+
+  #if defined _CHIMERA_CORE_
+    #pragma message "Chimera Core detected"
+    //#include <ESP32-Chimera-Core.hpp>
+    #define SDU_Sprite LGFX_Sprite
+    #define SDU_DISPLAY_TYPE M5Display*
+    #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
+    #define SDU_TouchButton LGFX_Button
+    #define HAS_LGFX
+    // ESP32-Chimera-Core creates the HAS_TOUCH macro when the selected display supports it
+    #if !defined SDU_HAS_TOUCH && /*ARDUINO_M5STACK_Core2 ||*/ defined HAS_TOUCH
+      #define SDU_HAS_TOUCH
+    #endif
+  #elif defined _M5STACK_H_
+    #pragma message "M5Stack.h detected"
+    //#include <M5Stack.h>
+    #define SDU_Sprite TFT_eSprite
+    #define SDU_DISPLAY_TYPE M5Display*
+    #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
+  #elif defined _M5Core2_H_
+    #pragma message "M5Core2.h detected"
+    //#include <M5Core2.h>
+    #define SDU_Sprite TFT_eSprite
+    #define SDU_DISPLAY_TYPE M5Display*
+    #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
+    #define SDU_TouchButton TFT_eSPI_Button
+    #define SDU_HAS_TOUCH // M5Core2 has implicitely enabled touch interface
+  #elif defined _M5STICKC_H_
+    #pragma message "M5StickC.h detected"
+    //#include <M5StickC.h>
+    #define SDU_Sprite TFT_eSprite
+    #define SDU_DISPLAY_TYPE M5Display*
+    #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
+  #elif defined __M5UNIFIED_HPP__
+    #pragma message "M5Unified.h detected"
+    //#include <M5Unified.hpp>
+    #define SDU_Sprite LGFX_Sprite
+    #define SDU_DISPLAY_TYPE M5GFX*
+    #define SDU_DISPLAY_OBJ_PTR &M5.Display
+    #define SDU_TouchButton LGFX_Button
+    #define HAS_LGFX
+    #if !defined SDU_HAS_TOUCH && defined ARDUINO_M5STACK_Core2
+      #define SDU_HAS_TOUCH
+    #endif
   #else
-    #define TFCARD_CS_PIN SS
+    #pragma message "No display driver detected"
+    //#error "No display driver detected"
+    #define SDU_DISPLAY_OBJ_PTR nullptr
+    //#define SDU_DISPLAY_TYPE void*
+    //#define SDU_Sprite void*
+    #undef SDU_USE_DISPLAY
+    #undef HAS_M5_API
   #endif
 #endif
-
-#if !defined SDU_HEADLESS
-  #define USE_DISPLAY // any detected display is default enabled unless SDU_HEADLESS mode is selected
-#endif
-
-#define HAS_M5_API // This is M5Stack Updater, assume it has the M5.xxx() API, will be undef'd otherwise
-
-// detect display driver and assign GFX macros
-#if __has_include(<ESP32-Chimera-Core.h>) || __has_include(<ESP32-Chimera-Core.hpp>) || defined _CHIMERA_CORE_
-  #include <ESP32-Chimera-Core.hpp>
-  #define SDUSprite LGFX_Sprite
-  #define DISPLAY_TYPE M5Display*
-  #define DISPLAY_OBJ_PTR &M5.Lcd
-  #define SDU_TouchButton LGFX_Button
-  #define HAS_LGFX
-  // ESP32-Chimera-Core creates the HAS_TOUCH macro when the selected display supports it
-  #if defined ARDUINO_M5STACK_Core2 || defined HAS_TOUCH
-    #define SDU_HAS_TOUCH
-  #endif
-#elif __has_include(<M5Stack.h>) || defined _M5STACK_H_
-  #include <M5Stack.h>
-  #define SDUSprite TFT_eSprite
-  #define DISPLAY_TYPE M5Display*
-  #define DISPLAY_OBJ_PTR &M5.Lcd
-#elif __has_include(<M5Core2.h>) || defined _M5Core2_H_
-  #include <M5Core2.h>
-  #define SDUSprite TFT_eSprite
-  #define DISPLAY_TYPE M5Display*
-  #define DISPLAY_OBJ_PTR &M5.Lcd
-  #define SDU_TouchButton TFT_eSPI_Button
-  #define SDU_HAS_TOUCH // M5Core2 has implicitely enabled touch interface
-#elif __has_include(<M5StickC.h>) || defined _M5STICKC_H_
-  #include <M5StickC.h>
-  #define SDUSprite TFT_eSprite
-  #define DISPLAY_TYPE M5Display*
-  #define DISPLAY_OBJ_PTR &M5.Lcd
-#elif __has_include(<M5Unified.hpp>) || defined __M5UNIFIED_HPP__
-  #include <M5Unified.hpp>
-  #define SDUSprite LGFX_Sprite
-  #define DISPLAY_TYPE M5GFX*
-  #define DISPLAY_OBJ_PTR &M5.Display
-  #define SDU_TouchButton LGFX_Button
-  #define HAS_LGFX
-  #if defined ARDUINO_M5STACK_Core2
-    #define SDU_HAS_TOUCH
-  #endif
-#elif __has_include(<LovyanGFX.hpp>) || defined LOVYANGFX_HPP_ || defined LGFX_ONLY
-  #define LGFX_AUTODETECT
-  #define LGFX_USE_V1
-  #include <LovyanGFX.hpp>
-  #define SDUSprite LGFX_Sprite
-  #define SDU_TouchButton LGFX_Button
-  #define DISPLAY_TYPE LGFX*
-  #define DISPLAY_OBJ_PTR nullptr
-  #define HAS_LGFX
-  #undef HAS_M5_API
-  #if !defined LGFX_ONLY
-    #define LGFX_ONLY
-  #endif
-  #if defined ARDUINO_M5STACK_Core2
-    #define SDU_HAS_TOUCH
-  #endif
-#else
-  #pragma "No display driver detected"
-  #define DISPLAY_OBJ_PTR nullptr
-  #define DISPLAY_TYPE void*
-  #undef USE_DISPLAY
-#endif
-
 
 
 #if defined HAS_M5_API // SDUpdater can use M5.update(), and M5.Btnx API
   #define DEFAULT_BTN_POLLER M5.update()
-  #define DEFAULT_BTNA_CHECKER M5.BtnA.isPressed()
-  #if !defined ARDUINO_ESP32_S3_BOX
-    #define DEFAULT_BTNB_CHECKER M5.BtnB.isPressed()
-  #else
+  #if defined ARDUINO_ESP32_S3_BOX // S3Box only has mute button and Touch
+    #define DEFAULT_BTNA_CHECKER S3MuteButton.changed() // use SDUpdater::DigitalPinButton_t
     #define DEFAULT_BTNB_CHECKER false
-  #endif
-  #if !defined _M5STICKC_H_ & !defined ARDUINO_ESP32_S3_BOX
-    #define DEFAULT_BTNC_CHECKER M5.BtnC.isPressed()
-  #else
     #define DEFAULT_BTNC_CHECKER false
+  #else
+    #define DEFAULT_BTNA_CHECKER M5.BtnA.isPressed()
+    #define DEFAULT_BTNB_CHECKER M5.BtnB.isPressed()
+    #if defined _M5STICKC_H_ // M5StickC has no BtnC
+      #define DEFAULT_BTNC_CHECKER false
+    #else
+      #define DEFAULT_BTNC_CHECKER M5.BtnC.isPressed()
+    #endif
   #endif
-#else // SDUpdater is headless
-  #define DEFAULT_BTN_POLLER (void)0
+#else
+  // SDUpdater will use Serial as trigger source
+  #if !defined SDU_NO_AUTODETECT
+    #pragma message "No M5 API found"
+  #endif
+  #define DEFAULT_BTN_POLLER nullptr
   #define DEFAULT_BTNA_CHECKER false
   #define DEFAULT_BTNB_CHECKER false
   #define DEFAULT_BTNC_CHECKER false
 #endif
 
 
-#include "ConfigManager.hpp" // load config manager
-#include "./UI/UI.hpp"
+#if !defined SDU_TRIGGER_SOURCE_DEFAULT
+  #if defined SDU_HAS_TOUCH
+    #pragma message "Trigger source: Touch Button"
+    #define SDU_TRIGGER_SOURCE_DEFAULT TriggerSource::SDU_TRIGGER_TOUCHBUTTON
+  #elif defined HAS_M5_API
+    #pragma message "Trigger source: Push Button"
+    #define SDU_TRIGGER_SOURCE_DEFAULT TriggerSource::SDU_TRIGGER_PUSHBUTTON
+  #else
+    #pragma message "Trigger source: Serial"
+    #define SDU_TRIGGER_SOURCE_DEFAULT TriggerSource::SDU_TRIGGER_SERIAL
+  #endif
+#endif
+
+
+#include "./ConfigManager/ConfigManager.hpp"
+#include "./SDUpdater/SDUpdater_Class.hpp"
+#include "./UI/common.hpp"
+
+
+#if defined SDU_USE_DISPLAY
+  #pragma message "Attached UI"
+  #define SDU_GFX ((SDU_DISPLAY_TYPE)(SDUCfg.display)) // macro for UI.hpp
+  #include "./UI/UI.hpp"
+  #if defined SDU_HAS_TOUCH
+    #pragma message "Attached Touch support"
+    #include "./UI/Touch.hpp"
+  #endif
+#else
+  #define SDU_GFX ((void*)(SDUCfg.display)) // macro for UI.hpp
+#endif
 
 
 namespace SDUpdaterNS
 {
-
-  // provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater
-  void updateFromFS( fs::FS &fs, const String& fileName = MENU_BIN, const int TfCardCsPin = TFCARD_CS_PIN );
-  // copy compiled sketch from flash partition to filesystem binary file
-  bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN}, const int TfCardCsPin = TFCARD_CS_PIN );
-  // provide a rollback function for custom usages
-  void updateRollBack( String message );
-  // provide a conditional function to cover more devices, including headless and touch
-  void checkSDUpdater( fs::FS &fs, String fileName = MENU_BIN, unsigned long waitdelay = 0, const int TfCardCsPin_ = TFCARD_CS_PIN );
-
-  using ConfigManager::config_sdu_t;
-
-  class SDUpdater
+  namespace ConfigManager
   {
-    public:
-      // constructor with config
-      SDUpdater( config_sdu_t* _cfg );
-      // legacy constructor
-      SDUpdater( const int TFCardCsPin_ = TFCARD_CS_PIN );
-      // check methods
-      void checkSDUpdaterHeadless( String fileName, unsigned long waitdelay );
-      void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay );
-      void checkSDUpdaterUI( String fileName, unsigned long waitdelay );
-      void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay );
-      // update methods
-      void updateFromFS( const String& fileName );
-      void updateFromFS( fs::FS &fs, const String& fileName = MENU_BIN );
-      void updateFromStream( Stream &stream, size_t updateSize, const String& fileName );
-      void doRollBack( const String& message = "" );
-      // flash to SD binary replication
-      bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
-      bool copyFsPartition(File* dst, const esp_partition_t* src, size_t length);
-      bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN}, bool skipIfExists = false );
-      // static methods
-      static void updateNVS();
-      static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
-      // fs::File->name() changed behaviour after esp32 sdk 2.x.x
-      static const char* fs_file_path( fs::File *file );
 
-    private:
-      config_sdu_t* cfg;
-      const char* MenuBin = MENU_BIN;
-      void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
-      void tryRollback( String fileName );
-      void _error( const String& errMsg, unsigned long waitdelay = 2000 );
-      void _error( const char **errMsgs, uint8_t msgCount=1, unsigned long waitdelay=2000 );
-      void _message( const String& label );
-      #if defined _M5Core2_H_ // enable additional touch button support
-        const bool SDUHasTouch = true;
+    inline void* config_sdu_t::getCompilationTimeDisplay()
+    {
+      #if defined SDU_DISPLAY_OBJ_PTR
+        return (void*)SDU_DISPLAY_OBJ_PTR;
       #else
-        const bool SDUHasTouch = false;
+        return nullptr;
       #endif
-      bool _fs_begun = false;
-      bool _fsBegin( bool report_errors = true );
-      bool _fsBegin( fs::FS &fs, bool report_errors = true );
+    }
+
+
+    inline void* config_sdu_t::getRunTimeDisplay()
+    {
+      return (void*)SDU_GFX;
+    }
+
+
+    inline void config_sdu_t::useBuiltinTouchButton()
+    {
+      using namespace TriggerSource;
+      using namespace SDU_UI;
+      triggers = new triggerMap_t( SDU_TRIGGER_TOUCHBUTTON, labelMenu, labelSkip, labelRollback, triggerInitTouch, triggerActionTouch, triggerFinalizeTouch );
+    }
+
+    inline void config_sdu_t::useBuiltinPushButton()
+    {
+      using namespace TriggerSource;
+      using namespace SDU_UI;
+      triggers = new triggerMap_t( SDU_TRIGGER_PUSHBUTTON, labelMenu, labelSkip, labelRollback, triggerInitButton, triggerActionButton, triggerFinalizeButton );
+    }
+
+    inline void config_sdu_t::useBuiltinSerial()
+    {
+      using namespace TriggerSource;
+      using namespace SDU_UI;
+      triggers = new TriggerSource::triggerMap_t( SDU_TRIGGER_SERIAL, labelMenu, labelSkip, labelRollback, triggerInitSerial, triggerActionSerial, triggerFinalizeSerial );
+    }
+
+
+
+    inline void config_sdu_t::setDefaults()
+    {
+      using namespace TriggerSource;
+      using namespace SDU_UI;
+
+      TriggerSources_t triggerSource = SDU_TRIGGER_SOURCE_DEFAULT; // default
+
+      if(!buttonsUpdate) setBtnPoller( FN_LAMBDA_VOID(DEFAULT_BTN_POLLER) );
+      if( !Buttons[0].cb ) setBtnA( FN_LAMBDA_BOOL(DEFAULT_BTNA_CHECKER) );
+      if( !Buttons[1].cb ) setBtnB( FN_LAMBDA_BOOL(DEFAULT_BTNB_CHECKER) );
+      if( !Buttons[2].cb ) setBtnC( FN_LAMBDA_BOOL(DEFAULT_BTNC_CHECKER) );
+
+
+      if( !labelMenu      && LAUNCHER_LABEL ) labelMenu     = LAUNCHER_LABEL;
+      if( !labelSkip      && SKIP_LABEL     ) labelSkip     = SKIP_LABEL;
+      if( !labelRollback  && ROLLBACK_LABEL ) labelRollback = ROLLBACK_LABEL;
+      if( !labelSave      && SAVE_LABEL     ) labelSave     = SAVE_LABEL;
+      if( !binFileName    && SDU_APP_PATH   ) binFileName   = SDU_APP_PATH;
+      if( !appName        && SDU_APP_NAME   ) appName       = SDU_APP_NAME;
+      if( !authorName     && SDU_APP_AUTHOR ) authorName    = SDU_APP_AUTHOR;
+
+      // detect display
+      if( display ) {
+        log_d("Found display driver set by user");
+      } else if( getCompilationTimeDisplay() ) {
+        log_d("Found display driver set by macro");
+        setDisplay( getCompilationTimeDisplay() );
+      } else if( getRunTimeDisplay() ) {
+        log_d("Found display driver set by config");
+        setDisplay( getRunTimeDisplay() );
+      } else {
+        log_w("No display driver found :-(" );
+      }
+
+      // attach default callbacks
+      if( display ) {
+
+        if( !onProgress   )  { setProgressCb(   SDMenuProgressUI );  log_d("Attached onProgress");   }
+        if( !onMessage    )  { setMessageCb(    DisplayUpdateUI );   log_d("Attached onMessage");    }
+        if( !onError      )  { setErrorCb(      DisplayErrorUI );    log_d("Attached onError");      }
+        if( !onBefore     )  { setBeforeCb(     freezeTextStyle );   log_d("Attached onBefore");     }
+        if( !onAfter      )  { setAfterCb(      thawTextStyle );     log_d("Attached onAfter");      }
+        if( !onSplashPage )  { setSplashPageCb( drawSDUSplashPage ); log_d("Attached onSplashPage"); }
+        if( !onButtonDraw )  { setButtonDrawCb( drawSDUPushButton ); log_d("Attached onButtonDraw"); }
+
+        #if defined ARDUINO_ESP32_S3_BOX
+          //setSDUBtnA( ConfigManager::MuteChanged );   log_v("Attached Mute Read");
+          //setSDUBtnA( ConfigManager::S3MuteButtonChanged );    log_v("Attached Mute Read");
+          setSDUBtnB( nullptr );       log_d("Detached BtnB");
+          setSDUBtnC( nullptr );       log_d("Detached BtnC");
+          setLabelSkip( nullptr );     log_d("Disabled Skip");
+          setLabelRollback( nullptr ); log_d("Disabled Rollback");
+          setLabelSave( nullptr );     log_d("Disabled Save");
+        #endif
+        #if defined _M5STICKC_H_
+          setSDUBtnC( nullptr );       log_d("Detached BtnC");
+        #endif
+
+      } else {
+
+        if( !onProgress ) { setProgressCb( SDMenuProgressHeadless ); log_d("Attached onProgress"); }
+        if( !onMessage  ) { setMessageCb( DisplayUpdateHeadless );   log_d("Attached onMessage"); }
+        triggerSource = SDU_TRIGGER_SERIAL; // no display detected, fallback to serial
+
+      }
+
+      if( !onWaitForAction) { setWaitForActionCb( actionTriggered ); log_d("Attached onWaitForAction(any)"); }
+
+      if( !triggers ) {
+        switch( triggerSource ) {
+          case SDU_TRIGGER_PUSHBUTTON:  useBuiltinPushButton();  log_d("Attaching trigger source: Push Button");break;
+          case SDU_TRIGGER_TOUCHBUTTON: useBuiltinTouchButton(); log_d("Attaching trigger source: Touch Button");break;
+          default:
+          case SDU_TRIGGER_SERIAL:      useBuiltinSerial();      log_d("Attaching trigger source: Serial"); break;
+        }
+      }
+    }
+
+
+    inline bool hasFS( SDUpdater* sdu, fs::FS &fs, bool report_errors )
+    {
+      assert(sdu);
+      bool mounted = false;
+      const char* msg[] = {nullptr, "ABORTING"};
+      #if defined _SPIFFS_H_
+        if( &fs == &SPIFFS ) {
+          if( !SPIFFS.begin() ){
+            msg[0] = "SPIFFS MOUNT FAILED";
+            if( report_errors ) sdu->_error( msg, 2 );
+            return false;
+          } else { log_d("SPIFFS Successfully mounted"); }
+          mounted = true;
+        }
+      #endif
+      #if defined (_LITTLEFS_H_)
+        if( &fs == &LittleFS ) {
+          if( !LittleFS.begin() ){
+            msg[0] = "LittleFS MOUNT FAILED";
+            if( report_errors ) sdu->_error( msg, 2 );
+            return false;
+          } else { log_d("LittleFS Successfully mounted"); }
+          mounted = true;
+        }
+      #endif
+      #if defined (_SD_H_)
+        if( &fs == &SD ) {
+          if( ! SDU_SD_BEGIN(sdu->cfg->TFCardCsPin) ) {
+            msg[0] = String("SD MOUNT FAILED (pin #" + String(sdu->cfg->TFCardCsPin) + ")").c_str();
+            if( report_errors ) sdu->_error( msg, 2 );
+            return false;
+          } else {
+            log_d("[%d] SD Successfully mounted (pin #%d)", ESP.getFreeHeap(), sdu->cfg->TFCardCsPin );
+          }
+          mounted = true;
+        }
+      #endif
+      #if defined (_SDMMC_H_)
+        if( &fs == &SD_MMC ) {
+          if( !SD_MMC.begin() ){
+            msg[0] = "SD_MMC FAILED";
+            if( report_errors ) sdu->_error( msg, 2 );
+            return false;
+          } else { log_d( "SD_MMC Successfully mounted"); }
+          mounted = true;
+        }
+      #endif
+      return mounted;
+    }
+
+
   };
 
 
-}; // end namespace
+  // provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater
+  inline void updateFromFS( fs::FS &fs, const String& fileName, const int TfCardCsPin )
+  {
+    SDUCfg.setFS( &fs );
+    SDUCfg.setCSPin( TfCardCsPin );
+    SDUpdater sdUpdater( &SDUCfg );
+    sdUpdater.updateFromFS( fs, fileName );
+  }
+
+
+  // copy compiled sketch from flash partition to filesystem binary file
+  inline bool saveSketchToFS(fs::FS &fs, const char* binfilename, const int TfCardCsPin )
+  {
+    SDUCfg.setFS( &fs );
+    SDUCfg.setCSPin( TfCardCsPin );
+    SDUpdater sdUpdater( &SDUCfg );
+    return sdUpdater.saveSketchToFS( fs, binfilename );
+  }
+
+
+  // provide a rollback function for custom usages
+  inline void updateRollBack( String message )
+  {
+    SDUpdater sdUpdater( &SDUCfg );
+    sdUpdater.doRollBack( message );
+  }
+
+
+  // provide a conditional function to cover more devices, including headless and touch
+  inline void checkSDUpdater( fs::FS &fs, String fileName, unsigned long waitdelay, const int TfCardCsPin_ )
+  {
+    if( waitdelay == 0 ) {
+      // check for reset reset reason
+      switch( resetReason ) {
+        //case 1 : log_d("POWERON_RESET");break;                  // 1, Vbat power on reset
+        //case 3 : log_d("SW_RESET");break;                       // 3, Software reset digital core
+        //case 4 : log_d("OWDT_RESET");break;                     // 4, Legacy watch dog reset digital core
+        //case 5 : log_d("DEEPSLEEP_RESET");break;                // 5, Deep Sleep reset digital core
+        //case 6 : log_d("SDIO_RESET");break;                     // 6, Reset by SLC module, reset digital core
+        //case 7 : log_d("TG0WDT_SYS_RESET");break;               // 7, Timer Group0 Watch dog reset digital core
+        //case 8 : log_d("TG1WDT_SYS_RESET");break;               // 8, Timer Group1 Watch dog reset digital core
+        //case 9 : log_d("RTCWDT_SYS_RESET");break;               // 9, RTC Watch dog Reset digital core
+        //case 10 : log_d("INTRUSION_RESET");break;               // 10, Instrusion tested to reset CPU
+        //case 11 : log_d("TGWDT_CPU_RESET");break;               // 11, Time Group reset CPU
+        case 12 : log_d("SW_CPU_RESET"); waitdelay=2000; break;   // 12, Software reset CPU
+        //case 13 : log_d("RTCWDT_CPU_RESET");break;              // 13, RTC Watch dog Reset CPU
+        //case 14 : log_d("EXT_CPU_RESET");break;                 // 14, for APP CPU, reseted by PRO CPU
+        //case 15 : log_d("RTCWDT_BROWN_OUT_RESET");break;        // 15, Reset when the vdd voltage is not stable
+        case 16 : log_d("RTCWDT_RTC_RESET"); waitdelay=500; break;// 16, RTC Watch dog reset digital core and rtc module
+        // case 21:  log_d("USB_UART_CHIP_RESET"); waitdelay=2000; break;// Various reset reasons for ESP32-S3
+        // case 22:  log_d("USB_JTAG_CHIP_RESET"); waitdelay=2000; break;// Various reset reasons for ESP32-S3
+        // case 24:  log_d("JTAG_RESET"); waitdelay=2000; break;         // Various reset reasons for ESP32-S3
+
+        default : log_d("NO_MEAN"); waitdelay=100;
+      }
+    }
+
+    log_n("Booting with reset reason: %d", resetReason );
+
+    SDUCfg.setCSPin( TfCardCsPin_ );
+    SDUCfg.setFS( &fs );
+    SDUpdater sdUpdater( &SDUCfg );
+
+    if( SDUCfg.display != nullptr ) {
+      sdUpdater.checkSDUpdaterUI( fileName, waitdelay );
+    } else {
+      if( waitdelay <=100 ) waitdelay = 2000;
+      sdUpdater.checkSDUpdaterHeadless( fileName, waitdelay );
+    }
+  }
+
+
+
+
+};
 
 
 using namespace SDUpdaterNS;

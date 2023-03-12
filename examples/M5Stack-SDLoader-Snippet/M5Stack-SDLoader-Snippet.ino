@@ -64,6 +64,9 @@ void setup()
 {
   M5.begin();
 
+  M5.Lcd.fillRect( 10, 10, 100, 100, TFT_BLUE );
+  delay(1000);
+
   Serial.println("Welcome to the SD-Updater minimal example!");
   Serial.println("Now checking if a button was pushed during boot ...");
 
@@ -81,6 +84,7 @@ void setup()
     TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
   );
   Serial.println("Nope, will run the sketch normally");
+  M5.Lcd.print("M5Stack SD Loader test");
 }
 
 
