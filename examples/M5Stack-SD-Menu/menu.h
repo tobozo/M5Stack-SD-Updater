@@ -72,26 +72,40 @@
 //#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 //#define M5_FS SD
 
+#include "core.h"
+
 #if !defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
-  #include "core.h"
+
 #else
-  #include <SD.h>
-  #include "LGFX_8BIT_CVBS.h"
-  #include <Button2.h>
+  //#include <SD.h>
+  //#include "LGFX_8BIT_CVBS.h"
+  //#include <Button2.h>
+  //Button2 button;//for G39
 
-  #define USE_DISPLAY
-  #define LGFX_ONLY
-  #define TFCARD_CS_PIN -1
+  //#define USE_DISPLAY
+  //#define LGFX_ONLY
+  //#define TFCARD_CS_PIN -1
 
-  static LGFX_8BIT_CVBS tft;
-  #define LGFX LGFX_8BIT_CVBS
+  //static LGFX_8BIT_CVBS tft;
+  //#define LGFX LGFX_8BIT_CVBS
   //#define BUTTON_WIDTH 60
-  #define SDU_APP_NAME "Application Launcher"
-  #include <M5StackUpdater.h>
-  static LGFX_Sprite sprite(&tft);
-  fs::SDFS &M5_FS(SD);
+  //#define SDU_APP_NAME "Application Launcher"
+  // #define SDU_NO_AUTODETECT           // Disable autodetect (only works with <M5xxx.h> and <Chimera> cores)
+  // #define SDU_USE_DISPLAY             // Enable display functionalities (lobby, buttons, progress loader)
+  // #define HAS_LGFX                    // Display UI will use LGFX API (without this it will be tft_eSPI API)
+  // #define SDU_TouchButton LGFX_Button // Set button renderer
+  // #define SDU_Sprite LGFX_Sprite
+  // #define SDU_DISPLAY_TYPE M5Display*
+  // #define SDU_DISPLAY_OBJ_PTR &tft
+  // #define SDU_TRIGGER_SOURCE_DEFAULT TriggerSource::SDU_TRIGGER_PUSHBUTTON // Attach push buttons as trigger source
 
-  Button2 button;//for G39
+
+  //#include <M5StackUpdater.h>
+
+  //static LGFX_Sprite sprite(&tft);
+  //fs::SDFS &M5_FS(SD);
+
+  //Button2 button;//for G39
 
 #endif
 
@@ -162,6 +176,18 @@ void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
 //void qrRender( String text, float sizeinpixels, int xOffset=-1, int yOffset=-1 );
 void qrRender( LGFX* gfx, String text, int posX, int posY, uint32_t width, uint32_t height );
+
+void progressBar(LGFX* tft, int x, int y, int w, int h, uint8_t val, uint16_t color, uint16_t bgcolor)
+{
+  tft->drawRect(x, y, w, h, color);
+  if (val > 100) val = 100;
+  if (val == 0) tft->fillRect(x + 1, y + 1, w - 2, h - 2, bgcolor);
+  else {
+    int fillw = (w * (((float)val) / 100.0)) - 2;
+    tft->fillRect(x + 1, y + 1, fillw - 2, h - 2, color);
+    tft->fillRect(x + fillw + 1, y + 1, w - fillw - 2, h - 2, bgcolor);
+  }
+}
 
 static String heapState()
 {
@@ -321,12 +347,12 @@ void renderMeta( JSONMeta &jsonMeta )
     sprite.print( jsonMeta.authorName );
     sprite.println( AUTHOR_SUFFIX );
     sprite.println();
-    qrRender( &tft, jsonMeta.projectURL, 155, 45, 150, 150 );
+    qrRender( (LGFX*)&tft, jsonMeta.projectURL, 155, 45, 150, 150 );
   } else if( jsonMeta.projectURL!="" ) { // only projectURL
     log_d("Rendering QRCode");
     sprite.println( jsonMeta.projectURL );
     sprite.println();
-    qrRender( &tft, jsonMeta.projectURL, 155, 45, 150, 150 );
+    qrRender( (LGFX*)&tft, jsonMeta.projectURL, 155, 45, 150, 150 );
   } else { // only authorName
     log_d("Rendering Authorname");
     sprite.println( jsonMeta.authorName );
@@ -430,7 +456,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
           getFileInfo( fileInfo[appsCount], &file );
           if( appsCountProgress > 0 ) {
             float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
-            tft.progressBar( 110, 112, 100, 20, progressRatio);
+            progressBar( (LGFX*)&tft, 110, 112, 100, 20, progressRatio);
             tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
             tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
           }
@@ -458,7 +484,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
       getFileInfo( fileInfo[appsCount], &file );
       if( appsCountProgress > 0 ) {
         float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
-        tft.progressBar( 110, 112, 100, 20, progressRatio);
+        progressBar( (LGFX*)&tft, 110, 112, 100, 20, progressRatio);
         tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
         tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
       }
@@ -897,7 +923,7 @@ void doFSChecks()
   checkMenuStickyPartition();
 
   tft.fillRect(110, 112, 100, 20,0);
-  tft.progressBar( 110, 112, 100, 20, 10);
+  progressBar( (LGFX*)&tft, 110, 112, 100, 20, 10);
 
   scanDataFolder(); // do SD / SPIFFS health checks
 
@@ -927,7 +953,7 @@ void doFSInventory()
   tft.setTextColor( TFT_WHITE );
   tft.setTextSize( 1 );
   tft.clear();
-  tft.progressBar( 110, 112, 100, 20, 20);
+  progressBar( (LGFX*)&tft, 110, 112, 100, 20, 20);
   appsCount = 0;
   listDir(M5_FS, "/", 0, false); // count valid files first so a progress meter can be displayed
   appsCountProgress = appsCount;

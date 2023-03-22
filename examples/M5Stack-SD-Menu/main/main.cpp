@@ -8,7 +8,7 @@ void setup()
   #endif
 
   #if defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
-    setSDUGfx(&tft);
+    SDUCfg.setDisplay(&tft);
     tft.init();
   #else
     M5.begin(); // bool LCDEnable, bool SDEnable, bool SerialEnable, bool I2CEnable, bool ScreenShotEnable

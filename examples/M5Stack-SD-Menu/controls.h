@@ -150,6 +150,9 @@ HIDSignal HIDFeedback( HIDSignal signal, int ms = 50 )
 
 #if defined ARDUINO_M5STACK_ATOM_AND_TFCARD
 
+  #include <Button2.h>
+  Button2 button;//for G39
+
   static HIDSignal _button;
 
   void handler(Button2 &btn)

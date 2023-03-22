@@ -154,7 +154,7 @@ bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* 
     progress = 100 * offset / length;
     if (progressOld != progress) {
       progressOld = progress;
-      tft.progressBar( 110, 112, 100, 20, progress);
+      progressBar( (LGFX*)&tft, 110, 112, 100, 20, progress);
     }
   }
   return true;
