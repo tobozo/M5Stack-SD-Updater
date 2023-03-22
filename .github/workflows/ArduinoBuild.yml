@@ -104,6 +104,11 @@ jobs:
             #arduino-board: ttgo-lora32-v2
             #sketch-names: TTGO-test.ino
             #required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+          - matrix-context: M5Atom
+            arduino-board: m5stack-atom
+            sketch-names: M5Stack-SD-Menu.ino
+            launcher-name: M5Atom-Launcher
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz,Button2"
 
       fail-fast: false
 
@@ -131,7 +136,7 @@ jobs:
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
           cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}-${{ matrix.sdk-version }}.bin
-          cp examples/AppStore/build/AppStore.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin
+          FILE=examples/AppStore/build/AppStore.ino.bin && [ -f "$FILE" ] && cp $FILE examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin
       - name: Upload artifact ${{ matrix.matrix-context }}
         uses: actions/upload-artifact@v3
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
