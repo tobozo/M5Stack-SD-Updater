@@ -90,8 +90,8 @@ void setup()
 
 void loop()
 {
-  // provide means to copy the sketch to filesystem
   M5.update();
+  // provide means to copy the sketch to filesystem
   if( M5.BtnB.pressedFor( 1000 ) ) {
     Serial.println("Will copy this sketch to filesystem");
     if( saveSketchToFS( SD, SDU_APP_PATH, TFCARD_CS_PIN ) ) {
@@ -100,4 +100,5 @@ void loop()
       Serial.println("Copy failed !");
     }
   }
+
 }

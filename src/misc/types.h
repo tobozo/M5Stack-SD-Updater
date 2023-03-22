@@ -64,6 +64,7 @@ namespace SDUpdaterNS
       SDU_BTN_NONE      = -2  // no activity
     };
 
+
     // callback signatures
     typedef void (*onProgressCb)( int state, int size ); // progress bar when updating/saving
     typedef void (*onMessageCb)( const String& label );  // misc info messages

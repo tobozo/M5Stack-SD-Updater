@@ -37,6 +37,8 @@
 namespace SDUpdaterNS
 {
 
+  class SDUpdater;
+
   namespace ConfigManager
   {
 
@@ -45,12 +47,20 @@ namespace SDUpdaterNS
       bool S3MuteButtonChanged();
     #endif
 
+
+    typedef bool (*fsCheckerCb)( SDUpdater* sdu, fs::FS &fs, bool report_errors );
+
+    extern void setup();
+    extern bool hasFS( SDUpdater *sdu, fs::FS &fs, bool report_errors );
+
+
     // SDUpdater config callbacks and params
     struct config_sdu_t
     {
 
       config_sdu_t();
       fs::FS *fs = nullptr;
+      bool mounted = false;
       void *display = nullptr; // dereferenced display object
       void* getCompilationTimeDisplay();
       void* getRunTimeDisplay();
@@ -86,6 +96,7 @@ namespace SDUpdaterNS
       onSplashPageCb    onSplashPage     = nullptr;
       onButtonDrawCb    onButtonDraw     = nullptr;
       onWaitForActionCb onWaitForAction  = nullptr;
+      fsCheckerCb       fsChecker        = nullptr;
 
       void setDefaults();
       void setDisplay( void* ptr=nullptr );

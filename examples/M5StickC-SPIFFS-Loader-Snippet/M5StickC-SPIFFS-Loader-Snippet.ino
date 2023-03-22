@@ -42,20 +42,89 @@
 #include <M5StickC.h>
 #include <M5StackUpdater.h>
 
-void setup() {
-  Serial.begin(115200);
-  Serial.println("Welcome to the SPIFFS-Update example!");
-  Serial.print("M5StickC initializing...");
-  M5.begin();
-  Wire.begin();
-  pinMode(M5_BUTTON_RST, INPUT);
-  if(digitalRead(M5_BUTTON_RST) == 0) {
-    Serial.println("Will Load menu binary");
-    updateFromFS( SPIFFS );
-    ESP.restart();
+//#define APP2
+
+#if defined APP1
+  #pragma message "Compiling app1.bin"
+
+  void setup() {
+    Serial.begin(115200);
+    Serial.println("Welcome to the SPIFFS-Update example!");
+    Serial.print("M5StickC initializing...");
+    M5.begin();
+    M5.update();
+    M5.Lcd.setRotation(3);
+    M5.Lcd.println("**** APP1 ****");
+    M5.Lcd.println("BtnA: rollback");
+    M5.Lcd.println("BtnB: app2");
   }
-}
 
-void loop() {
+  void loop()
+  {
+    M5.update();
+    if( M5.BtnA.wasPressed() ) {
+      updateRollBack("Hot-Loading");
+    }
+    if( M5.BtnB.wasPressed() ) {
+      updateFromFS( SPIFFS, "/app2.bin" );
+    }
+  }
 
-}
+
+#elif defined APP2
+
+  #pragma message "Compiling app2.bin"
+
+  void setup() {
+    Serial.begin(115200);
+    Serial.println("Welcome to the SPIFFS-Update example!");
+    Serial.print("M5StickC initializing...");
+    M5.begin();
+    M5.update();
+    M5.Lcd.setRotation(3);
+    M5.Lcd.println("**** APP2 ****");
+    M5.Lcd.println("BtnA: rollback");
+    M5.Lcd.println("BtnB: app1");
+  }
+
+  void loop()
+  {
+    M5.update();
+    if( M5.BtnA.wasPressed() ) {
+      updateRollBack("Hot-Loading");
+    }
+    if( M5.BtnB.wasPressed() ) {
+      updateFromFS( SPIFFS, "/app1.bin" );
+    }
+  }
+
+#else
+
+  #pragma message "Compiling example"
+
+  void setup() {
+    Serial.begin(115200);
+    Serial.println("Welcome to the SPIFFS-Update example!");
+    Serial.print("M5StickC initializing...");
+    M5.begin();
+    M5.update();
+    M5.Lcd.setRotation(3);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.println("-> LAUNCHER <");
+
+    M5.Lcd.println("BtnA: app1");
+    M5.Lcd.println("BtnB: app2");
+  }
+
+  void loop()
+  {
+    M5.update();
+    if( M5.BtnA.wasPressed() ) {
+      updateFromFS( SPIFFS, "/app1.bin" );
+    }
+    if( M5.BtnB.wasPressed() ) {
+      updateFromFS( SPIFFS, "/app2.bin" );
+    }
+  }
+
+#endif

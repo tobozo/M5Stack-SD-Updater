@@ -130,7 +130,7 @@ namespace SDUpdaterNS
       #define getTextDatum(x)   x->textdatum
       #define getTextSize(x)    x->textsize
       #define resetFont(x)      (void)0
-      inline void loaderAnimator_t::init() { SDU_GFX->drawJpg(sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, SDU_GFX->width()/2-4, (SDU_GFX->height()*.75) - 3 ); }
+      inline void loaderAnimator_t::init() {}
       inline void loaderAnimator_t::animate() {}
       inline void loaderAnimator_t::deinit() {}
       static void fillStyledRect( SplashPageElementStyle_t *style, int32_t x, int32_t y, uint16_t width, uint16_t height ) { SDU_GFX->fillRect( x, y, width, height, style->bgColor ); }

@@ -306,6 +306,7 @@ namespace SDUpdaterNS
     {
       using namespace TriggerSource;
       using namespace SDU_UI;
+      fsChecker=hasFS;
 
       TriggerSources_t triggerSource = SDU_TRIGGER_SOURCE_DEFAULT; // default
 
@@ -350,14 +351,14 @@ namespace SDUpdaterNS
         #if defined ARDUINO_ESP32_S3_BOX
           //setSDUBtnA( ConfigManager::MuteChanged );   log_v("Attached Mute Read");
           //setSDUBtnA( ConfigManager::S3MuteButtonChanged );    log_v("Attached Mute Read");
-          setSDUBtnB( nullptr );       log_d("Detached BtnB");
-          setSDUBtnC( nullptr );       log_d("Detached BtnC");
+          setBtnB( nullptr );       log_d("Detached BtnB");
+          setBtnC( nullptr );       log_d("Detached BtnC");
           setLabelSkip( nullptr );     log_d("Disabled Skip");
           setLabelRollback( nullptr ); log_d("Disabled Rollback");
           setLabelSave( nullptr );     log_d("Disabled Save");
         #endif
         #if defined _M5STICKC_H_
-          setSDUBtnC( nullptr );       log_d("Detached BtnC");
+          setBtnC( nullptr );       log_d("Detached BtnC");
         #endif
 
       } else {
@@ -384,7 +385,7 @@ namespace SDUpdaterNS
     inline bool hasFS( SDUpdater* sdu, fs::FS &fs, bool report_errors )
     {
       assert(sdu);
-      bool mounted = false;
+      bool mounted = sdu->cfg->mounted; // inherit config mount state as default (can be triggered by rollback)
       const char* msg[] = {nullptr, "ABORTING"};
       #if defined _SPIFFS_H_
         if( &fs == &SPIFFS ) {
@@ -431,7 +432,6 @@ namespace SDUpdaterNS
       return mounted;
     }
 
-
   };
 
 
@@ -442,6 +442,7 @@ namespace SDUpdaterNS
     SDUCfg.setCSPin( TfCardCsPin );
     SDUpdater sdUpdater( &SDUCfg );
     sdUpdater.updateFromFS( fs, fileName );
+    ESP.restart();
   }
 
 
@@ -458,8 +459,11 @@ namespace SDUpdaterNS
   // provide a rollback function for custom usages
   inline void updateRollBack( String message )
   {
+    bool wasmounted = SDUCfg.mounted;
+    SDUCfg.mounted = true;
     SDUpdater sdUpdater( &SDUCfg );
     sdUpdater.doRollBack( message );
+    SDUCfg.mounted = wasmounted;
   }
 
 
