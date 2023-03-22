@@ -157,13 +157,13 @@ namespace SDUpdaterNS
         SDU_GFX,
         ts.x1, ts.y,  ts.w, ts.h,
         ts.Load->BorderColor, ts.Load->FillColor, ts.Load->TextColor,
-        trigger->labelLoad, ts.btn_fsize
+        (char*)trigger->labelLoad, ts.btn_fsize
       );
       SkipBtn->initButton(
         SDU_GFX,
         ts.x2, ts.y,  ts.w, ts.h,
         ts.Skip->BorderColor, ts.Skip->FillColor, ts.Skip->TextColor,
-        trigger->labelSkip, ts.btn_fsize
+        (char*)trigger->labelSkip, ts.btn_fsize
       );
 
       if( SDUCfg.binFileName != nullptr ) {
@@ -171,7 +171,7 @@ namespace SDUpdaterNS
           SDU_GFX,
           ts.x3, ts.y1,  ts.w, ts.h,
           ts.Save->BorderColor, ts.Save->FillColor, ts.Save->TextColor,
-          trigger->labelSave, ts.btn_fsize
+          (char*)trigger->labelSave, ts.btn_fsize
         );
         SaveBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
         SaveBtn->drawButton();
