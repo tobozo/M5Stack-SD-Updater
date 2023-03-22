@@ -105,6 +105,7 @@ jobs:
             #sketch-names: TTGO-test.ino
             #required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Atom
+            sdk-version: default
             arduino-board: m5stack-atom
             sketch-names: M5Stack-SD-Menu.ino
             launcher-name: M5Atom-Launcher
