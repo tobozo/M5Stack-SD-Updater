@@ -1,6 +1,7 @@
 
 #if defined TEST_LGFX
 
+  #include <SD.h> // WTF platformio lib_dep manager fails to resolve this ???
   #include "../../../LGFX-SDLoader-Snippet/LGFX-SDLoader-Snippet.ino"
 
 #elif defined TEST_M5Core2
@@ -17,6 +18,7 @@
 
 #elif defined TEST_M5Unified
 
+  #include <SD.h> // WTF platformio lib_dep manager fails to resolve this ???
   #include "../../../M5Unified/M5Unified.ino"
 
 #else
