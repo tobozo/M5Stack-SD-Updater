@@ -137,7 +137,7 @@ jobs:
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
           cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}-${{ matrix.sdk-version }}.bin
-          FILE=examples/AppStore/build/AppStore.ino.bin && [ -f "$FILE" ] && cp $FILE examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin
+          FILE=examples/AppStore/build/AppStore.ino.bin && [ -f "$FILE" ] && cp $FILE examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin || true
       - name: Upload artifact ${{ matrix.matrix-context }}
         uses: actions/upload-artifact@v3
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
