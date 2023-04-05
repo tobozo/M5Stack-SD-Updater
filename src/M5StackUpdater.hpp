@@ -132,6 +132,7 @@
   #pragma message "SDUpdater didn't detect any  preselected filesystem, will use SD as default"
   #define SDU_HAS_SD
   #include <SD.h>
+  #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
   //TODO: implement FILE/fopen()
 #endif
 
