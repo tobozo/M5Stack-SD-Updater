@@ -124,6 +124,21 @@ namespace SDUpdaterNS
         SDU_GFX->setTextSize( fontSize );
         *lineHeightSmall = SDU_GFX->fontHeight();
       }
+
+      static void fillProgressBox( int32_t posX, int32_t posY, uint16_t offset, ProgressBarStyle_t *pgstyle )
+      {
+        for (uint8_t h = 0; h<pgstyle->height; h++) {
+          SDU_GFX->drawGradientHLine( posX+1, posY+1 + h, offset, pgstyle->bgColor, pgstyle->textColor);
+        }
+        uint16_t barmod = pgstyle->width/12;
+        if( barmod < 10 ) barmod = 10;
+        for (uint16_t v = 1; v<offset; v++) {
+          if(v%barmod == 0) {
+            SDU_GFX->drawFastVLine( posX+1 + v, posY+1, pgstyle->height, pgstyle->bgColor);
+          }
+        }
+      }
+
     #else
       #define getTextFgColor(x) x->textcolor
       #define getTextBgColor(x) x->textbgcolor
@@ -135,6 +150,11 @@ namespace SDUpdaterNS
       inline void loaderAnimator_t::deinit() {}
       static void fillStyledRect( SplashPageElementStyle_t *style, int32_t x, int32_t y, uint16_t width, uint16_t height ) { SDU_GFX->fillRect( x, y, width, height, style->bgColor ); }
       static void adjustFontSize( uint8_t *lineHeightBig, uint8_t *lineHeightSmall ) { *lineHeightBig = 14; *lineHeightSmall = 8; }
+      static void fillProgressBox( int32_t posX, int32_t posY, uint16_t offset, ProgressBarStyle_t *pgstyle )
+      {
+        SDU_GFX->fillRect( posX+1,        posY+1, offset,                  pgstyle->height, pgstyle->fillColor );
+        SDU_GFX->fillRect( posX+1+offset, posY+1, pgstyle->width - offset, pgstyle->height, pgstyle->bgColor );
+      }
     #endif
 
     static void freezeTextStyle()
@@ -254,8 +274,7 @@ namespace SDUpdaterNS
       SD_UI_Progress = offset;
 
       if ( offset >= 0 && offset <= ProgressStyle.width ) {
-        SDU_GFX->fillRect( posX+1,        posY+1, offset,                     ProgressStyle.height, ProgressStyle.fillColor );
-        SDU_GFX->fillRect( posX+1+offset, posY+1, ProgressStyle.width-offset, ProgressStyle.height, ProgressStyle.bgColor );
+        fillProgressBox( posX, posY, offset, &ProgressStyle );
       } else {
         SDU_GFX->fillRect( posX+1,        posY+1, ProgressStyle.width,        ProgressStyle.height, ProgressStyle.bgColor );
       }
