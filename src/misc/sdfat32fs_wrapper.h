@@ -9,7 +9,7 @@
   #if !defined SDFAT_FILE_TYPE
     #define SDFAT_FILE_TYPE 3 // tell SdFat.h to support all filesystem types (fat16/fat32/ExFat)
   #endif
-  #if SDFAT_FILE_TYPE!=3 /
+  #if SDFAT_FILE_TYPE!=3
     #error "SD Updater only supports SdFat with SDFAT_FILE_TYPE=3"
   #endif
 
