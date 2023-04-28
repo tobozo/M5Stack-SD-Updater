@@ -28,9 +28,10 @@ jobs:
           # - 2.0.2 # has broken SD Support
           #- 2.0.3
           #- 2.0.4
-          - 2.0.5
+          #- 2.0.5
           - 2.0.6
           - 2.0.7
+          - 2.0.8
 
         matrix-context:
           - M5Core2-test
@@ -62,9 +63,10 @@ jobs:
           #- sdk-version: 1.0.6
           #- sdk-version: 2.0.0
           #- sdk-version: 2.0.1
-          - sdk-version: 2.0.5
+          #- sdk-version: 2.0.5
           - sdk-version: 2.0.6
           - sdk-version: 2.0.7
+          - sdk-version: 2.0.8
 
           # library health test sketches
           - { matrix-context: M5Core2-test,   arduino-board: m5stack-core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
@@ -73,6 +75,7 @@ jobs:
           - { matrix-context: M5Unified-test, arduino-board: m5stack-core2,      sketch-names: M5Unified.ino,                      required-libraries: "M5GFX,M5Unified", ... }
           - { matrix-context: M5StickC-test,  arduino-board: m5stick-c,          sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino, required-libraries: "M5StickC", ... }
           - { matrix-context: LGFX-test,      arduino-board: m5stack-core-esp32, sketch-names: LGFX-SDLoader-Snippet.ino,          required-libraries: "LovyanGFX", ... }
+          - { matrix-context: SdFat-test,     arduino-board: m5stack-core2,      sketch-names: SdFatUpdater.ino,                   required-libraries: "SdFat,M5GFX,M5Unified", ... }
 
           # Launcher and Appstore
           - matrix-context: M5Stack
