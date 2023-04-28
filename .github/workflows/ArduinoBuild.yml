@@ -45,6 +45,7 @@ jobs:
           - M5Core2
           - M5Fire
           - OdroidGo
+          - SdFat-test
 
         #exclude:
           #- sdk-version: 2.0.2 # has broken SD Support
