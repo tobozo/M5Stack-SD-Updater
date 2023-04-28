@@ -6,6 +6,8 @@
 ![Arduino Build](https://github.com/tobozo/M5Stack-SD-Updater/actions/workflows/ArduinoBuild.yml/badge.svg?branch=master)
 ![Platformio Build](https://github.com/tobozo/M5Stack-SD-Updater/actions/workflows/PlatformioBuild.yml/badge.svg?branch=master)
 
+![Library Downloads](https://img.shields.io/github/downloads/tobozo/M5Stack-SD-Updater/total)
+
 # M5Stack-SD-Updater
 
 <br />

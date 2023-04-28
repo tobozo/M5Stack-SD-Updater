@@ -6,6 +6,13 @@
 
 #if defined USE_SDFATFS
 
+  #if !defined SDFAT_FILE_TYPE
+    #define SDFAT_FILE_TYPE 3 // tell SdFat.h to support all filesystem types (fat16/fat32/ExFat)
+  #endif
+  #if SDFAT_FILE_TYPE!=3 /
+    #error "SD Updater only supports SdFat with SDFAT_FILE_TYPE=3"
+  #endif
+
   #include <FS.h>
   #include <FSImpl.h>
   #include <SdFat.h>
@@ -31,30 +38,24 @@
   }
 
 
-  class SdFatFile32Impl : public fs::FileImpl
+  class SdFsFileImpl : public fs::FileImpl
   {
     private:
-      mutable File32 _file;
+      mutable FsFile _file;
     public:
-      SdFatFile32Impl(File32 file) : _file(file) {}
-      virtual ~SdFatFile32Impl() { }
+      SdFsFileImpl(FsFile file) : _file(file) {}
+      virtual ~SdFsFileImpl() { }
 
       virtual size_t write(const uint8_t *buf, size_t size) { return _file.write(buf, size); }
       virtual size_t read(uint8_t* buf, size_t size) { return _file.read(buf, size); }
       virtual void flush() { return _file.flush(); }
       virtual size_t position() const { return _file.curPosition(); }
       virtual size_t size() const { return _file.size(); }
-      virtual bool setBufferSize(size_t size) { /* don't know how to implement... */ return false; }
       virtual void close() { _file.close(); }
-      virtual time_t getLastWrite() { /* too lazy to implement ... */ return 0; }
-      virtual const char* path() const { /* too lazy to implement ... */ return nullptr; }
-      virtual boolean isDirectory(void) { return _file.isDirectory(); }
-      virtual fs::FileImplPtr openNextFile(const char* mode) { return  std::make_shared<SdFatFile32Impl>(_file.openNextFile(_convert_access_mode_to_flag(mode))); }
-      virtual boolean seekDir(long position) { return _file.seek(position); }
-      virtual String getNextFileName(void) { return String("Unimplemented"); }
-      virtual String getNextFileName(bool*) { return String("Unimplemented"); }
-      virtual void rewindDirectory(void) { return; }
       virtual operator bool() { return _file.operator bool(); }
+      virtual boolean isDirectory(void) { return _file.isDirectory(); }
+      virtual fs::FileImplPtr openNextFile(const char* mode) { return  std::make_shared<SdFsFileImpl>(_file.openNextFile(_convert_access_mode_to_flag(mode))); }
+      virtual boolean seekDir(long position) { return _file.seek(position); }
       virtual bool seek(uint32_t pos, fs::SeekMode mode)
       {
         if (mode == fs::SeekMode::SeekSet) {
@@ -74,17 +75,25 @@
         _file.getName(_name, sizeof(_name));
         return _name;
       }
+
+      virtual String getNextFileName(void) { /* not implemented and not needed */ return String("Unimplemented"); }
+      virtual String getNextFileName(bool*) { /* not implemented and not needed */ return String("Unimplemented"); }
+      virtual time_t getLastWrite() { /* not implemented and not needed */  return 0; }
+      virtual const char* path() const { /* not implemented and not needed */ return nullptr; }
+      virtual bool setBufferSize(size_t size) { /* not implemented and not needed */ return false; }
+      virtual void rewindDirectory(void) { /* not implemented and not needed */  }
   };
 
 
-  class SdFat32FSImpl : public fs::FSImpl
+  class SdFsFSImpl : public fs::FSImpl
   {
-    SdFat32& sd;
+    SdFs& sd;
     public:
-      SdFat32FSImpl(SdFat32& sd) : sd(sd) { }
-      virtual ~SdFat32FSImpl() {}
-      virtual fs::FileImplPtr open(const char* path, const char* mode, const bool create) {
-          return std::make_shared<SdFatFile32Impl>(sd.open(path, _convert_access_mode_to_flag(mode, create)));
+      SdFsFSImpl(SdFs& sd) : sd(sd) { }
+      virtual ~SdFsFSImpl() {}
+      virtual fs::FileImplPtr open(const char* path, const char* mode, const bool create)
+      {
+          return std::make_shared<SdFsFileImpl>(sd.open(path, _convert_access_mode_to_flag(mode, create)));
       }
       virtual bool exists(const char* path) { return sd.exists(path); }
       virtual bool rename(const char* pathFrom, const char* pathTo) { return sd.rename(pathFrom, pathTo); }
@@ -94,20 +103,48 @@
   };
 
 
-  static SdFat32 *SDU_SdFatPtr = nullptr;
-  static fs::FS *SDU_SdFat32FsPtr = nullptr;
-  inline bool SDU_SDFatBegin( int cs, int freq )
+
+  namespace SDUpdaterNS
   {
-    if( !SDU_SdFatPtr ) {
-      log_e("SDFat is not set");
-      return false;
+
+    namespace ConfigManager
+    {
+      static int SDU_SD_FAT_TYPE = -1;
+      static void *SDU_SdFatPtr = nullptr;
+      static fs::FS *SDU_SdFatFsPtr = nullptr;
+    };
+
+    inline fs::FS* getSdFsFs( SdFs &sd )
+    {
+      static fs::FS _fs = fs::FS(fs::FSImplPtr(new SdFsFSImpl(sd)));
+      return &_fs;
     }
-    bool ret = SDU_SdFatPtr->begin( cs, freq );
-    if (SDU_SdFatPtr->card()->errorCode()) {
-      log_e( "SDFat init failed with error code: 0x%x, Error Data:0x%x", SDU_SdFatPtr->card()->errorCode(), int(SDU_SdFatPtr->card()->errorData()) );
-      return false;
+
+    inline bool SDU_SDFatBegin( SdSpiConfig SdFatCfg )
+    {
+      using namespace ConfigManager;
+      if( !SDU_SdFatPtr ) {
+        log_e("SDFat is not set");
+        return false;
+      }
+
+      bool ret = false;
+      int errcode = 0, errdata = 0;
+      auto _fat = (SdFs*)SDU_SdFatPtr;
+      ret = _fat->begin( SdFatCfg );
+      errcode = _fat->card()->errorCode();
+      errdata = int(_fat->card()->errorData());
+
+      if (!ret) {
+        log_e( "SDFat init failed with error code: 0x%x, Error Data:0x%x", errcode, errdata );
+        return false;
+      }
+      return ret;
     }
-    return ret;
-  }
+
+
+  };
+
 
 #endif
+

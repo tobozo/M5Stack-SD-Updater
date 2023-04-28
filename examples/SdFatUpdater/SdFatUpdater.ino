@@ -16,19 +16,22 @@
   #define SDU_HAS_TOUCH
 #endif
 
+
 #include <M5StackUpdater.h>
 
-SdFat32 sd; // SdFat object for use in your sketch
+SdFs sd;
+
 
 void setup()
 {
   M5.begin();
-  //SDUCfg.setCSPin( TFCARD_CS_PIN );
+
+  SDUCfg.use_rollback = false;                 // Disable rollbadk (loading the menu may be slower, but no false positives during tests)
   SDUCfg.setLabelMenu("< Menu");               // BtnA label: load menu.bin
   SDUCfg.setLabelSkip("Launch");               // BtnB label: skip the lobby countdown and run the app
   SDUCfg.setLabelSave("Save");                 // BtnC label: save the sketch to the SD
-  SDUCfg.setAppName("M5Unified test");         // lobby screen label: application name
-  SDUCfg.setBinFileName("/M5UnifiedTest.bin"); // if file path to bin is set for this app, it will be checked at boot and created if not exist
+  SDUCfg.setAppName("SdFatUpdater test");      // lobby screen label: application name
+  SDUCfg.setBinFileName("/SdFatUpdater.bin");  // if file path to bin is set for this app, it will be checked at boot and created if not exist
 
   checkSDUpdater(
     sd,           // filesystem (must be type SdFat32)

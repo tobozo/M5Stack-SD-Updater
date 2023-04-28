@@ -441,8 +441,11 @@ namespace SDUpdaterNS
         }
       #endif
       #if defined USE_SDFATFS
-        if( SDU_SdFat32FsPtr && &fs == SDU_SdFat32FsPtr) {
-          if( !SDU_SDFatBegin( sdu->cfg->TFCardCsPin, SD_SCK_MHZ(50) ) ) {
+        using namespace ConfigManager;
+        if( SDU_SdFatFsPtr ) {
+          auto _SPI_SPEED = SD_SCK_MHZ(25); // TODO: add spi speed to special SdFat settings ?
+          auto SdFsConfig = SdSpiConfig(sdu->cfg->TFCardCsPin, SHARED_SPI, _SPI_SPEED);
+          if( !SDU_SDFatBegin( SdFsConfig ) ) {
             msg[0] = String("SDFat MOUNT FAILED ").c_str();
             if( report_errors ) sdu->_error( msg, 2 );
             return false;
@@ -535,15 +538,14 @@ namespace SDUpdaterNS
 
 
   #if defined USE_SDFATFS
-    inline void checkSDUpdater( SdFat32 &sd, String fileName=MENU_BIN, unsigned long waitdelay=0, const int TfCardCsPin_=TFCARD_CS_PIN )
+
+    inline void checkSDUpdater( SdFs &sd, String fileName=MENU_BIN, unsigned long waitdelay=0, const int TfCardCsPin_=TFCARD_CS_PIN )
     {
-      SDU_SdFatPtr = &sd;
-      static fs::FS SDU_SdFat32Fs = fs::FS(fs::FSImplPtr(new SdFat32FSImpl(sd)));
-      if( !SDU_SdFat32FsPtr ) {
-        SDU_SdFat32FsPtr = &SDU_SdFat32Fs;
-      }
-      return checkSDUpdater( SDU_SdFat32Fs, fileName, waitdelay, TfCardCsPin_ );
+      ConfigManager::SDU_SdFatPtr = &sd;
+      ConfigManager::SDU_SdFatFsPtr = getSdFsFs(sd);
+      checkSDUpdater( *ConfigManager::SDU_SdFatFsPtr, fileName, waitdelay, TfCardCsPin_ );
     }
+
   #endif
 
 
