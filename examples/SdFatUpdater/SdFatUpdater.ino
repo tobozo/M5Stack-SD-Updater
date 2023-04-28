@@ -20,6 +20,7 @@
 #include <M5StackUpdater.h>
 
 SdFs sd;
+auto SdFatSPIConfig = SdSpiConfig( TFCARD_CS_PIN, SHARED_SPI, SD_SCK_MHZ(25) );
 
 
 void setup()
@@ -34,10 +35,10 @@ void setup()
   SDUCfg.setBinFileName("/SdFatUpdater.bin");  // if file path to bin is set for this app, it will be checked at boot and created if not exist
 
   checkSDUpdater(
-    sd,           // filesystem (must be type SdFat32)
-    MENU_BIN,     // path to binary (default=/menu.bin, empty string=rollback only)
-    5000,         // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
-    TFCARD_CS_PIN // usually default=4 but your mileage may vary
+    sd,             // filesystem (must be type SdFat32)
+    MENU_BIN,       // path to binary (default=/menu.bin, empty string=rollback only)
+    5000,           // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
+    &SdFatSPIConfig // usually default=4 but your mileage may vary
   );
 }
 

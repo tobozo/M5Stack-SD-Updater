@@ -10,7 +10,7 @@
     #define SDFAT_FILE_TYPE 3 // tell SdFat.h to support all filesystem types (fat16/fat32/ExFat)
   #endif
   #if SDFAT_FILE_TYPE!=3
-    #error "SD Updater only supports SdFat with SDFAT_FILE_TYPE=3"
+    #error "SD Updater only supports SdFs"
   #endif
 
   #include <FS.h>
@@ -109,9 +109,9 @@
 
     namespace ConfigManager
     {
-      static int SDU_SD_FAT_TYPE = -1;
       static void *SDU_SdFatPtr = nullptr;
       static fs::FS *SDU_SdFatFsPtr = nullptr;
+      static SdSpiConfig *SDU_SdSpiConfigPtr = nullptr;
     };
 
     inline fs::FS* getSdFsFs( SdFs &sd )
@@ -120,7 +120,7 @@
       return &_fs;
     }
 
-    inline bool SDU_SDFatBegin( SdSpiConfig SdFatCfg )
+    inline bool SDU_SDFatBegin( SdSpiConfig *SdFatCfg )
     {
       using namespace ConfigManager;
       if( !SDU_SdFatPtr ) {
@@ -131,7 +131,7 @@
       bool ret = false;
       int errcode = 0, errdata = 0;
       auto _fat = (SdFs*)SDU_SdFatPtr;
-      ret = _fat->begin( SdFatCfg );
+      ret = _fat->begin( *SdFatCfg );
       errcode = _fat->card()->errorCode();
       errdata = int(_fat->card()->errorData());
 

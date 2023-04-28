@@ -137,11 +137,13 @@
     #undef __has_include
     #include <misc/sdfat32fs_wrapper.h>
     #define __has_include
+    #define SDU_SD_BEGIN SDU_SDFatBegin
   #else
     #pragma message "SDUpdater didn't detect any  preselected filesystem, will use SD as default"
     #include <SD.h>
+    #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
   #endif
-  #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
+
 #endif
 
 
@@ -443,15 +445,12 @@ namespace SDUpdaterNS
       #if defined USE_SDFATFS
         using namespace ConfigManager;
         if( SDU_SdFatFsPtr ) {
-          auto _SPI_SPEED = SD_SCK_MHZ(25); // TODO: add spi speed to special SdFat settings ?
-          auto SdFsConfig = SdSpiConfig(sdu->cfg->TFCardCsPin, SHARED_SPI, _SPI_SPEED);
-          if( !SDU_SDFatBegin( SdFsConfig ) ) {
+          if( !SDU_SD_BEGIN( SDU_SdSpiConfigPtr ) ) {
             msg[0] = String("SDFat MOUNT FAILED ").c_str();
             if( report_errors ) sdu->_error( msg, 2 );
             return false;
-          } else {
-            log_d("[%d] SDFat Successfully mounted (pin #%d)", ESP.getFreeHeap(), sdu->cfg->TFCardCsPin );
           }
+          log_d("[%d] SDFat Successfully mounted (pin #%d)", ESP.getFreeHeap(), SDU_SdSpiConfigPtr->csPin );
           mounted = true;
         }
       #endif
@@ -539,11 +538,18 @@ namespace SDUpdaterNS
 
   #if defined USE_SDFATFS
 
-    inline void checkSDUpdater( SdFs &sd, String fileName=MENU_BIN, unsigned long waitdelay=0, const int TfCardCsPin_=TFCARD_CS_PIN )
+    inline void checkSDUpdater( SdFs &sd, String fileName=MENU_BIN, unsigned long waitdelay=0, SdSpiConfig *SdFatCfg=nullptr )
     {
+      if( !SdFatCfg ) {
+        // load default config
+        auto cfg = SdSpiConfig( SDUCfg.TFCardCsPin, SHARED_SPI, SD_SCK_MHZ(25) );
+        SdFatCfg = (SdSpiConfig*)malloc( sizeof(SdSpiConfig) + 1 );
+        memcpy( SdFatCfg, &cfg, sizeof(SdSpiConfig) );
+      }
+      ConfigManager::SDU_SdSpiConfigPtr = SdFatCfg;
       ConfigManager::SDU_SdFatPtr = &sd;
       ConfigManager::SDU_SdFatFsPtr = getSdFsFs(sd);
-      checkSDUpdater( *ConfigManager::SDU_SdFatFsPtr, fileName, waitdelay, TfCardCsPin_ );
+      checkSDUpdater( *ConfigManager::SDU_SdFatFsPtr, fileName, waitdelay, SdFatCfg->csPin );
     }
 
   #endif
