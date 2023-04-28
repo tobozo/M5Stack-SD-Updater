@@ -29,6 +29,8 @@
 \*/
 #pragma once
 
+#include <Update.h>
+
 #ifdef __cplusplus
 
   #include "M5StackUpdater.hpp"

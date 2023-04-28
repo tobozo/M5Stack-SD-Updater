@@ -88,6 +88,7 @@
 #include "gitTagVersion.h"
 #include "./misc/assets.h"
 #include <FS.h>
+#include <Update.h>
 
 #define resetReason (int)rtc_get_reset_reason(0)
 
@@ -116,10 +117,11 @@
   #define SDU_HAS_SPIFFS
   /*#include <SPIFFS.h>*/
 #endif
-#if defined _LiffleFS_H_
+#if defined _LiffleFS_H_ || __has_include(<LittleFS.h>)
   #define SDU_HAS_LITTLEFS
-  /*#include <LittleFS.h>*/
+  #include <LittleFS.h>
 #endif
+
 
 #if __has_include(<LITTLEFS.h>) || defined _LIFFLEFS_H_
   // LittleFS is now part of esp32 package, the older, external version isn't supported
@@ -129,11 +131,17 @@
 #define SDU_HAS_FS (defined SDU_HAS_SD || defined SDU_HAS_SD_MMC || defined SDU_HAS_SPIFFS || defined SDU_HAS_LITTLEFS )
 
 #if ! SDU_HAS_FS
-  #pragma message "SDUpdater didn't detect any  preselected filesystem, will use SD as default"
   #define SDU_HAS_SD
-  #include <SD.h>
+  #if defined USE_SDFATFS
+    #pragma message "SDUpdater will use SdFat"
+    #undef __has_include
+    #include <misc/sdfat32fs_wrapper.h>
+    #define __has_include
+  #else
+    #pragma message "SDUpdater didn't detect any  preselected filesystem, will use SD as default"
+    #include <SD.h>
+  #endif
   #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
-  //TODO: implement FILE/fopen()
 #endif
 
 
@@ -202,11 +210,11 @@
 
 #if defined HAS_M5_API // SDUpdater can use M5.update(), and M5.Btnx API
   #define DEFAULT_BTN_POLLER M5.update()
-  #if defined ARDUINO_ESP32_S3_BOX // S3Box only has mute button and Touch
-    #define DEFAULT_BTNA_CHECKER S3MuteButton.changed() // use SDUpdater::DigitalPinButton_t
-    #define DEFAULT_BTNB_CHECKER false
-    #define DEFAULT_BTNC_CHECKER false
-  #else
+  //#if defined ARDUINO_ESP32_S3_BOX // S3Box only has mute button and Touch
+    //#define DEFAULT_BTNA_CHECKER S3MuteButton.changed() // use SDUpdater::DigitalPinButton_t
+    //#define DEFAULT_BTNB_CHECKER false
+    //#define DEFAULT_BTNC_CHECKER false
+  //#else
     #define DEFAULT_BTNA_CHECKER M5.BtnA.isPressed()
     #define DEFAULT_BTNB_CHECKER M5.BtnB.isPressed()
     #if defined _M5STICKC_H_ // M5StickC has no BtnC
@@ -214,7 +222,7 @@
     #else
       #define DEFAULT_BTNC_CHECKER M5.BtnC.isPressed()
     #endif
-  #endif
+  //#endif
 #else
   // SDUpdater will use Serial as trigger source
   #if !defined SDU_NO_AUTODETECT
@@ -341,22 +349,24 @@ namespace SDUpdaterNS
       // attach default callbacks
       if( display ) {
 
-        if( !onProgress   )  { setProgressCb(   SDMenuProgressUI );  log_d("Attached onProgress");   }
-        if( !onMessage    )  { setMessageCb(    DisplayUpdateUI );   log_d("Attached onMessage");    }
-        if( !onError      )  { setErrorCb(      DisplayErrorUI );    log_d("Attached onError");      }
-        if( !onBefore     )  { setBeforeCb(     freezeTextStyle );   log_d("Attached onBefore");     }
-        if( !onAfter      )  { setAfterCb(      thawTextStyle );     log_d("Attached onAfter");      }
-        if( !onSplashPage )  { setSplashPageCb( drawSDUSplashPage ); log_d("Attached onSplashPage"); }
-        if( !onButtonDraw )  { setButtonDrawCb( drawSDUPushButton ); log_d("Attached onButtonDraw"); }
+        #if defined SDU_USE_DISPLAY
+          if( !onProgress   )  { setProgressCb(   SDMenuProgressUI );  log_d("Attached onProgress");   }
+          if( !onMessage    )  { setMessageCb(    DisplayUpdateUI );   log_d("Attached onMessage");    }
+          if( !onError      )  { setErrorCb(      DisplayErrorUI );    log_d("Attached onError");      }
+          if( !onBefore     )  { setBeforeCb(     freezeTextStyle );   log_d("Attached onBefore");     }
+          if( !onAfter      )  { setAfterCb(      thawTextStyle );     log_d("Attached onAfter");      }
+          if( !onSplashPage )  { setSplashPageCb( drawSDUSplashPage ); log_d("Attached onSplashPage"); }
+          if( !onButtonDraw )  { setButtonDrawCb( drawSDUPushButton ); log_d("Attached onButtonDraw"); }
+        #endif
 
         #if defined ARDUINO_ESP32_S3_BOX
           //setSDUBtnA( ConfigManager::MuteChanged );   log_v("Attached Mute Read");
           //setSDUBtnA( ConfigManager::S3MuteButtonChanged );    log_v("Attached Mute Read");
-          setBtnB( nullptr );       log_d("Detached BtnB");
-          setBtnC( nullptr );       log_d("Detached BtnC");
-          setLabelSkip( nullptr );     log_d("Disabled Skip");
-          setLabelRollback( nullptr ); log_d("Disabled Rollback");
-          setLabelSave( nullptr );     log_d("Disabled Save");
+          // setBtnB( nullptr );       log_d("Detached BtnB");
+          // setBtnC( nullptr );       log_d("Detached BtnC");
+          // setLabelSkip( nullptr );     log_d("Disabled Skip");
+          // setLabelRollback( nullptr ); log_d("Disabled Rollback");
+          // setLabelSave( nullptr );     log_d("Disabled Save");
         #endif
         #if defined _M5STICKC_H_
           setBtnC( nullptr );       log_d("Detached BtnC");
@@ -427,6 +437,18 @@ namespace SDUpdaterNS
             if( report_errors ) sdu->_error( msg, 2 );
             return false;
           } else { log_d( "SD_MMC Successfully mounted"); }
+          mounted = true;
+        }
+      #endif
+      #if defined USE_SDFATFS
+        if( SDU_SdFat32FsPtr && &fs == SDU_SdFat32FsPtr) {
+          if( !SDU_SDFatBegin( sdu->cfg->TFCardCsPin, SD_SCK_MHZ(50) ) ) {
+            msg[0] = String("SDFat MOUNT FAILED ").c_str();
+            if( report_errors ) sdu->_error( msg, 2 );
+            return false;
+          } else {
+            log_d("[%d] SDFat Successfully mounted (pin #%d)", ESP.getFreeHeap(), sdu->cfg->TFCardCsPin );
+          }
           mounted = true;
         }
       #endif
@@ -511,6 +533,18 @@ namespace SDUpdaterNS
     }
   }
 
+
+  #if defined USE_SDFATFS
+    inline void checkSDUpdater( SdFat32 &sd, String fileName=MENU_BIN, unsigned long waitdelay=0, const int TfCardCsPin_=TFCARD_CS_PIN )
+    {
+      SDU_SdFatPtr = &sd;
+      static fs::FS SDU_SdFat32Fs = fs::FS(fs::FSImplPtr(new SdFat32FSImpl(sd)));
+      if( !SDU_SdFat32FsPtr ) {
+        SDU_SdFat32FsPtr = &SDU_SdFat32Fs;
+      }
+      return checkSDUpdater( SDU_SdFat32Fs, fileName, waitdelay, TfCardCsPin_ );
+    }
+  #endif
 
 
 

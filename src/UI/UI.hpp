@@ -67,7 +67,7 @@ namespace SDUpdaterNS
 
 
     // API Specifics
-    #if defined HAS_LGFX
+    #if defined HAS_LGFX // using LovyanGFX or M5GFX
       #define getTextFgColor(x) x->getTextStyle().fore_rgb888
       #define getTextBgColor(x) x->getTextStyle().back_rgb888
       #define getTextDatum(x)   x->getTextStyle().datum
@@ -139,7 +139,7 @@ namespace SDUpdaterNS
         }
       }
 
-    #else
+    #else // using TFT_eSPI based core (M5Core2.h, M5Stack.h, M5StickC.h).
       #define getTextFgColor(x) x->textcolor
       #define getTextBgColor(x) x->textbgcolor
       #define getTextDatum(x)   x->textdatum

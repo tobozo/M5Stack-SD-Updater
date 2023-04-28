@@ -43,7 +43,7 @@ namespace SDUpdaterNS
   {
 
     #if defined ARDUINO_ESP32_S3_BOX
-      inline DigitalPinButton_t S3MuteButton(GPIO_NUM_1);
+      static DigitalPinButton_t S3MuteButton(GPIO_NUM_1);
       bool S3MuteButtonChanged();
     #endif
 
@@ -57,7 +57,6 @@ namespace SDUpdaterNS
     // SDUpdater config callbacks and params
     struct config_sdu_t
     {
-
       config_sdu_t();
       fs::FS *fs = nullptr;
       bool mounted = false;

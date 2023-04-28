@@ -36,7 +36,7 @@
 <br />
 
 **Micro SD Card (TF Card)** - formatted using FAT32. Max size 32 Gb.
-SDCard is recommended but the SDUpdater supports other filesystems such as SD_MMC, SPIFFS, LittleFS and PSRamFS.
+SDCard is recommended but the SDUpdater supports other filesystems such as SdFat, SD_MMC and LittleFS (SPIFFS will soon be deprecated).
 
 <br />
 
@@ -500,6 +500,7 @@ This can be triggered manually by using `saveSketchToFS(SD, fileName, TFCARD_CS_
 | 👍     | QRCode              | Richard Moore    | https://github.com/ricmoo/qrcode             |
 | 👍     | @Reaper7            | Reaper7          | https://github.com/reaper7                   |
 | 👍     | @PartsandCircuits   | PartsandCircuits | https://github.com/PartsandCircuits          |
-| 👍     | @lovyan03           | らびやん           | https://github.com/lovyan03                  |
+| 👍     | @lovyan03           | らびやん           | https://github.com/lovyan03                 |
 | 👍     | @matsumo            | Matsumo          | https://github.com/matsumo                   |
 | 👍     | @riraosan           | Riraosan         | https://github.com/riraosan                  |
+| 👍     | @ockernuts          | ockernuts        | https://github.com/ockernuts                 |
