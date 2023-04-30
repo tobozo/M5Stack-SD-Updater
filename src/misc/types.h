@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <functional>
+#include <Stream.h>
 #include <WString.h>
 
 #define FN_LAMBDA_VOID(x) []() { x; }
@@ -10,6 +12,40 @@
 
 namespace SDUpdaterNS
 {
+
+  namespace UpdateInterfaceNS
+  {
+    static bool mode_z = false;
+    typedef std::function<void(size_t, size_t)> THandlerFunction_Progress;
+    struct UpdateManagerInterface_t
+    {
+      //typedef void    (*THandlerFunction_Progress)(size_t, size_t);
+      typedef bool    (*begin_t)(size_t);
+      typedef size_t  (*writeStream_t)(Stream &data,size_t size);
+      typedef void    (*abort_t)();
+      typedef bool    (*end_t)();
+      typedef bool    (*isFinished_t)();
+      typedef bool    (*canRollBack_t)();
+      typedef bool    (*rollBack_t)();
+      typedef void    (*onProgress_t)(THandlerFunction_Progress fn);
+      typedef uint8_t (*getError_t)();
+      typedef void    (*setBinName_t)(String& fileName, Stream* stream);
+      public:
+        begin_t begin;
+        writeStream_t writeStream;
+        abort_t abort;
+        end_t end;
+        isFinished_t isFinished;
+        canRollBack_t canRollBack;
+        rollBack_t rollBack;
+        onProgress_t onProgress;
+        getError_t getError;
+        setBinName_t setBinName;
+    };
+  };
+
+
+
 
   namespace TriggerSource
   {

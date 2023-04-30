@@ -189,19 +189,22 @@ namespace SDUpdaterNS
   // perform the actual update from a given stream
   void SDUpdater::performUpdate( Stream &updateSource, size_t updateSize, String fileName )
   {
+    assert(UpdateIface);
+    UpdateIface->setBinName( fileName, &updateSource );
+
     _message( "LOADING " + fileName );
     log_d( "Binary size: %d bytes", updateSize );
-    if( cfg->onProgress ) Update.onProgress( cfg->onProgress );
-    if (Update.begin( updateSize )) {
-      size_t written = Update.writeStream( updateSource );
+    if( cfg->onProgress ) UpdateIface->onProgress( cfg->onProgress );
+    if (UpdateIface->begin( updateSize )) {
+      size_t written = UpdateIface->writeStream( updateSource, updateSize );
       if ( written == updateSize ) {
         Serial.println( "Written : " + String(written) + " successfully" );
       } else {
         Serial.println( "Written only : " + String(written) + "/" + String(updateSize) + ". Retry?" );
       }
-      if ( Update.end() ) {
+      if ( UpdateIface->end() ) {
         Serial.println( "OTA done!" );
-        if ( Update.isFinished() ) {
+        if ( UpdateIface->isFinished() ) {
           if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
             // maintain NVS signature
             SDUpdater::updateNVS();
@@ -211,7 +214,7 @@ namespace SDUpdaterNS
           Serial.println( "Update not finished? Something went wrong!" );
         }
       } else {
-        Serial.println( "Update failed. Error #: " + String( Update.getError() ) );
+        Serial.println( "Update failed. Error #: " + String( UpdateIface->getError() ) );
       }
     } else {
       Serial.println( "Not enough space to begin OTA" );
@@ -222,18 +225,19 @@ namespace SDUpdaterNS
   // forced rollback (doesn't check NVS digest)
   void SDUpdater::doRollBack( const String& message )
   {
+    assert(UpdateIface);
     log_d("Wil check for rollback capability");
     if( !cfg->onMessage)   { log_d("No message reporting"); }
     //if( !cfg->onError )    log_d("No error reporting");
     if( !cfg->onProgress ) { log_d("No progress reporting"); }
 
-    if( Update.canRollBack() ) {
+    if( UpdateIface->canRollBack() ) {
       _message( message );
       for( uint8_t i=1; i<50; i++ ) {
         if( cfg->onProgress ) cfg->onProgress( i, 100 );
         vTaskDelay(10);
       }
-      Update.rollBack();
+      UpdateIface->rollBack();
       for( uint8_t i=50; i<=100; i++ ) {
         if( cfg->onProgress ) cfg->onProgress( i, 100 );
         vTaskDelay(10);

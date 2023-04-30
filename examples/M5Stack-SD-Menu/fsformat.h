@@ -58,7 +58,11 @@ const String appRegistryDefaultName = "default.json";
 
 bool isBinFile( const char* fileName )
 {
-  return String( fileName ).endsWith( ".bin" ) || String( fileName ).endsWith( ".BIN" );
+  return String( fileName ).endsWith( ".bin" ) || String( fileName ).endsWith( ".BIN" )
+  #if defined SDU_HAS_TARGZ
+      || String( fileName ).endsWith( ".gz" ) // || String( fileName ).endsWith( ".tar.gz" )
+  #endif
+  ;
 }
 
 bool isValidAppName( const char* fileName )
@@ -238,9 +242,16 @@ void getFileInfo( FileInfo &fileInfo, File *file, const char* binext=".bin" )
     fileInfo.faceName = fileInfo.iconName;
   }
 
+  fileName.replace( binext, "" );
+  fileName.replace( BINEXT, "" );
+
+  #if defined SDU_HAS_TARGZ
+    fileName.replace( ".gz", "" );
+    //fileName.replace( ".tar.gz", "" );
+  #endif
+
   String currentDataFolder = appDataFolder + fileName;
-  currentDataFolder.replace( binext, "" );
-  currentDataFolder.replace( BINEXT, "" );
+
   if( M5_FS.exists( currentDataFolder.c_str() ) ) {
     fileInfo.hasData = true; // TODO: actually use this feature
   }

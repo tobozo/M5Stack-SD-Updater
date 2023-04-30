@@ -307,7 +307,7 @@ void renderIcon( FileInfo &fileInfo )
 
   fs::File iconFile = M5_FS.open( fileInfo.iconName.c_str()  );
   if( !iconFile ) return;
-  tft.drawJpg( &iconFile, 190, 60/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
+  tft.drawJpg( &iconFile, 190, 60, 110, 110 );
   iconFile.close();
   //tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
 }
@@ -324,7 +324,7 @@ void renderFace( String face )
   log_d("[%d] Will render face %s", ESP.getFreeHeap(), face.c_str() );
   fs::File iconFile = M5_FS.open( face.c_str()  );
   if( !iconFile ) return;
-  tft.drawJpg( &iconFile, 5, 85/*, 120, 120, 0, 0, JPEG_DIV_NONE*/ );
+  tft.drawJpg( &iconFile, 5, 85, 120, 120 );
   iconFile.close();
   //tft.drawJpgFile( M5_FS, face.c_str(), 5, 85/*, 120, 120, 0, 0, JPEG_DIV_NONE*/ );
 }

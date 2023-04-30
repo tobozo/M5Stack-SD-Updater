@@ -2,6 +2,7 @@
 
 #include <SD.h>
 #include <ESP32-Chimera-Core.h> // use LGFX display autodetect
+#include <ESP32-targz.h> // support gzipped applications
 
 #define SDU_APP_NAME "Application Launcher"
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater

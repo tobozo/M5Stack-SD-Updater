@@ -58,8 +58,7 @@ namespace SDUpdaterNS
   extern void checkSDUpdater( fs::FS &fs, String fileName = MENU_BIN, unsigned long waitdelay = 0, const int TfCardCsPin_ = TFCARD_CS_PIN );
 
   using ConfigManager::config_sdu_t;
-  //class SDUpdater;
-
+  using UpdateInterfaceNS::UpdateManagerInterface_t;
 
   class SDUpdater
   {
@@ -102,6 +101,7 @@ namespace SDUpdaterNS
 
     private:
 
+      UpdateManagerInterface_t *UpdateIface = nullptr;
       const char* MenuBin = MENU_BIN;
       void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
       void tryRollback( String fileName );
@@ -121,6 +121,9 @@ namespace SDUpdaterNS
 
   inline SDUpdater::SDUpdater( config_sdu_t* _cfg ) : cfg(_cfg)
   {
+    if( !UpdateIface ) {
+      UpdateIface = &ConfigManager::Iface;
+    }
     if( ConfigManager::SDUCfgLoader ) {
       log_v("Config manager loader called");
       ConfigManager::SDUCfgLoader();
@@ -134,6 +137,9 @@ namespace SDUpdaterNS
   // legacy constructor
   inline SDUpdater::SDUpdater( const int TFCardCsPin_ )
   {
+    if( !UpdateIface ) {
+      UpdateIface = &ConfigManager::Iface;
+    }
     //log_d("SDUpdater base mode on CS pin(%d)", TFCardCsPin_ );
     SDUCfg.setCSPin( TFCardCsPin_ );
     cfg = &SDUCfg;
