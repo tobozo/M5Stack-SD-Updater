@@ -58,6 +58,10 @@
   #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
   //#define USE_DOWNLOADER
+#elif defined( ARDUINO_ESP32_S3_BOX )
+  #warning ESP32_S3_BOX DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "esp32s3"
+  #define PLATFORM_NAME "S3Box"
 #elif defined( ARDUINO_M5STACK_ATOM_AND_TFCARD )
   #warning M5Stack ATOM DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "m5atom"
@@ -161,7 +165,7 @@ String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
 
 
-SDUpdater *sdUpdater = nullptr;
+//SDUpdater *sdUpdater = nullptr;
 M5SAM M5Menu;
 #if defined USE_DOWNLOADER
   AppRegistry Registry;
@@ -446,12 +450,12 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
   File file = root.openNextFile();
   while( file ){
     if( file.isDirectory() ){
-      log_d( "%s %s", DEBUG_DIRLABEL, sdUpdater->fs_file_path(&file) );
+      log_d( "%s %s", DEBUG_DIRLABEL, SDUpdater::fs_file_path(&file) );
       if( levels ){
-        listDir( fs, sdUpdater->fs_file_path(&file), levels -1, process );
+        listDir( fs, SDUpdater::fs_file_path(&file), levels -1, process );
       }
     } else {
-      if( isValidAppName( sdUpdater->fs_file_path(&file) ) ) {
+      if( isValidAppName( SDUpdater::fs_file_path(&file) ) ) {
         if( process ) {
           getFileInfo( fileInfo[appsCount], &file );
           if( appsCountProgress > 0 ) {
@@ -463,16 +467,16 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
         }
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
-          //Serial.println( String( DEBUG_IGNORED ) + sdUpdater->fs_file_path(&file) );
+          //Serial.println( String( DEBUG_IGNORED ) + SDUpdater::fs_file_path(&file) );
           log_w( "%s", DEBUG_ABORTLISTING );
           break; // don't make M5Stack list explode
         }
       } else {
-        if( String( sdUpdater->fs_file_path(&file) ).endsWith(".tmp") || String( sdUpdater->fs_file_path(&file) ).endsWith(".pcap") ) {
-          fs.remove( sdUpdater->fs_file_path(&file) );
-          log_d( "%s %s", DEBUG_CLEANED, sdUpdater->fs_file_path(&file) );
+        if( String( SDUpdater::fs_file_path(&file) ).endsWith(".tmp") || String( SDUpdater::fs_file_path(&file) ).endsWith(".pcap") ) {
+          fs.remove( SDUpdater::fs_file_path(&file) );
+          log_d( "%s %s", DEBUG_CLEANED, SDUpdater::fs_file_path(&file) );
         } else {
-          log_d( "%s %s", DEBUG_IGNORED, sdUpdater->fs_file_path(&file) );
+          log_d( "%s %s", DEBUG_IGNORED, SDUpdater::fs_file_path(&file) );
         }
       }
     }
@@ -800,7 +804,7 @@ void launchApp( FileInfo &info )
       return;
     }
   }
-  sdUpdater->updateFromFS( M5_FS, fileInfo[MenuID].fileName );
+  SDUpdaterNS::updateFromFS( M5_FS, fileInfo[MenuID].fileName );
   //updateFromFS( M5_FS, fileInfo[MenuID].fileName, TFCARD_CS_PIN );
   ESP.restart();
 }

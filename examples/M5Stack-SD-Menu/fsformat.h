@@ -29,7 +29,7 @@
  */
 
 
-extern SDUpdater *sdUpdater; // used for menu progress
+//extern SDUpdater *sdUpdater; // used for menu progress
 //static const char* sduFSFilePath( fs::File *file );
 
 
@@ -217,7 +217,7 @@ void getFileInfo( FileInfo &fileInfo, File *file, const char* binext=".bin" )
 {
   String BINEXT = binext;
   BINEXT.toUpperCase();
-  String fileName   = sdUpdater->fs_file_path( file ); //.name();
+  String fileName   = SDUpdater::fs_file_path( file ); //.name();
   uint32_t fileSize = file->size();
   time_t lastWrite = file->getLastWrite();
   struct tm * tmstruct = localtime(&lastWrite);

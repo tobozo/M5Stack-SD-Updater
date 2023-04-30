@@ -295,7 +295,7 @@ HIDSignal getControls()
       }
     }
 
-    #if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE || defined ARDUINO_M5STACK_Core2
+    #if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE || defined ARDUINO_M5STACK_Core2 || defined ARDUINO_ESP32_S3_BOX
 
       M5.update();
 

@@ -208,7 +208,7 @@ void lsPart()
       const esp_partition_t* part = esp_partition_get(pi);
       esp_image_metadata_t meta;
       bool isOta = (part->label[3]=='1' || part->label[3] == '0');
-      if( isOta ) meta  = sdUpdater->getSketchMeta( part );
+      if( isOta ) meta  = SDUpdater::getSketchMeta( part );
       log_w("%-8s   0x%02x      0x%02x   0x%06x   %8d  %8s   %s",
         String( part->label ),
         part->type,

@@ -17,7 +17,6 @@ void setup()
 
   SDUCfg.setFS( &M5_FS );
   SDUCfg.setCSPin( TFCARD_CS_PIN );
-  sdUpdater = new SDUpdater();
 
   //WiFi.onEvent(WiFiEvent); // helps debugging WiFi problems with the Serial console
   UISetup(); // UI init and check if a SD exists
