@@ -1,4 +1,5 @@
 
+#include <Arduino.h> // wtf platformio
 #include <ESP32-targz.h>
 
 #if defined TEST_LGFX
