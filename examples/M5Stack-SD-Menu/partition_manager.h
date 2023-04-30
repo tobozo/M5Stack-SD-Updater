@@ -105,8 +105,10 @@ void copyFsPartition( fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN} )
 */
 
 #pragma once
-#include "core.h"
 
+#if !defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
+#include "core.h"
+#endif
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
 bool comparePartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length)
@@ -152,7 +154,7 @@ bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* 
     progress = 100 * offset / length;
     if (progressOld != progress) {
       progressOld = progress;
-      tft.progressBar( 110, 112, 100, 20, progress);
+      progressBar( (LGFX*)&tft, 110, 112, 100, 20, progress);
     }
   }
   return true;
@@ -178,19 +180,22 @@ void copyPartition( const char* binfilename = PROGMEM {MENU_BIN} )
 }
 
 
-
-struct {
-  String toString( uint8_t dig[32] ) {
-    static String digest;
-    digest = "";
-    char hex[3] = {0};
-    for(int i=0;i<32;i++) {
-      snprintf( hex, 3, "%02x", dig[i] );
-      digest += String(hex);
+#if defined ESP_PARTITION_TYPE_ANY
+  struct digest_t {
+    String toString( uint8_t dig[32] ) {
+      static String digest;
+      digest = "";
+      char hex[3] = {0};
+      for(int i=0;i<32;i++) {
+        snprintf( hex, 3, "%02x", dig[i] );
+        digest += String(hex);
+      }
+      return digest;
     }
-    return digest;
-  }
-} digest;
+  } ;
+
+  digest_t digest;
+#endif
 
 
 void lsPart()
@@ -203,7 +208,7 @@ void lsPart()
       const esp_partition_t* part = esp_partition_get(pi);
       esp_image_metadata_t meta;
       bool isOta = (part->label[3]=='1' || part->label[3] == '0');
-      if( isOta ) meta  = sdUpdater->getSketchMeta( part );
+      if( isOta ) meta  = SDUpdater::getSketchMeta( part );
       log_w("%-8s   0x%02x      0x%02x   0x%06x   %8d  %8s   %s",
         String( part->label ),
         part->type,

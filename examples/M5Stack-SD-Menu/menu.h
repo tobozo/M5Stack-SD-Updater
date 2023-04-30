@@ -58,6 +58,14 @@
   #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
   //#define USE_DOWNLOADER
+#elif defined( ARDUINO_ESP32_S3_BOX )
+  #warning ESP32_S3_BOX DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "esp32s3"
+  #define PLATFORM_NAME "S3Box"
+#elif defined( ARDUINO_M5STACK_ATOM_AND_TFCARD )
+  #warning M5Stack ATOM DETECTED !!
+  #define DEFAULT_REGISTRY_BOARD "m5atom"
+  #define PLATFORM_NAME "M5 ATOM(matrix/lite)"
 #else
   #warning NOTHING DETECTED !!
   #define DEFAULT_REGISTRY_BOARD "lambda"
@@ -70,12 +78,46 @@
 
 #include "core.h"
 
+#if !defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
+
+#else
+  //#include <SD.h>
+  //#include "LGFX_8BIT_CVBS.h"
+  //#include <Button2.h>
+  //Button2 button;//for G39
+
+  //#define USE_DISPLAY
+  //#define LGFX_ONLY
+  //#define TFCARD_CS_PIN -1
+
+  //static LGFX_8BIT_CVBS tft;
+  //#define LGFX LGFX_8BIT_CVBS
+  //#define BUTTON_WIDTH 60
+  //#define SDU_APP_NAME "Application Launcher"
+  // #define SDU_NO_AUTODETECT           // Disable autodetect (only works with <M5xxx.h> and <Chimera> cores)
+  // #define SDU_USE_DISPLAY             // Enable display functionalities (lobby, buttons, progress loader)
+  // #define HAS_LGFX                    // Display UI will use LGFX API (without this it will be tft_eSPI API)
+  // #define SDU_TouchButton LGFX_Button // Set button renderer
+  // #define SDU_Sprite LGFX_Sprite
+  // #define SDU_DISPLAY_TYPE M5Display*
+  // #define SDU_DISPLAY_OBJ_PTR &tft
+  // #define SDU_TRIGGER_SOURCE_DEFAULT TriggerSource::SDU_TRIGGER_PUSHBUTTON // Attach push buttons as trigger source
+
+
+  //#include <M5StackUpdater.h>
+
+  //static LGFX_Sprite sprite(&tft);
+  //fs::SDFS &M5_FS(SD);
+
+  //Button2 button;//for G39
+
+#endif
 
 #include <sys/time.h>
 #include "compile_time.h"
 //#include <SPIFFS.h>
 
-#if defined(_CHIMERA_CORE_)
+#if defined(_CHIMERA_CORE_) || defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
   #include "lgfx/utility/lgfx_qrcode.h"
   #define qrcode_getBufferSize lgfx_qrcode_getBufferSize
   #define qrcode_initText lgfx_qrcode_initText
@@ -123,7 +165,7 @@ String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
 
 
-SDUpdater *sdUpdater = nullptr;
+//SDUpdater *sdUpdater = nullptr;
 M5SAM M5Menu;
 #if defined USE_DOWNLOADER
   AppRegistry Registry;
@@ -138,6 +180,18 @@ void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
 //void qrRender( String text, float sizeinpixels, int xOffset=-1, int yOffset=-1 );
 void qrRender( LGFX* gfx, String text, int posX, int posY, uint32_t width, uint32_t height );
+
+void progressBar(LGFX* tft, int x, int y, int w, int h, uint8_t val, uint16_t color, uint16_t bgcolor)
+{
+  tft->drawRect(x, y, w, h, color);
+  if (val > 100) val = 100;
+  if (val == 0) tft->fillRect(x + 1, y + 1, w - 2, h - 2, bgcolor);
+  else {
+    int fillw = (w * (((float)val) / 100.0)) - 2;
+    tft->fillRect(x + 1, y + 1, fillw - 2, h - 2, color);
+    tft->fillRect(x + fillw + 1, y + 1, w - fillw - 2, h - 2, bgcolor);
+  }
+}
 
 static String heapState()
 {
@@ -157,15 +211,15 @@ void gotoSleep()
     //M5.Axp.DeepSleep();
   #else
     #if !defined _CHIMERA_CORE_ || defined HAS_POWER || defined HAS_IP5306
-      M5.setWakeupButton( BUTTON_B_PIN );
-      M5.powerOFF();
+      //M5.setWakeupButton( BUTTON_B_PIN );
+      //M5.powerOFF();
     #else
     #endif
   #endif
   delay(100);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  M5.Lcd.sleep();
-  M5.Lcd.waitDisplay();
+  //M5.Lcd.fillScreen(TFT_BLACK);
+  //M5.Lcd.sleep();
+  //M5.Lcd.waitDisplay();
   esp_deep_sleep_start();
 }
 
@@ -253,7 +307,7 @@ void renderIcon( FileInfo &fileInfo )
 
   fs::File iconFile = M5_FS.open( fileInfo.iconName.c_str()  );
   if( !iconFile ) return;
-  tft.drawJpg( &iconFile, 190, 60/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
+  tft.drawJpg( &iconFile, 190, 60, 110, 110 );
   iconFile.close();
   //tft.drawJpgFile( M5_FS, fileInfo.iconName.c_str(), tft.width()-jsonMeta.width-10, (tft.height()/2)-(jsonMeta.height/2)+10/*, jsonMeta.width, jsonMeta.height, 0, 0, JPEG_DIV_NONE*/ );
 }
@@ -270,7 +324,7 @@ void renderFace( String face )
   log_d("[%d] Will render face %s", ESP.getFreeHeap(), face.c_str() );
   fs::File iconFile = M5_FS.open( face.c_str()  );
   if( !iconFile ) return;
-  tft.drawJpg( &iconFile, 5, 85/*, 120, 120, 0, 0, JPEG_DIV_NONE*/ );
+  tft.drawJpg( &iconFile, 5, 85, 120, 120 );
   iconFile.close();
   //tft.drawJpgFile( M5_FS, face.c_str(), 5, 85/*, 120, 120, 0, 0, JPEG_DIV_NONE*/ );
 }
@@ -297,12 +351,12 @@ void renderMeta( JSONMeta &jsonMeta )
     sprite.print( jsonMeta.authorName );
     sprite.println( AUTHOR_SUFFIX );
     sprite.println();
-    qrRender( &tft, jsonMeta.projectURL, 155, 45, 150, 150 );
+    qrRender( (LGFX*)&tft, jsonMeta.projectURL, 155, 45, 150, 150 );
   } else if( jsonMeta.projectURL!="" ) { // only projectURL
     log_d("Rendering QRCode");
     sprite.println( jsonMeta.projectURL );
     sprite.println();
-    qrRender( &tft, jsonMeta.projectURL, 155, 45, 150, 150 );
+    qrRender( (LGFX*)&tft, jsonMeta.projectURL, 155, 45, 150, 150 );
   } else { // only authorName
     log_d("Rendering Authorname");
     sprite.println( jsonMeta.authorName );
@@ -396,33 +450,33 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
   File file = root.openNextFile();
   while( file ){
     if( file.isDirectory() ){
-      log_d( "%s %s", DEBUG_DIRLABEL, sdUpdater->fs_file_path(&file) );
+      log_d( "%s %s", DEBUG_DIRLABEL, SDUpdater::fs_file_path(&file) );
       if( levels ){
-        listDir( fs, sdUpdater->fs_file_path(&file), levels -1, process );
+        listDir( fs, SDUpdater::fs_file_path(&file), levels -1, process );
       }
     } else {
-      if( isValidAppName( sdUpdater->fs_file_path(&file) ) ) {
+      if( isValidAppName( SDUpdater::fs_file_path(&file) ) ) {
         if( process ) {
           getFileInfo( fileInfo[appsCount], &file );
           if( appsCountProgress > 0 ) {
             float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
-            tft.progressBar( 110, 112, 100, 20, progressRatio);
+            progressBar( (LGFX*)&tft, 110, 112, 100, 20, progressRatio);
             tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
             tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
           }
         }
         appsCount++;
         if( appsCount >= M5SAM_LIST_MAX_COUNT-1 ) {
-          //Serial.println( String( DEBUG_IGNORED ) + sdUpdater->fs_file_path(&file) );
+          //Serial.println( String( DEBUG_IGNORED ) + SDUpdater::fs_file_path(&file) );
           log_w( "%s", DEBUG_ABORTLISTING );
           break; // don't make M5Stack list explode
         }
       } else {
-        if( String( sdUpdater->fs_file_path(&file) ).endsWith(".tmp") || String( sdUpdater->fs_file_path(&file) ).endsWith(".pcap") ) {
-          fs.remove( sdUpdater->fs_file_path(&file) );
-          log_d( "%s %s", DEBUG_CLEANED, sdUpdater->fs_file_path(&file) );
+        if( String( SDUpdater::fs_file_path(&file) ).endsWith(".tmp") || String( SDUpdater::fs_file_path(&file) ).endsWith(".pcap") ) {
+          fs.remove( SDUpdater::fs_file_path(&file) );
+          log_d( "%s %s", DEBUG_CLEANED, SDUpdater::fs_file_path(&file) );
         } else {
-          log_d( "%s %s", DEBUG_IGNORED, sdUpdater->fs_file_path(&file) );
+          log_d( "%s %s", DEBUG_IGNORED, SDUpdater::fs_file_path(&file) );
         }
       }
     }
@@ -434,7 +488,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
       getFileInfo( fileInfo[appsCount], &file );
       if( appsCountProgress > 0 ) {
         float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
-        tft.progressBar( 110, 112, 100, 20, progressRatio);
+        progressBar( (LGFX*)&tft, 110, 112, 100, 20, progressRatio);
         tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
         tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
       }
@@ -750,7 +804,7 @@ void launchApp( FileInfo &info )
       return;
     }
   }
-  sdUpdater->updateFromFS( M5_FS, fileInfo[MenuID].fileName );
+  SDUpdaterNS::updateFromFS( M5_FS, fileInfo[MenuID].fileName );
   //updateFromFS( M5_FS, fileInfo[MenuID].fileName, TFCARD_CS_PIN );
   ESP.restart();
 }
@@ -783,7 +837,7 @@ void UISetup()
   tft.setTextSize( 1 );
   tft.drawString( SD_LOADING_MESSAGE, 160, 142, 1 );
 
-  M5.update();
+  //M5.update();
 
   bool toggle = true;
 #ifdef _CHIMERA_CORE_
@@ -805,10 +859,11 @@ void UISetup()
   }
   tft.setTextDatum(TL_DATUM);
 
-  unsigned long longPush = 10000;
-  unsigned long shortPush = 5000;
-
   #if defined USE_DOWNLOADER
+
+    unsigned long longPush = 10000;
+    unsigned long shortPush = 5000;
+
     if( M5.BtnB.isPressed() )
     {
       unsigned long pushStart = millis();
@@ -872,7 +927,7 @@ void doFSChecks()
   checkMenuStickyPartition();
 
   tft.fillRect(110, 112, 100, 20,0);
-  tft.progressBar( 110, 112, 100, 20, 10);
+  progressBar( (LGFX*)&tft, 110, 112, 100, 20, 10);
 
   scanDataFolder(); // do SD / SPIFFS health checks
 
@@ -902,7 +957,7 @@ void doFSInventory()
   tft.setTextColor( TFT_WHITE );
   tft.setTextSize( 1 );
   tft.clear();
-  tft.progressBar( 110, 112, 100, 20, 20);
+  progressBar( (LGFX*)&tft, 110, 112, 100, 20, 20);
   appsCount = 0;
   listDir(M5_FS, "/", 0, false); // count valid files first so a progress meter can be displayed
   appsCountProgress = appsCount;
@@ -988,7 +1043,7 @@ void HIDMenuObserve() {
       }
     break;
   }
-  M5.update();
+  //M5.update();
 }
 
 

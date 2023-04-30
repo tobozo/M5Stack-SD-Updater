@@ -15,11 +15,10 @@ enum HIDSignal
   HID_SCREENSHOT = 6
 };
 
-
 #define FAST_REPEAT_DELAY 50 // ms, push delay
 #define SLOW_REPEAT_DELAY 500 // ms, must be higher than FAST_REPEAT_DELAY and smaller than LONG_DELAY_BEFORE_REPEAT
 #define LONG_DELAY_BEFORE_REPEAT 1000 // ms, delay before slow repeat enables
-unsigned long fastRepeatDelay = FAST_REPEAT_DELAY;
+	unsigned long fastRepeatDelay = FAST_REPEAT_DELAY;
 unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
 #if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
   bool JOY_Y_pressed = false;
@@ -140,6 +139,55 @@ static bool M5FacesEnabled = false;
 
 #endif
 
+HIDSignal HIDFeedback( HIDSignal signal, int ms = 50 )
+{
+  if( signal != HID_INERT ) {
+    HIDFeedback( ms );
+  }
+  return signal;
+}
+
+
+#if defined ARDUINO_M5STACK_ATOM_AND_TFCARD
+
+  #include <Button2.h>
+  Button2 button;//for G39
+
+  static HIDSignal _button;
+
+  void handler(Button2 &btn)
+  {
+    switch (btn.getType())
+    {
+      case clickType::single_click:
+      Serial.print("single ");
+      _button = HIDFeedback(HID_DOWN);
+      break;
+      case clickType::double_click:
+      Serial.print("double ");
+      _button = HIDFeedback(HID_PAGE_DOWN);
+      break;
+      case clickType::triple_click:
+      Serial.print("triple ");
+      _button = HIDFeedback(HID_PAGE_UP);
+      break;
+      case clickType::long_click:
+      Serial.print("long ");
+      _button = HIDFeedback(HID_SELECT);
+      break;
+      case clickType::empty:
+      break;
+      default:
+      break;
+    }
+
+    Serial.print("click");
+    Serial.print(" (");
+    Serial.print(btn.getNumberOfClicks());
+    Serial.println(")");
+  }
+
+#endif
 
 void HIDInit()
 {
@@ -152,16 +200,15 @@ void HIDInit()
       Serial.println("M5Faces enabled and listening");
     }
   #endif
-}
 
-
-
-HIDSignal HIDFeedback( HIDSignal signal, int ms = 50 )
-{
-  if( signal != HID_INERT ) {
-    HIDFeedback( ms );
-  }
-  return signal;
+  #if defined ARDUINO_M5STACK_ATOM_AND_TFCARD
+    // G39 button
+    button.setClickHandler(handler);
+    button.setDoubleClickHandler(handler);
+    button.setTripleClickHandler(handler);
+    button.setLongClickHandler(handler);
+    button.begin(39);
+  #endif
 }
 
 
@@ -183,6 +230,8 @@ HIDSignal getControls()
   }
 
   #if defined(ARDUINO_ODROID_ESP32) && defined(_CHIMERA_CORE_)
+    M5.update();
+
     // Odroid-Go buttons support ** with repeat delay **
     if( M5.JOY_Y.pressedFor( fastRepeatDelay ) ) {
       uint8_t updown = M5.JOY_Y.isAxisPressed();
@@ -246,7 +295,9 @@ HIDSignal getControls()
       }
     }
 
-    #if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE || defined ARDUINO_M5STACK_Core2
+    #if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE || defined ARDUINO_M5STACK_Core2 || defined ARDUINO_ESP32_S3_BOX
+
+      M5.update();
 
       // legacy buttons support
       bool a = M5.BtnA.wasPressed();
@@ -255,12 +306,19 @@ HIDSignal getControls()
       bool d = ( M5.BtnB.wasPressed() && M5.BtnC.isPressed() );
       bool e = ( M5.BtnB.isPressed() && M5.BtnC.wasPressed() );
 
-    #endif
+      if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
+      if( b ) return HIDFeedback( HID_PAGE_DOWN );
+      if( c ) return HIDFeedback( HID_DOWN );
+      if( a ) return HIDFeedback( HID_SELECT );
 
-    if( d || e ) return HIDFeedback( HID_PAGE_UP ); // multiple push, suggested by https://github.com/mongonta0716
-    if( b ) return HIDFeedback( HID_PAGE_DOWN );
-    if( c ) return HIDFeedback( HID_DOWN );
-    if( a ) return HIDFeedback( HID_SELECT );
+    #elif defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
+
+      button.loop();
+      HIDSignal temp = _button;
+      _button = HID_INERT;
+      return temp;
+
+    #endif
 
   #endif
 

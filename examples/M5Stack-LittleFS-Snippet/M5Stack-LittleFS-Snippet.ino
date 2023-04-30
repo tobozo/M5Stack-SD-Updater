@@ -1,9 +1,9 @@
 /*
  *
- * M5Stack SD Loader Snippet
+ * M5Stack LittleFS Loader Snippet
  * Project Page: https://github.com/tobozo/M5Stack-SD-Updater
  *
- * Copyright 2018 tobozo http://github.com/tobozo
+ * Copyright 2019 tobozo http://github.com/tobozo
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -35,39 +35,22 @@
  * compile it and put the binary on the sdcard. See M5Stack-SD-Menu for more
  * info on the acceptable file formats.
  *
- * When this app is in memory, booting the M5Stack with the Button A pushed will
+ * When this app is in memory, booting the M5StickC with the Button A pushed will
  * flash back the menu.bin into memory.
  *
  */
-/*
-#if defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE ) // M5Stack Classic/Fire
-  #include <M5Stack.h>
-  // #include <ESP32-Chimera-Core.h>
-#elif defined( ARDUINO_M5STACK_Core2 ) // M5Stack Core2
-  #include <M5Core2.h>
-#elif defined( ARDUINO_M5Stick_C ) // M5StickC
-  #include <M5StickC.h>
-#else
-  #include <ESP32-Chimera-Core.h> // any other ESP32 device with SD
-#endif
-*/
-#include <ESP32-Chimera-Core.h>
-//#include <M5Stack.h>
-// #define SDU_HEADLESS
+#include <M5Stack.h>
+#include <LittleFS.h>
+
 
 #define SDU_APP_NAME "M5Stack SDLoader Snippet"
 #define SDU_APP_PATH "/MY_SKETCH.bin"
-
 #include <M5StackUpdater.h>
 
-void setup()
-{
-  M5.begin();
 
-  M5.Lcd.fillRect( 10, 10, 100, 100, TFT_BLUE );
-  delay(1000);
-
-  Serial.println("Welcome to the SD-Updater minimal example!");
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Welcome to the LittleFS-Updater minimal example!");
   Serial.println("Now checking if a button was pushed during boot ...");
 
   SDUCfg.setLabelMenu("<< Menu");        // BtnA label: load menu.bin
@@ -78,27 +61,16 @@ void setup()
 
   // checkSDUpdater( SD );
   checkSDUpdater(
-    SD,           // filesystem (default=SD)
+    LittleFS,     // filesystem (default=SD)
     MENU_BIN,     // path to binary (default=/menu.bin, empty string=rollback only)
-    5000,         // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
+    2000,         // wait delay, (default=0, will be forced to 2000 upon ESP.restart() )
     TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
   );
   Serial.println("Nope, will run the sketch normally");
-  M5.Lcd.print("M5Stack SD Loader test");
+
+
 }
 
-
-void loop()
-{
-  M5.update();
-  // provide means to copy the sketch to filesystem
-  if( M5.BtnB.pressedFor( 1000 ) ) {
-    Serial.println("Will copy this sketch to filesystem");
-    if( saveSketchToFS( SD, SDU_APP_PATH, TFCARD_CS_PIN ) ) {
-      Serial.println("Copy successful !");
-    } else {
-      Serial.println("Copy failed !");
-    }
-  }
+void loop() {
 
 }

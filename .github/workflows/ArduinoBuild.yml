@@ -4,7 +4,9 @@ on:
     paths:
     - '**.ino'
     - '**.cpp'
+    - '**.hpp'
     - '**.h'
+    - '**.c'
     - '**ArduinoBuild.yml'
   pull_request:
   release:
@@ -13,19 +15,23 @@ on:
 jobs:
 
   matrix_build:
-    name: ${{ matrix.matrix-context }}@${{ matrix.sdk-version }})
+    name: ${{ matrix.matrix-context }}@${{ matrix.sdk-version }}
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
 
         sdk-version:
-          - 1.0.6
+          #- 1.0.6
           #- 2.0.0
           #- 2.0.1
           # - 2.0.2 # has broken SD Support
-          - 2.0.3
-          - 2.0.4
+          #- 2.0.3
+          #- 2.0.4
+          #- 2.0.5
+          - 2.0.6
+          - 2.0.7
+          - 2.0.8
 
         matrix-context:
           - M5Core2-test
@@ -39,26 +45,29 @@ jobs:
           - M5Core2
           - M5Fire
           - OdroidGo
+          - SdFat-test
 
-        exclude:
-          - sdk-version: 2.0.2 # has broken SD Support
+        #exclude:
+          #- sdk-version: 2.0.2 # has broken SD Support
           # There's no esp32s3box support before 2.0.3
-          - { matrix-context: S3Box-Test, sdk-version: 1.0.6 }
+          #- { matrix-context: S3Box-Test, sdk-version: 1.0.6 }
           #- { matrix-context: S3Box-Test, sdk-version: 2.0.0 }
           #- { matrix-context: S3Box-Test, sdk-version: 2.0.1 }
           #- { matrix-context: S3Box-Test sdk-version: 2.0.2 }
-          - { matrix-context: S3Box-Test, sdk-version: 2.0.4 } # will be fixed in 2.0.5 https://github.com/espressif/arduino-esp32/pull/6962/files
-          - { matrix-context: M5Core2-test, sdk-version: 1.0.6 } # M5Core2.h suddenly ceased to support 1.0.6 (I2S and I2C broken)
+          #- { matrix-context: S3Box-Test, sdk-version: 2.0.4 } # will be fixed in 2.0.5 https://github.com/espressif/arduino-esp32/pull/6962/files
+          #- { matrix-context: M5Core2-test, sdk-version: 1.0.6 } # M5Core2.h suddenly ceased to support espressif package 1.0.6/2.0.0 (I2S and I2C broken)
 
 
         include:
 
           # buildable sdk versions
-          - sdk-version: 1.0.6
+          #- sdk-version: 1.0.6
           #- sdk-version: 2.0.0
           #- sdk-version: 2.0.1
-          - sdk-version: 2.0.3
-          - sdk-version: 2.0.4
+          #- sdk-version: 2.0.5
+          - sdk-version: 2.0.6
+          - sdk-version: 2.0.7
+          - sdk-version: 2.0.8
 
           # library health test sketches
           - { matrix-context: M5Core2-test,   arduino-board: m5stack-core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
@@ -67,6 +76,7 @@ jobs:
           - { matrix-context: M5Unified-test, arduino-board: m5stack-core2,      sketch-names: M5Unified.ino,                      required-libraries: "M5GFX,M5Unified", ... }
           - { matrix-context: M5StickC-test,  arduino-board: m5stick-c,          sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino, required-libraries: "M5StickC", ... }
           - { matrix-context: LGFX-test,      arduino-board: m5stack-core-esp32, sketch-names: LGFX-SDLoader-Snippet.ino,          required-libraries: "LovyanGFX", ... }
+          - { matrix-context: SdFat-test,     arduino-board: m5stack-core2,      sketch-names: SdFatUpdater.ino,                   required-libraries: "SdFat,M5GFX,M5Unified", ... }
 
           # Launcher and Appstore
           - matrix-context: M5Stack
@@ -93,21 +103,27 @@ jobs:
             launcher-name: OdroidGo-Launcher
             appstore-name: OdroidGo-AppStore
             extra-fqbn: ":PartitionScheme=min_spiffs"
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz,Button2"
           #- matrix-context: TTGO-LoRa32-V2-test
             #arduino-board: ttgo-lora32-v2
             #sketch-names: TTGO-test.ino
             #required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
+          - matrix-context: M5Atom
+            sdk-version: 2.0.8
+            arduino-board: m5stack-atom
+            sketch-names: M5Stack-SD-Menu.ino
+            launcher-name: M5Atom-Launcher
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz,Button2"
 
       fail-fast: false
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: ${{ matrix.matrix-context }}
-        uses: ArminJo/arduino-test-compile@v3
+        uses: ArminJo/arduino-test-compile@v3.2.0
         with:
           platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
           #platform-url: ${{ matrix.platform-url }}
@@ -125,9 +141,9 @@ jobs:
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         run: |
           cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}-${{ matrix.sdk-version }}.bin
-          cp examples/AppStore/build/AppStore.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin
+          FILE=examples/AppStore/build/AppStore.ino.bin && [ -f "$FILE" ] && cp $FILE examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin || true
       - name: Upload artifact ${{ matrix.matrix-context }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         with:
           name: ${{ matrix.matrix-context }}
@@ -142,12 +158,12 @@ jobs:
     needs: matrix_build
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Create artifacts dir
         #if: startsWith(github.ref, 'refs/tags/')
         run: mkdir -p /home/runner/builds
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         #if: startsWith(github.ref, 'refs/tags/')
         with:
           path: builds

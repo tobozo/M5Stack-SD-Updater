@@ -1,7 +1,8 @@
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
 #include <M5Core2.h>
 #define SDU_APP_NAME "M5Core2 SDLoader Snippet"
 #include <M5StackUpdater.h>
-
 
 void setup()
 {

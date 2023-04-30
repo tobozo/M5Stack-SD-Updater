@@ -1,7 +1,9 @@
 #pragma once
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
+#if !defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
 #include "core.h"
+#endif
 
 #define M5SAM_MENU_TITLE_MAX_SIZE 24
 #define M5SAM_BTN_TITLE_MAX_SIZE 6
@@ -54,7 +56,7 @@ class M5SAM
     uint8_t listPagination = M5SAM_LIST_PAGE_LABELS;
     uint8_t listPageLabelsOffset = 80; // initially 80, pixels offset from top screen for list items
     uint8_t listCaptionDatum = TC_DATUM; // initially TC_DATUM=top centered, TL_DATUM=top left (default), top/right/bottom/left
-    uint16_t listCaptionXPos = 160; // initially M5.Lcd.width()/2, text cursor position-x for list caption
+    uint16_t listCaptionXPos = 160; // initially tft.width()/2, text cursor position-x for list caption
     uint16_t listCaptionYPos = 45; // initially 45, text cursor position-x for list caption
 
   private:
@@ -203,10 +205,10 @@ void M5SAM::nextList( bool renderAfter )
 void M5SAM::drawListItem(byte inIDX, byte postIDX)
 {
   if(inIDX==list_idx){
-    M5.Lcd.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
-    M5.Lcd.drawString(">",3,listPageLabelsOffset+(postIDX*20),2);
+    tft.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
+    tft.drawString(">",3,listPageLabelsOffset+(postIDX*20),2);
   }else{
-    M5.Lcd.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
+    tft.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
   }
 }
 
@@ -216,10 +218,10 @@ void M5SAM::showList()
 {
     windowClr();
     byte labelid = 0;
-    M5.Lcd.setTextDatum( listCaptionDatum );
-    //M5.Lcd.drawCentreString(listCaption,M5.Lcd.width()/2,45,2);
-    M5.Lcd.drawString(listCaption, listCaptionXPos, listCaptionYPos, 2);
-    M5.Lcd.setTextDatum( TL_DATUM );
+    tft.setTextDatum( listCaptionDatum );
+    //tft.drawCentreString(listCaption,tft.width()/2,45,2);
+    tft.drawString(listCaption, listCaptionXPos, listCaptionYPos, 2);
+    tft.setTextDatum( TL_DATUM );
     if((list_page + 1) == list_pages){
       if(list_lastpagelines == 0 and list_count >= listPagination){
         list_lines = listPagination;
@@ -317,7 +319,7 @@ void M5SAM::show()
 
 void M5SAM::windowClr()
 {
-  M5.Lcd.fillRoundRect(0,32,M5.Lcd.width(),M5.Lcd.height()-32-32,3,windowcolor);
+  tft.fillRoundRect(0,32,tft.width(),tft.height()-32-32,3,windowcolor);
 }
 
 
@@ -335,7 +337,7 @@ uint16_t M5SAM::getrgb(byte inred, byte ingrn, byte inblue)
 void M5SAM::drawAppMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, String inbtnCttl)
 {
   drawMenu(inmenuttl, inbtnAttl, inbtnBttl, inbtnCttl, menucolor, windowcolor, menutextcolor);
-  M5.Lcd.setTextColor(menutextcolor,windowcolor);
+  tft.setTextColor(menutextcolor,windowcolor);
 }
 
 
@@ -354,8 +356,8 @@ String M5SAM::keyboardGetString()
   String tmp_str = "";
   boolean tmp_klock = HIGH;
   keyboardEnable();
-  M5.Lcd.fillRoundRect(0,M5.Lcd.height()-28,M5.Lcd.width(),28,3,windowcolor);
-  M5.Lcd.drawString(">"+tmp_str,5,M5.Lcd.height()-28+6,2);
+  tft.fillRoundRect(0,tft.height()-28,tft.width(),28,3,windowcolor);
+  tft.drawString(">"+tmp_str,5,tft.height()-28+6,2);
   while(tmp_klock==HIGH){
     if(_keyboardIRQRcvd==HIGH){
       if(_keyboardChar == 0x08){
@@ -365,8 +367,8 @@ String M5SAM::keyboardGetString()
       }else{
         tmp_str = tmp_str + char(_keyboardChar);
       }
-      M5.Lcd.fillRoundRect(0,M5.Lcd.height()-28,M5.Lcd.width(),28,3,windowcolor);
-      M5.Lcd.drawString(">"+tmp_str,5,M5.Lcd.height()-28+6,2);
+      tft.fillRoundRect(0,tft.height()-28,tft.width(),28,3,windowcolor);
+      tft.drawString(">"+tmp_str,5,tft.height()-28+6,2);
       _keyboardIRQRcvd = LOW;
     }
   }
@@ -401,7 +403,7 @@ void M5SAM::keyboardIRQ(){
 
 #ifdef ARDUINO_ODROID_ESP32
 
-  //#define BUTTON_WIDTH 60
+  #define BUTTON_WIDTH 60
   #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
   #define BUTTON_HEIGHT 28
   uint16_t buttonsXOffset[4] = {
@@ -418,12 +420,12 @@ void M5SAM::keyboardIRQ(){
   void M5SAM::drawAppMenu(String inmenuttl, String inbtnAttl, String intSpeakerttl, String inbtnBttl, String inbtnCttl)
   {
     drawMenu(inmenuttl, inbtnAttl, intSpeakerttl, inbtnBttl, inbtnCttl, menucolor, windowcolor, menutextcolor);
-    M5.Lcd.setTextColor(menutextcolor,windowcolor);
+    tft.setTextColor(menutextcolor,windowcolor);
   }
 
 #else
 
-  //#define BUTTON_WIDTH 60
+  #define BUTTON_WIDTH 60
   #define BUTTON_HWIDTH BUTTON_WIDTH/2 // 30
   #define BUTTON_HEIGHT 28
   uint16_t buttonsXOffset[3] =
@@ -435,16 +437,17 @@ void M5SAM::keyboardIRQ(){
 
 void M5SAM::btnRestore()
 {
-  M5.Lcd.setTextColor(menutextcolor);
-  M5.Lcd.fillRoundRect(0,M5.Lcd.height()-BUTTON_HEIGHT,M5.Lcd.width(),BUTTON_HEIGHT,3,0x00);
+  //using namespace SDU_UI;
+  tft.setTextColor(menutextcolor);
+  tft.fillRoundRect(0,tft.height()-BUTTON_HEIGHT,tft.width(),BUTTON_HEIGHT,3,0x00);
   for( byte i=0; i<BUTTONS_COUNT; i++ ) {
-    M5.Lcd.fillRoundRect(buttonsXOffset[i],M5.Lcd.height()-BUTTON_HEIGHT,BUTTON_WIDTH,BUTTON_HEIGHT,3,menucolor);
+    tft.fillRoundRect(buttonsXOffset[i],tft.height()-BUTTON_HEIGHT,BUTTON_WIDTH,BUTTON_HEIGHT,3,menucolor);
     if( lastBtnTittle[i] != "" ) {
-      M5.Lcd.drawCentreString( lastBtnTittle[i], buttonsXOffset[i]+BUTTON_HWIDTH, M5.Lcd.height()-BUTTON_HEIGHT+6, 2);
+      tft.drawCentreString( lastBtnTittle[i], buttonsXOffset[i]+BUTTON_HWIDTH, tft.height()-BUTTON_HEIGHT+6, 2);
 
     }
   }
-  M5.Lcd.setTextColor(menutextcolor,windowcolor);
+  tft.setTextColor(menutextcolor,windowcolor);
 }
 
 
@@ -461,16 +464,16 @@ void M5SAM::drawMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, Strin
     lastBtnTittle[2] = inbtnCttl;
   #endif
   for( byte i=0; i<BUTTONS_COUNT; i++ ) {
-    M5.Lcd.fillRoundRect(buttonsXOffset[i],M5.Lcd.height()-BUTTON_HEIGHT,BUTTON_WIDTH,BUTTON_HEIGHT,3,inmenucolor);
+    tft.fillRoundRect(buttonsXOffset[i],tft.height()-BUTTON_HEIGHT,BUTTON_WIDTH,BUTTON_HEIGHT,3,inmenucolor);
   }
-  M5.Lcd.fillRoundRect(0,0,M5.Lcd.width(),BUTTON_HEIGHT,3,inmenucolor);
-  M5.Lcd.fillRoundRect(0,32,M5.Lcd.width(),M5.Lcd.height()-32-32,3,inwindowcolor);
+  tft.fillRoundRect(0,0,tft.width(),BUTTON_HEIGHT,3,inmenucolor);
+  tft.fillRoundRect(0,32,tft.width(),tft.height()-32-32,3,inwindowcolor);
 
-  M5.Lcd.setTextColor(intxtcolor);
-  M5.Lcd.drawCentreString(inmenuttl,M5.Lcd.width()/2,6,2);
+  tft.setTextColor(intxtcolor);
+  tft.drawCentreString(inmenuttl,tft.width()/2,6,2);
   for( byte i=0; i<BUTTONS_COUNT; i++ ) {
     if( lastBtnTittle[i] != "" ) {
-      M5.Lcd.drawCentreString(lastBtnTittle[i],buttonsXOffset[i]+BUTTON_HWIDTH,M5.Lcd.height()-BUTTON_HEIGHT+6,2);
+      tft.drawCentreString(lastBtnTittle[i],buttonsXOffset[i]+BUTTON_HWIDTH,tft.height()-BUTTON_HEIGHT+6,2);
     }
   }
 }

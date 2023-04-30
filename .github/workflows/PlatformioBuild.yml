@@ -35,22 +35,27 @@ jobs:
           - m5stack-core2
           - m5unified
           - s3box
+          - m5stack-atom
 
         platform-version:
-          - 1.0.6
-          - 2.0.0
-          - 2.0.1
+          #- 1.0.6
+          #- 2.0.0
+          #- 2.0.1
           #- 2.0.2 # has broken SD Support
-          - 2.0.3
-          - 2.0.4
+          #- 2.0.3
+          #- 2.0.4
+          #- 2.0.5
+          - 2.0.6
+          - 2.0.7
+          - 2.0.8
 
-        exclude:
-          - { piocontext: s3box, platform-version: 1.0.6 }
-          - { piocontext: s3box, platform-version: 2.0.0 }
-          - { piocontext: s3box, platform-version: 2.0.1 }
+        #exclude:
+          #- { piocontext: s3box, platform-version: 1.0.6 }
+          #- { piocontext: s3box, platform-version: 2.0.0 }
+          #- { piocontext: s3box, platform-version: 2.0.1 }
           #- { piocontext: s3box, platform-version: 2.0.2 }
-          - { piocontext: m5stack-core2, platform-version: 1.0.6 } # M5Core2.h broken I2S support with 1.0.6
-          - { piocontext: m5stack-core2, platform-version: 2.0.0 } # M5Core2.h broken I2S support with 2.0.0
+          #- { piocontext: m5stack-core2, platform-version: 1.0.6 } # M5Core2.h broken I2S support with 1.0.6
+          #- { piocontext: m5stack-core2, platform-version: 2.0.0 } # M5Core2.h broken I2S support with 2.0.0
 
         include:
           - piocontext: lgfx
@@ -64,24 +69,26 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Cache pip
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
       - name: Cache PlatformIO
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.platformio
           key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
       - name: Install PlatformIO
         run: |

@@ -6,6 +6,8 @@
 ![Arduino Build](https://github.com/tobozo/M5Stack-SD-Updater/actions/workflows/ArduinoBuild.yml/badge.svg?branch=master)
 ![Platformio Build](https://github.com/tobozo/M5Stack-SD-Updater/actions/workflows/PlatformioBuild.yml/badge.svg?branch=master)
 
+![Library Downloads](https://img.shields.io/github/downloads/tobozo/M5Stack-SD-Updater/total)
+
 # M5Stack-SD-Updater
 
 <br />
@@ -36,7 +38,7 @@
 <br />
 
 **Micro SD Card (TF Card)** - formatted using FAT32. Max size 32 Gb.
-SDCard is recommended but the SDUpdater supports other filesystems such as SD_MMC, SPIFFS, LittleFS and PSRamFS.
+SDCard is recommended but the SDUpdater supports other filesystems such as SdFat, SD_MMC and LittleFS (SPIFFS will soon be deprecated).
 
 <br />
 
@@ -47,6 +49,8 @@ SDCard is recommended but the SDUpdater supports other filesystems such as SD_MM
 - [M5Stack-SD-Updater](https://github.com/tobozo/M5Stack-SD-Updater) (this library + its examples).
 
 - [ArduinoJSON](https://github.com/bblanchon/ArduinoJson/) (Optional, used by SD-Menu).
+
+- [ESP32-targz](https://github.com/tobozo/ESP32-targz) (Optional if using gzipped firmwares)
 
 All those are available in the [Arduino Library Manager](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) or by performing a [manual installation](https://www.arduino.cc/en/Guide/Libraries#toc5).
 
@@ -105,6 +109,7 @@ The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as 
  And add this after the include:
 
 ```C
+    // #define SDU_ENABLE_GZ // optional: support for gzipped firmwares
     #include <M5StackUpdater.h>
 ```
 
@@ -392,11 +397,11 @@ The default SD-Menu application will scan for these file types:
 
   - .bin compiled application binary
 
-  - .jpg image/icon (max 200x100)
+  - .jpg image/icon (max 100x100)
 
   - .json file with dimensions descriptions:
 
-  `{"width":128,"height":128,"authorName":"tobozo","projectURL":"http://short.url","credits":"** http://very.very.long.url ~~"}`
+  `{"width":120,"height":120,"authorName":"tobozo","projectURL":"http://short.url","credits":"** http://very.very.long.url ~~"}`
 
 
 <br />
@@ -447,6 +452,19 @@ This can be triggered manually by using `saveSketchToFS(SD, fileName, TFCARD_CS_
 ```C++
 #define MENU_BIN "/my_custom_launcher.bin"
 #include "M5StackUpdater.h"
+```
+
+- Gzipped firmwares are supported when `SDU_ENABLE_GZ` macro is defined or when [ESP32-targz.h](https://github.com/tobozo/ESP32-targz) was previously included.
+  The firmware must have the `.gz.` extension and be a valid gzip file to trigger the decompression.
+
+```C++
+#define SDU_ENABLE_GZ // enable support for gzipped firmwares
+#include "M5StackUpdater.h"
+
+void setup()
+{
+  checkSDUpdater( SD, "/menu.gz", 2000 );
+}
 ```
 
 
@@ -500,5 +518,7 @@ This can be triggered manually by using `saveSketchToFS(SD, fileName, TFCARD_CS_
 | 👍     | QRCode              | Richard Moore    | https://github.com/ricmoo/qrcode             |
 | 👍     | @Reaper7            | Reaper7          | https://github.com/reaper7                   |
 | 👍     | @PartsandCircuits   | PartsandCircuits | https://github.com/PartsandCircuits          |
-| 👍     | @lovyan03           | らびやん           | https://github.com/lovyan03                  |
+| 👍     | @lovyan03           | らびやん           | https://github.com/lovyan03                 |
 | 👍     | @matsumo            | Matsumo          | https://github.com/matsumo                   |
+| 👍     | @riraosan           | Riraosan         | https://github.com/riraosan                  |
+| 👍     | @ockernuts          | ockernuts        | https://github.com/ockernuts                 |
