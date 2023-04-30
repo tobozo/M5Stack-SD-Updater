@@ -109,7 +109,7 @@
     #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
   #endif
 #endif
-#if defined _SD_MMC_H_
+#if defined _SDMMC_H_
   #define SDU_HAS_SD_MMC
   /*#include <SD_MMC.h>*/
 #endif
@@ -458,6 +458,18 @@ namespace SDUpdaterNS
     }
 
   };
+
+
+  inline void updateFromFS( const String& fileName )
+  {
+    if( !SDUCfg.fs ) {
+      log_e("NO FILESYSTEM");
+      return;
+    }
+    SDUpdater sdUpdater( &SDUCfg );
+    sdUpdater.updateFromFS( fileName );
+    ESP.restart();
+  }
 
 
   // provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater

@@ -47,6 +47,7 @@ extern "C" {
 namespace SDUpdaterNS
 {
 
+  extern void updateFromFS( const String& fileName );
   // provide an imperative function to avoid breaking button-based (older) versions of the M5Stack SD Updater
   extern void updateFromFS( fs::FS &fs, const String& fileName = MENU_BIN, const int TfCardCsPin = TFCARD_CS_PIN );
   // copy compiled sketch from flash partition to filesystem binary file
