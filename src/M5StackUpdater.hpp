@@ -124,96 +124,38 @@
   #include <LittleFS.h>
 #endif
 
-
-#if defined SDU_ENABLE_GZ || defined _ESP_TGZ_H || __has_include(<ESP32-targz.h>) // _TGZ_FSFOOLS_
-  #define SDU_HAS_TARGZ
-  #pragma message "gzip and tar support detected!"
-  #include <ESP32-targz.h>
-
-  using namespace SDUpdaterNS::UpdateInterfaceNS;
-
-  #define F_Update GzUpdateClass::getInstance()
-  #define F_UpdateEnd() (mode_z ? F_Update.endgz() : F_Update.end())
-  #define F_abort() if (mode_z) F_Update.abortgz(); else F_Update.abort()
-  #define F_writeStream(updateSource,updateSize) (mode_z ? F_Update.writeGzStream(updateSource,updateSize) : F_Update.writeStream(updateSource))
-  #define F_canBegin( usize ) (mode_z ? F_Update.begingz(UPDATE_SIZE_UNKNOWN) : F_Update.begin(usize))
-  #define F_end() (mode_z ? F_Update.endgz() : F_Update.end() )
-
-  namespace SDUpdaterNS
-  {
-    namespace ConfigManager
-    {
-      static UpdateInterfaceNS::UpdateManagerInterface_t Iface =
-      {
-        .begin=[](size_t s)->bool{ return F_canBegin(s); },
-        .writeStream=[](Stream &data,size_t size)->size_t{ return F_writeStream(data, size); },
-        .abort=[]() { F_abort(); },
-        .end=[]()->bool{ return F_end(); },
-        .isFinished=[]()->bool{ return F_Update.isFinished(); },
-        .canRollBack=[]()->bool{ return F_Update.canRollBack(); },
-        .rollBack=[]()->bool{ return F_Update.rollBack(); },
-        .onProgress=[](UpdateClass::THandlerFunction_Progress fn){ F_Update.onProgress(fn); },
-        .getError=[]()->uint8_t{ return F_Update.getError(); },
-        .setBinName=[]( String& fileName, Stream* stream ) {
-          if( !fileName.endsWith(".gz") ) {
-            log_d("Not a gz file");
-            return;
-          }
-          mode_z = stream->peek() == 0x1f; // magic zlib byte
-          log_d("compression: %s", mode_z ? "enabled" : "disabled" );
-        }
-      };
-    };
-  };
-
-#else
-  namespace SDUpdaterNS
-  {
-    namespace ConfigManager
-    {
-      static UpdateInterfaceNS::UpdateManagerInterface_t Iface =
-      {
-        .begin=[](size_t s)->bool{ return Update.begin(s); },
-        .writeStream=[](Stream &data,size_t size)->size_t{ return Update.writeStream(data); },
-        .abort=[]() { Update.abort(); },
-        .end=[]()->bool{ return Update.end(); },
-        .isFinished=[]()->bool{ return Update.isFinished(); },
-        .canRollBack=[]()->bool{ return Update.canRollBack(); },
-        .rollBack=[]()->bool{ return Update.rollBack(); },
-        .onProgress=[](UpdateClass::THandlerFunction_Progress fn){ Update.onProgress(fn); },
-        .getError=[]()->uint8_t{ return Update.getError(); },
-        .setBinName=[](String&fileName, Stream* stream){
-          if( fileName.endsWith(".gz") ) {
-            log_e("Gz file detected but gz support is disabled!");
-          }
-        }
-      };
-    };
-  }
-#endif
-
-
 #if __has_include(<LITTLEFS.h>) || defined _LIFFLEFS_H_
   // LittleFS is now part of esp32 package, the older, external version isn't supported
-  #warning "Older version of <LITTLEFS.h> is unsupported, use builtin version with #include <LittleFS.h> instead, if using platformio add LittleFS(esp32)@^2.0.0 to lib_deps"
+  #warning "Older version of <LITTLEFS.h> is unsupported and will be ignored"
+  #warning "Use builtin version with #include <LittleFS.h> instead, if using platformio add LittleFS(esp32)@^2.0.0 to lib_deps"
 #endif
 
 #define SDU_HAS_FS (defined SDU_HAS_SD || defined SDU_HAS_SD_MMC || defined SDU_HAS_SPIFFS || defined SDU_HAS_LITTLEFS )
+
+// call this directive before detecting/loading SdFat otherwise __has_include() directive will be unavailable
+#if defined SDU_ENABLE_GZ || defined _ESP_TGZ_H || __has_include(<ESP32-targz.h>)
+  #define SDU_HAS_TARGZ
+  #pragma message "gzip and tar support detected!"
+  #include <ESP32-targz.h>
+#endif
+
 
 #if ! SDU_HAS_FS
   #define SDU_HAS_SD
   #if defined USE_SDFATFS
     #pragma message "SDUpdater will use SdFat"
-    #undef __has_include
-    #include <misc/sdfat32fs_wrapper.h>
-    #define __has_include
+    #if !__has_include(<SdFat.h>)
+      #warning "SdFat.h is not in the stack list, loading will be forced"
+    #endif
+    // WARNING: __has_include() directive is undef'd by SdFat library and platformio makes this global
+    #include "./misc/sdfat32fs_wrapper.hpp"
+    // do not use the directive __has_include() after this point
     #define SDU_SD_BEGIN SDU_SDFatBegin
   #else
     #pragma message "SDUpdater didn't detect any  preselected filesystem, will use SD as default"
     #include <SD.h>
     #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
   #endif
-
 #endif
 
 
@@ -321,6 +263,7 @@
 #endif
 
 
+#include "./misc/update_interface.hpp"
 #include "./ConfigManager/ConfigManager.hpp"
 #include "./SDUpdater/SDUpdater_Class.hpp"
 #include "./UI/common.hpp"
