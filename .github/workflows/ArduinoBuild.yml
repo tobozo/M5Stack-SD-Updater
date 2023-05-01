@@ -84,26 +84,26 @@ jobs:
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: M5stack-Launcher
             appstore-name: M5stack-AppStore
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Core2
             arduino-board: m5stack-core2
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: M5Core2-Launcher
             appstore-name: M5Core2-AppStore
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Fire
             arduino-board: m5stack-fire
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: M5Fire-Launcher
             appstore-name: M5Fire-AppStore
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: OdroidGo
             arduino-board: odroid_esp32
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
             launcher-name: OdroidGo-Launcher
             appstore-name: OdroidGo-AppStore
             extra-fqbn: ":PartitionScheme=min_spiffs"
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz,Button2"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,Button2"
           #- matrix-context: TTGO-LoRa32-V2-test
             #arduino-board: ttgo-lora32-v2
             #sketch-names: TTGO-test.ino
@@ -113,7 +113,7 @@ jobs:
             arduino-board: m5stack-atom
             sketch-names: M5Stack-SD-Menu.ino
             launcher-name: M5Atom-Launcher
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,ESP32-targz,Button2"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,Button2"
 
       fail-fast: false
 
@@ -129,7 +129,7 @@ jobs:
           #platform-url: ${{ matrix.platform-url }}
           arduino-board-fqbn: esp32:esp32:${{ matrix.arduino-board}}${{ matrix.extra-fqbn }}
           arduino-platform: esp32:esp32@${{ matrix.sdk-version }}
-          required-libraries: ${{ matrix.required-libraries }}
+          required-libraries: ESP32-targz,${{ matrix.required-libraries }}
           extra-arduino-lib-install-args: --no-deps
           # extra-arduino-cli-args: ${{ matrix.extra-arduino-cli-args }}
           extra-arduino-cli-args: "--warnings default " # see https://github.com/ArminJo/arduino-test-compile/issues/28
