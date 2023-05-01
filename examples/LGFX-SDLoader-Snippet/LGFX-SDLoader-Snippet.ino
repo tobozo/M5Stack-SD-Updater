@@ -41,6 +41,7 @@ static LGFX tft;
 // #define _MOSI 3
 
 #define SDU_APP_NAME "LGFX Loader Snippet"
+#include <ESP32-targz.h> // optional: https://github.com/tobozo/ESP32-targz
 #include <M5StackUpdater.h>
 
 

@@ -39,6 +39,7 @@
  * flash back the menu.bin into memory.
  *
  */
+#include <ESP32-targz.h> // optional: https://github.com/tobozo/ESP32-targz
 #include <M5StickC.h>
 #include <M5StackUpdater.h>
 

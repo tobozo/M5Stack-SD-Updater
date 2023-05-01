@@ -1,8 +1,9 @@
 #define SDU_APP_NAME "Headless Example"
 #define SDU_APP_PATH "/Headless_Example.bin"
-#define SDU_HEADLESS     // don't load gfx clutter (but implement my own action trigger)
+#define SDU_NO_AUTODETECT // don't load gfx clutter (but implement my own action trigger)
 #define TFCARD_CS_PIN 4  // this is needed by SD.begin()
 #include <SD.h>          // /!\ headless mode skips autodetect and may require to include the filesystem library **before** the M5StackUpdater library
+#include <ESP32-targz.h> // optional: https://github.com/tobozo/ESP32-targz
 #include <M5StackUpdater.h>
 
 

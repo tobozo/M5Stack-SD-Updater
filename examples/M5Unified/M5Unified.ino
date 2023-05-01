@@ -1,7 +1,8 @@
+
 #include <SD.h>
 #include <M5Unified.h>
 //#define TFCARD_CS_PIN 4
-#define SDUPDATER_AUTODETECT
+#include <ESP32-targz.h> // optional: https://github.com/tobozo/ESP32-targz
 #include <M5StackUpdater.h>
 
 void setup(void)

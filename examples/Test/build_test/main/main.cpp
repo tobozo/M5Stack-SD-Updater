@@ -1,32 +1,43 @@
 
-#include <Arduino.h> // wtf platformio
-#include <ESP32-targz.h>
 
-#if defined TEST_LGFX
+#if defined __cplusplus
 
-  #include <SD.h> // WTF platformio lib_dep manager fails to resolve this ???
-  #include "../../../LGFX-SDLoader-Snippet/LGFX-SDLoader-Snippet.ino"
+#include <stddef.h> // platformio whines about missing definition for 'size_t' 🤦
 
-#elif defined TEST_M5Core2
+//#include <Arduino.h> // wtf platformio
+//#include <ESP32-targz.h>
 
-  #include "../../../M5Core2-SDLoader-Snippet/M5Core2-SDLoader-Snippet.ino"
+  #if defined TEST_LGFX
 
-#elif defined TEST_M5Stack || defined TEST_S3Box
+    //#include <SD.h> // WTF platformio lib_dep manager fails to resolve this ???
+    #include "../../../LGFX-SDLoader-Snippet/LGFX-SDLoader-Snippet.ino"
 
-  #include "../../../M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino"
+  #elif defined TEST_M5Core2
 
-#elif defined TEST_M5StickC
+    #include "../../../M5Core2-SDLoader-Snippet/M5Core2-SDLoader-Snippet.ino"
 
-  #include "../../../M5StickC-SPIFFS-Loader-Snippet/M5StickC-SPIFFS-Loader-Snippet.ino"
+  #elif defined TEST_M5Stack || defined TEST_S3Box
 
-#elif defined TEST_M5Unified
+    #include "../../../M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino"
 
-  #include <SD.h> // WTF platformio lib_dep manager fails to resolve this ???
-  #include "../../../M5Unified/M5Unified.ino"
+  #elif defined TEST_M5StickC
 
-#else
+    #include "../../../M5StickC-SPIFFS-Loader-Snippet/M5StickC-SPIFFS-Loader-Snippet.ino"
 
-  #error "No device to test"
+  #elif defined TEST_M5Unified
+
+    //#include <SD.h> // WTF platformio lib_dep manager fails to resolve this ???
+    #include "../../../M5Unified/M5Unified.ino"
+
+  #elif defined TEST_SdFat
+
+      #include "../../../SdFatUpdater/SdFatUpdater.ino"
+
+  #else
+
+    #error "No device to test"
+
+  #endif
+
 
 #endif
-

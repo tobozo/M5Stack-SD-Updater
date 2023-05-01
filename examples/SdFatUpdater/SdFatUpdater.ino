@@ -1,5 +1,7 @@
 #define TFCARD_CS_PIN 4 // customize this
 
+
+#include <ESP32-targz.h>                 // optional gzipped firmware support -> https://github.com/tobozo/ESP32-targz
 #include <M5Unified.h>                   // /!\ When using SdFat, always include LGFX/M5GFX *before* M5StackUpdater.h to prevent problems with macros
 
 #define SDU_NO_AUTODETECT                // Disable SDUpdater autodetect: this prevents <SD.h> to be auto-selected, however it also disables board detection

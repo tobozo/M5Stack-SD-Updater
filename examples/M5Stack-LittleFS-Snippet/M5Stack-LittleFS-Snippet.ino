@@ -41,7 +41,7 @@
  */
 #include <M5Stack.h>
 #include <LittleFS.h>
-
+#include <ESP32-targz.h> // optional: https://github.com/tobozo/ESP32-targz
 
 #define SDU_APP_NAME "M5Stack SDLoader Snippet"
 #define SDU_APP_PATH "/MY_SKETCH.bin"
