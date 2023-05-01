@@ -13,12 +13,6 @@
     #error "SD Updater only supports SdFs"
   #endif
 
-  #include <FS.h>
-  #include <FSImpl.h>
-  #undef __has_include
-  #include <SdFat.h>
-  #define __has_include
-
   // cfr https://en.cppreference.com/w/c/io/fopen + guesses
   inline oflag_t _convert_access_mode_to_flag(const char* mode, const bool create = false)
   {

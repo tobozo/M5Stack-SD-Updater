@@ -144,12 +144,15 @@
   #define SDU_HAS_SD
   #if defined USE_SDFATFS
     #pragma message "SDUpdater will use SdFat"
-    #if !__has_include(<SdFat.h>)
-      #warning "SdFat.h is not in the stack list, loading will be forced"
-    #endif
+    #warning "SdFat.h is not in the stack list, loading will be forced"
+    #undef __has_include
+    #include <FS.h>
+    #include <FSImpl.h>
+    #include <SdFat.h>
+    #define __has_include
     // WARNING: __has_include() directive is undef'd by SdFat library and platformio makes this global
     #include "./misc/sdfat32fs_wrapper.hpp"
-    // do not use the directive __has_include() after this point
+    // do not use the directive __has_include() below this point
     #define SDU_SD_BEGIN SDU_SDFatBegin
   #else
     #pragma message "SDUpdater didn't detect any  preselected filesystem, will use SD as default"

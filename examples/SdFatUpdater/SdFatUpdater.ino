@@ -18,7 +18,7 @@
   #define SDU_HAS_TOUCH
 #endif
 
-
+//#include <SdFat.h> // not necessary when `USE_SDFATFS` is defined
 #include <M5StackUpdater.h>
 
 SdFs sd;
