@@ -64,6 +64,7 @@ jobs:
           - piocontext: m5stack-core2
           - piocontext: m5unified
           - piocontext: s3box
+          - { platform-version: 2.0.8, piocontext: sdfat-test }
 
       fail-fast: false
 
@@ -101,6 +102,6 @@ jobs:
         run: |
           cd ${{ env.PROJECT_DIR }}
           [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
-          pio lib -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} install --no-save file://$(realpath ../../../)
+          pio pkg install -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} --no-save --library file://$(realpath ../../../)
           pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
 
