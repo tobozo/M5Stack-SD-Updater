@@ -130,7 +130,11 @@
   #warning "Use builtin version with #include <LittleFS.h> instead, if using platformio add LittleFS(esp32)@^2.0.0 to lib_deps"
 #endif
 
-#define SDU_HAS_FS (defined SDU_HAS_SD || defined SDU_HAS_SD_MMC || defined SDU_HAS_SPIFFS || defined SDU_HAS_LITTLEFS )
+#if defined SDU_HAS_SD || defined SDU_HAS_SD_MMC || defined SDU_HAS_SPIFFS || defined SDU_HAS_LITTLEFS
+  #define SDU_HAS_FS 1
+#else
+  #define SDU_HAS_FS 0
+#endif
 
 // call this directive before detecting/loading SdFat otherwise __has_include() directive will be unavailable
 #if defined SDU_ENABLE_GZ || defined _ESP_TGZ_H || __has_include(<ESP32-targz.h>)
@@ -140,16 +144,16 @@
 #endif
 
 
-#if ! SDU_HAS_FS
+#if SDU_HAS_FS==0
   #define SDU_HAS_SD
   #if defined USE_SDFATFS
     #pragma message "SDUpdater will use SdFat"
     #warning "SdFat.h is not in the stack list, loading will be forced"
-    #undef __has_include
+    //#undef __has_include
     #include <FS.h>
     #include <FSImpl.h>
     #include <SdFat.h>
-    #define __has_include
+    //#define __has_include
     // WARNING: __has_include() directive is undef'd by SdFat library and platformio makes this global
     #include "./misc/sdfat32fs_wrapper.hpp"
     // do not use the directive __has_include() below this point
