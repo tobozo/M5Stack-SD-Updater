@@ -1,21 +1,46 @@
 #define TFCARD_CS_PIN 4 // customize this
 
 
-#include <ESP32-targz.h>                 // optional gzipped firmware support -> https://github.com/tobozo/ESP32-targz
-#include <M5Unified.h>                   // /!\ When using SdFat, always include LGFX/M5GFX *before* M5StackUpdater.h to prevent problems with macros
 
+#include <M5Unified.h>                   // /!\ When using SdFat, always include LGFX/M5GFX *before* M5StackUpdater.h to prevent problems with macros
+//#include <M5Stack.h>
+//#include <M5Core2.h>
+
+#define SDU_NO_PRAGMAS                   // don't spawn pragma messages during compilation
+#define SDU_ENABLE_GZ                    // auto-load ESP32-targz (will be loaded otherwise is previously included)
+//#include <ESP32-targz.h>                 // optional gzipped firmware support, overriden by SDU_ENABLE_GZ -> https://github.com/tobozo/ESP32-targz
 #define SDU_NO_AUTODETECT                // Disable SDUpdater autodetect: this prevents <SD.h> to be auto-selected, however it also disables board detection
 #define USE_SDFATFS                      // Tell M5StackUpdater to load <SdFat.h> and wrap SdFat32 into fs::FS::SdFat32FSImpl
 
-#define HAS_M5_API                       // Use M5 API (M5.BtnA, BtnB, BtnC...) for triggers
-#define SDU_USE_DISPLAY                  // Enable display (progress bar, lobby, buttons)
-#define HAS_LGFX                         // Use LGFX Family display driver with zoom, rotate
-#define SDU_Sprite LGFX_Sprite           // Inherit Sprite type from M5GFX
-#define SDU_DISPLAY_TYPE M5GFX*          // inherit display type from M5GFX
-#define SDU_DISPLAY_OBJ_PTR &M5.Display  // alias display pointer from M5Unified
-#define SDU_TouchButton LGFX_Button      // inherit Buttons types from M5Unified
-#if !defined SDU_HAS_TOUCH && defined ARDUINO_M5STACK_Core2
-  #define SDU_HAS_TOUCH
+#if __has_include(<M5Unified.h>)
+
+  #define HAS_M5_API                       // Use M5 API (M5.BtnA, BtnB, BtnC...) for triggers
+  #define SDU_USE_DISPLAY                  // Enable display (progress bar, lobby, buttons)
+  #define HAS_LGFX                         // Use LGFX Family display driver with zoom, rotate
+  #define SDU_Sprite LGFX_Sprite           // Inherit Sprite type from M5GFX
+  #define SDU_DISPLAY_TYPE M5GFX*          // inherit display type from M5GFX
+  #define SDU_DISPLAY_OBJ_PTR &M5.Display  // alias display pointer from M5Unified
+  #if defined ARDUINO_M5STACK_Core2
+    #define SDU_TouchButton LGFX_Button      // inherit Buttons types from M5Unified
+    #define SDU_HAS_TOUCH
+  #endif
+
+#elif __has_include(<M5Core2.h>) || __has_include(<M5Stack.h>)
+
+  #define HAS_M5_API                       // Use M5 API (M5.BtnA, BtnB, BtnC...) for triggers
+  #define SDU_USE_DISPLAY                  // Enable display (progress bar, lobby, buttons)
+  #define SDU_Sprite TFT_eSprite           // Inherit TFT_eSprite type from M5 Core
+  #define SDU_DISPLAY_TYPE M5Display*      // inherit TFT_eSpi type from M5 Core
+  #define SDU_DISPLAY_OBJ_PTR &M5.Lcd      // alias display pointer from M5 Core
+  #if defined ARDUINO_M5STACK_Core2 && __has_include(<M5Core2.h>)
+    #define SDU_TouchButton TFT_eSPI_Button // inherit Buttons types from TFT_eSPI
+    #define SDU_HAS_TOUCH
+  #endif
+
+#else
+
+  #error "This example only supports the following cores: M5Unified.h, M5Stack.h or M5Core2.h"
+
 #endif
 
 //#include <SdFat.h> // not necessary when `USE_SDFATFS` is defined

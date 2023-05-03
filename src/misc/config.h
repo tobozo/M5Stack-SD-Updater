@@ -44,7 +44,8 @@
   #define SD_PLATFORM_NAME "TTGO TWatch"
 #elif defined ARDUINO_M5STACK_ATOM_AND_TFCARD
   #define SD_PLATFORM_NAME "Atom"
+#elif defined ARDUINO_ESP32_S3_BOX
+  #define SD_PLATFORM_NAME "S3Box"
 #else
-  //#pragma message ("Custom ESP32 board detected")
   #define SD_PLATFORM_NAME "ESP32"
 #endif

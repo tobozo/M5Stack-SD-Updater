@@ -94,6 +94,16 @@
 
 #define resetReason (int)rtc_get_reset_reason(0)
 
+// use `#define SDU_NO_PRAGMAS` to disable pragma messages
+#if !defined SDU_NO_PRAGMAS
+  #define SDU_STRINGIFY(a) #a
+  #define SDU_PRAGMA_MESSAGE(msg) \
+    _Pragma( SDU_STRINGIFY( message msg ) )
+#else
+  #define SDU_PRAGMA_MESSAGE(msg)
+#endif
+
+
 // inherit filesystem includes from sketch
 #if defined _SD_H_
   #define SDU_HAS_SD
@@ -105,20 +115,23 @@
     #if !defined SDU_SPI_FREQ
       #define SDU_SPI_FREQ 80000000
     #endif
-    #pragma message "SD has custom SPI pins"
+    SDU_PRAGMA_MESSAGE("SD has custom SPI pins")
     #define SDU_SD_BEGIN [](int csPin)->bool{ SPI.begin(_CLK, _MISO, _MOSI, csPin); SPI.setDataMode(SDU_SPI_MODE); return SD.begin(csPin, SPI, SDU_SPI_FREQ); }
   #else
     #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
   #endif
 #endif
+
 #if defined _SDMMC_H_
   #define SDU_HAS_SD_MMC
   /*#include <SD_MMC.h>*/
 #endif
+
 #if defined _SPIFFS_H_
   #define SDU_HAS_SPIFFS
   /*#include <SPIFFS.h>*/
 #endif
+
 #if defined _LiffleFS_H_ || __has_include(<LittleFS.h>)
   #define SDU_HAS_LITTLEFS
   #include <LittleFS.h>
@@ -130,43 +143,31 @@
   #warning "Use builtin version with #include <LittleFS.h> instead, if using platformio add LittleFS(esp32)@^2.0.0 to lib_deps"
 #endif
 
-#if defined SDU_HAS_SD || defined SDU_HAS_SD_MMC || defined SDU_HAS_SPIFFS || defined SDU_HAS_LITTLEFS
-  #define SDU_HAS_FS 1
-#else
-  #define SDU_HAS_FS 0
+// Note: SdFat can't be detected using __has_include(<SdFat.h>) without creating problems downstream in the code.
+//       Until this is solved, enabling SdFat is done by adding `#defined USE_SDFATFS` to the sketch before including the library.
+#if defined USE_SDFATFS
+  #define SDU_HAS_SDFS
+  SDU_PRAGMA_MESSAGE("SDUpdater will use SdFat")
+  #include "./misc/sdfat32fs_wrapper.hpp"
+  #define SDU_SDFS_BEGIN SDU_SDFatBegin
 #endif
 
-// call this directive before detecting/loading SdFat otherwise __has_include() directive will be unavailable
+
+#if !defined SDU_HAS_SD && !defined SDU_HAS_SD_MMC && !defined SDU_HAS_SPIFFS && !defined SDU_HAS_LITTLEFS && !defined SDU_HAS_SDFS
+  SDU_PRAGMA_MESSAGE("SDUpdater didn't detect any  preselected filesystem, will use SD as default")
+  #define SDU_HAS_SD
+  #include <SD.h>
+  #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
+#endif
+
 #if defined SDU_ENABLE_GZ || defined _ESP_TGZ_H || __has_include(<ESP32-targz.h>)
   #define SDU_HAS_TARGZ
-  #pragma message "gzip and tar support detected!"
+  SDU_PRAGMA_MESSAGE("gzip and tar support detected!")
   #include <ESP32-targz.h>
 #endif
 
 
-#if SDU_HAS_FS==0
-  #define SDU_HAS_SD
-  #if defined USE_SDFATFS
-    #pragma message "SDUpdater will use SdFat"
-    #warning "SdFat.h is not in the stack list, loading will be forced"
-    //#undef __has_include
-    #include <FS.h>
-    #include <FSImpl.h>
-    #include <SdFat.h>
-    //#define __has_include
-    // WARNING: __has_include() directive is undef'd by SdFat library and platformio makes this global
-    #include "./misc/sdfat32fs_wrapper.hpp"
-    // do not use the directive __has_include() below this point
-    #define SDU_SD_BEGIN SDU_SDFatBegin
-  #else
-    #pragma message "SDUpdater didn't detect any  preselected filesystem, will use SD as default"
-    #include <SD.h>
-    #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
-  #endif
-#endif
-
-
-#if !defined SDU_NO_AUTODETECT
+#if !defined SDU_NO_AUTODETECT // lobby/buttons
 
   #if !defined SDU_HEADLESS
     #define SDU_USE_DISPLAY // any detected display is default enabled unless SDU_HEADLESS mode is selected
@@ -175,8 +176,7 @@
   #define HAS_M5_API // This is M5Stack Updater, assume it has the M5.xxx() API, will be undef'd otherwise
 
   #if defined _CHIMERA_CORE_
-    #pragma message "Chimera Core detected"
-    //#include <ESP32-Chimera-Core.hpp>
+    SDU_PRAGMA_MESSAGE("Chimera Core detected")
     #define SDU_Sprite LGFX_Sprite
     #define SDU_DISPLAY_TYPE M5Display*
     #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
@@ -187,28 +187,24 @@
       #define SDU_HAS_TOUCH
     #endif
   #elif defined _M5STACK_H_
-    #pragma message "M5Stack.h detected"
-    //#include <M5Stack.h>
+    SDU_PRAGMA_MESSAGE("M5Stack.h detected")
     #define SDU_Sprite TFT_eSprite
     #define SDU_DISPLAY_TYPE M5Display*
     #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
   #elif defined _M5Core2_H_
-    #pragma message "M5Core2.h detected"
-    //#include <M5Core2.h>
+    SDU_PRAGMA_MESSAGE("M5Core2.h detected")
     #define SDU_Sprite TFT_eSprite
     #define SDU_DISPLAY_TYPE M5Display*
     #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
     #define SDU_TouchButton TFT_eSPI_Button
     #define SDU_HAS_TOUCH // M5Core2 has implicitely enabled touch interface
   #elif defined _M5STICKC_H_
-    #pragma message "M5StickC.h detected"
-    //#include <M5StickC.h>
+    SDU_PRAGMA_MESSAGE("M5StickC.h detected")
     #define SDU_Sprite TFT_eSprite
     #define SDU_DISPLAY_TYPE M5Display*
     #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
   #elif defined __M5UNIFIED_HPP__
-    #pragma message "M5Unified.h detected"
-    //#include <M5Unified.hpp>
+    SDU_PRAGMA_MESSAGE("M5Unified.h detected")
     #define SDU_Sprite LGFX_Sprite
     #define SDU_DISPLAY_TYPE M5GFX*
     #define SDU_DISPLAY_OBJ_PTR &M5.Display
@@ -218,8 +214,7 @@
       #define SDU_HAS_TOUCH
     #endif
   #else
-    #pragma message "No display driver detected"
-    //#error "No display driver detected"
+    SDU_PRAGMA_MESSAGE(message "No display driver detected")
     #define SDU_DISPLAY_OBJ_PTR nullptr
     //#define SDU_DISPLAY_TYPE void*
     //#define SDU_Sprite void*
@@ -231,23 +226,17 @@
 
 #if defined HAS_M5_API // SDUpdater can use M5.update(), and M5.Btnx API
   #define DEFAULT_BTN_POLLER M5.update()
-  //#if defined ARDUINO_ESP32_S3_BOX // S3Box only has mute button and Touch
-    //#define DEFAULT_BTNA_CHECKER S3MuteButton.changed() // use SDUpdater::DigitalPinButton_t
-    //#define DEFAULT_BTNB_CHECKER false
-    //#define DEFAULT_BTNC_CHECKER false
-  //#else
-    #define DEFAULT_BTNA_CHECKER M5.BtnA.isPressed()
-    #define DEFAULT_BTNB_CHECKER M5.BtnB.isPressed()
-    #if defined _M5STICKC_H_ // M5StickC has no BtnC
-      #define DEFAULT_BTNC_CHECKER false
-    #else
-      #define DEFAULT_BTNC_CHECKER M5.BtnC.isPressed()
-    #endif
-  //#endif
+  #define DEFAULT_BTNA_CHECKER M5.BtnA.isPressed()
+  #define DEFAULT_BTNB_CHECKER M5.BtnB.isPressed()
+  #if defined _M5STICKC_H_ // M5StickC has no BtnC
+    #define DEFAULT_BTNC_CHECKER false
+  #else
+    #define DEFAULT_BTNC_CHECKER M5.BtnC.isPressed()
+  #endif
 #else
   // SDUpdater will use Serial as trigger source
   #if !defined SDU_NO_AUTODETECT
-    #pragma message "No M5 API found"
+    SDU_PRAGMA_MESSAGE(message "No M5 API found")
   #endif
   #define DEFAULT_BTN_POLLER nullptr
   #define DEFAULT_BTNA_CHECKER false
@@ -255,36 +244,36 @@
   #define DEFAULT_BTNC_CHECKER false
 #endif
 
-
+// dispatch predefined triggers
 #if !defined SDU_TRIGGER_SOURCE_DEFAULT
   #if defined SDU_HAS_TOUCH
-    #pragma message "Trigger source: Touch Button"
+    SDU_PRAGMA_MESSAGE("Trigger source: Touch Button")
     #define SDU_TRIGGER_SOURCE_DEFAULT TriggerSource::SDU_TRIGGER_TOUCHBUTTON
   #elif defined HAS_M5_API
-    #pragma message "Trigger source: Push Button"
+    SDU_PRAGMA_MESSAGE("Trigger source: Push Button")
     #define SDU_TRIGGER_SOURCE_DEFAULT TriggerSource::SDU_TRIGGER_PUSHBUTTON
   #else
-    #pragma message "Trigger source: Serial"
+    SDU_PRAGMA_MESSAGE("Trigger source: Serial")
     #define SDU_TRIGGER_SOURCE_DEFAULT TriggerSource::SDU_TRIGGER_SERIAL
   #endif
 #endif
 
-
+// load the SDUpdater stack
 #include "./misc/update_interface.hpp"
 #include "./ConfigManager/ConfigManager.hpp"
 #include "./SDUpdater/SDUpdater_Class.hpp"
 #include "./UI/common.hpp"
 
-
+// load the lobby and button decorations if applicable
 #if defined SDU_USE_DISPLAY
-  #pragma message "Attached UI"
+  SDU_PRAGMA_MESSAGE("Attached UI")
   #define SDU_GFX ((SDU_DISPLAY_TYPE)(SDUCfg.display)) // macro for UI.hpp
   #include "./UI/UI.hpp"
-  #if defined SDU_HAS_TOUCH
-    #pragma message "Attached Touch support"
+  #if defined SDU_HAS_TOUCH // load touch helpers
+    SDU_PRAGMA_MESSAGE("Attached Touch support")
     #include "./UI/Touch.hpp"
   #endif
-#else
+#else // bind unknown display to SDUCfg.display, whatever it is...
   #define SDU_GFX ((void*)(SDUCfg.display)) // macro for UI.hpp
 #endif
 
@@ -465,7 +454,7 @@ namespace SDUpdaterNS
       #if defined USE_SDFATFS
         using namespace ConfigManager;
         if( SDU_SdFatFsPtr ) {
-          if( !SDU_SD_BEGIN( SDU_SdSpiConfigPtr ) ) {
+          if( !SDU_SDFS_BEGIN( SDU_SdSpiConfigPtr ) ) {
             msg[0] = String("SDFat MOUNT FAILED ").c_str();
             if( report_errors ) sdu->_error( msg, 2 );
             return false;
@@ -576,7 +565,9 @@ namespace SDUpdaterNS
         // load default config
         auto cfg = SdSpiConfig( SDUCfg.TFCardCsPin, SHARED_SPI, SD_SCK_MHZ(25) );
         SdFatCfg = (SdSpiConfig*)malloc( sizeof(SdSpiConfig) + 1 );
-        memcpy( SdFatCfg, &cfg, sizeof(SdSpiConfig) );
+        void *DstPtr = SdFatCfg;
+        void *SrcPtr = &cfg;
+        memcpy( DstPtr, SrcPtr, sizeof(SdSpiConfig) );
       }
       ConfigManager::SDU_SdSpiConfigPtr = SdFatCfg;
       ConfigManager::SDU_SdFatPtr = &sd;
