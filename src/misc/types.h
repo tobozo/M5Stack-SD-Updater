@@ -5,9 +5,11 @@
 #include <Stream.h>
 #include <WString.h>
 
-#define FN_LAMBDA_VOID(x) []() { x; }
+#define FN_LAMBDA_VOID(x) []() { }
 #define FN_LAMBDA_BOOL(x) []() -> bool { return x; }
 #define FB_LAMBDA_FALSE   []() -> bool { return false; }
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 
 namespace SDUpdaterNS
@@ -43,8 +45,6 @@ namespace SDUpdaterNS
         setBinName_t setBinName;
     };
   };
-
-
 
 
   namespace TriggerSource

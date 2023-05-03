@@ -10,7 +10,13 @@
     "type": "git",
     "url": "https://github.com/tobozo/M5Stack-SD-Updater.git"
   },
-  "version": "1.2.4",
+  "dependencies": [
+    {
+      "name": "ESP32-targz",
+      "version": ">=1.1.7"
+    }
+  ],
+  "version": "1.2.5",
   "framework": "arduino",
   "headers": "M5StackUpdater.h",
   "platforms": "espressif32"

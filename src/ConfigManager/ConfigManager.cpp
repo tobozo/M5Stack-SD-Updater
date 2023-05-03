@@ -41,7 +41,7 @@ namespace SDUpdaterNS
     void config_sdu_t::setLabelSave( const char* label )          { labelSave = label; }
     void config_sdu_t::setAppName( const char* name )             { appName = name; }
     void config_sdu_t::setAuthorName( const char* name )          { authorName = name; }
-    void config_sdu_t::setBinFileName( const char* name )         { if( strstr(binFileName, ".gz")!=NULL ) binFileName = name; }
+    void config_sdu_t::setBinFileName( const char* name )         { if( name && strstr(name, ".gz")!=NULL ) binFileName = name; }
     void config_sdu_t::useRolllback( bool use )                   { use_rollback = use; }
 
     void config_sdu_t::setBtnPoller( BtnPollCb cb )            { log_d("Assigning Btn Poller"); buttonsUpdate = cb; }

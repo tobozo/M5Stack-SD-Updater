@@ -79,7 +79,7 @@ namespace SDUpdaterNS
       void doRollBack( const String& message = "" );
       // flash to SD binary replication
       bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
-      bool copyFsPartition(File* dst, const esp_partition_t* src, size_t length);
+      bool copyFsPartition(fs::File* dst, const esp_partition_t* src, size_t length);
       bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN}, bool skipIfExists = false );
       // static methods
       static void updateNVS();

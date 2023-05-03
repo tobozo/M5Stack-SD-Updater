@@ -13,9 +13,12 @@
     #error "SD Updater only supports SdFs"
   #endif
 
+  #undef __has_include
   #include <FS.h>
   #include <FSImpl.h>
   #include <SdFat.h>
+  #define __has_include(STR)  __has_include__(STR)
+
 
   // cfr https://en.cppreference.com/w/c/io/fopen + guesses
   inline oflag_t _convert_access_mode_to_flag(const char* mode, const bool create = false)
@@ -134,7 +137,8 @@
       ret = _fat->begin( *SdFatCfg );
       errcode = _fat->card()->errorCode();
       errdata = int(_fat->card()->errorData());
-
+      (void)errcode;
+      (void)errdata;
       if (!ret) {
         log_e( "SDFat init failed with error code: 0x%x, Error Data:0x%x", errcode, errdata );
         return false;

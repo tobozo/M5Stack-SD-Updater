@@ -97,7 +97,7 @@ namespace SDUpdaterNS
   }
 
 
-  bool SDUpdater::copyFsPartition(File* dst, const esp_partition_t* src, size_t length)
+  bool SDUpdater::copyFsPartition(fs::File* dst, const esp_partition_t* src, size_t length)
   {
     size_t lengthLeft = length;
     const size_t bufSize = SPI_FLASH_SEC_SIZE;
