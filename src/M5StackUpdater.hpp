@@ -94,7 +94,7 @@
 
 #define resetReason (int)rtc_get_reset_reason(0)
 
-// use `#define SDU_NO_PRAGMAS` to disable pragma messages
+// use `#define SDU_NO_PRAGMAS` to disable duplicate pragma messages
 #if !defined SDU_NO_PRAGMAS
   #define SDU_STRINGIFY(a) #a
   #define SDU_PRAGMA_MESSAGE(msg) \
@@ -132,6 +132,11 @@
   /*#include <SPIFFS.h>*/
 #endif
 
+#if defined _FFAT_H_ //|| __has_include(<FFat.h>)
+  #define SDU_HAS_FFAT
+  //#include <FFat.h>
+#endif
+
 #if defined _LiffleFS_H_ || __has_include(<LittleFS.h>)
   #define SDU_HAS_LITTLEFS
   #include <LittleFS.h>
@@ -153,7 +158,7 @@
 #endif
 
 
-#if !defined SDU_HAS_SD && !defined SDU_HAS_SD_MMC && !defined SDU_HAS_SPIFFS && !defined SDU_HAS_LITTLEFS && !defined SDU_HAS_SDFS
+#if !defined SDU_HAS_SD && !defined SDU_HAS_SD_MMC && !defined SDU_HAS_SPIFFS && !defined SDU_HAS_LITTLEFS && !defined SDU_HAS_SDFS && !defined SDU_HAS_FFAT
   SDU_PRAGMA_MESSAGE("SDUpdater didn't detect any  preselected filesystem, will use SD as default")
   #define SDU_HAS_SD
   #include <SD.h>
@@ -419,7 +424,7 @@ namespace SDUpdaterNS
           mounted = true;
         }
       #endif
-      #if defined (_LITTLEFS_H_)
+      #if defined _LITTLEFS_H_
         if( &fs == &LittleFS ) {
           if( !LittleFS.begin() ){
             msg[0] = "LittleFS MOUNT FAILED";
@@ -429,7 +434,18 @@ namespace SDUpdaterNS
           mounted = true;
         }
       #endif
-      #if defined (_SD_H_)
+      #if defined _FFAT_H_
+        if( &fs == &FFat ) {
+          if( !FFat.begin() ){
+            log_d("What the FFAT!");
+            msg[0] = "FFat MOUNT FAILED";
+            if( report_errors ) sdu->_error( msg, 2 );
+            return false;
+          } else { log_d("FFat Successfully mounted"); }
+          mounted = true;
+        }
+      #endif
+      #if defined _SD_H_
         if( &fs == &SD ) {
           if( ! SDU_SD_BEGIN(sdu->cfg->TFCardCsPin) ) {
             msg[0] = String("SD MOUNT FAILED (pin #" + String(sdu->cfg->TFCardCsPin) + ")").c_str();
@@ -441,7 +457,7 @@ namespace SDUpdaterNS
           mounted = true;
         }
       #endif
-      #if defined (_SDMMC_H_)
+      #if defined _SDMMC_H_
         if( &fs == &SD_MMC ) {
           if( !SD_MMC.begin() ){
             msg[0] = "SD_MMC FAILED";
