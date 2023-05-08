@@ -24,23 +24,25 @@
 
 
 // Fancy names for detected boards
-#if defined ARDUINO_M5Stick_C
+#if defined ARDUINO_M5Stick_C || defined ARDUINO_M5STICK_C
   #define SD_PLATFORM_NAME "M5StickC"
 #elif defined ARDUINO_ODROID_ESP32
   #define SD_PLATFORM_NAME "Odroid-GO"
-#elif defined ARDUINO_M5Stack_Core_ESP32
+#elif defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_CORE_ESP32
   #define SD_PLATFORM_NAME "M5Stack"
 #elif defined ARDUINO_M5STACK_FIRE
-  #define SD_PLATFORM_NAME "M5Stack-Fire"
-#elif defined ARDUINO_M5STACK_Core2
-  #define SD_PLATFORM_NAME "M5StackCore2"
+  #define SD_PLATFORM_NAME "M5Fire"
+#elif defined ARDUINO_M5STACK_Core2 || defined ARDUINO_M5STACK_CORE2
+  #define SD_PLATFORM_NAME "M5Core2"
+#elif defined ARDUINO_M5STACK_CORES3
+  #define SD_PLATFORM_NAME "M5CoreS3"
 #elif defined ARDUINO_ESP32_WROVER_KIT
   #define SD_PLATFORM_NAME "Wrover-Kit"
 #elif defined ARDUINO_TTGO_T1             // TTGO T1
   #define SD_PLATFORM_NAME "TTGO-T1"
 #elif defined ARDUINO_LOLIN_D32_PRO       // LoLin D32 Pro
   #define SD_PLATFORM_NAME "LoLin D32 Pro"
-#elif defined ARDUINO_T_Watch             // TWatch, all models
+#elif defined ARDUINO_T_Watch || defined ARDUINO_T_WATCH            // TWatch, all models
   #define SD_PLATFORM_NAME "TTGO TWatch"
 #elif defined ARDUINO_M5STACK_ATOM_AND_TFCARD
   #define SD_PLATFORM_NAME "Atom"

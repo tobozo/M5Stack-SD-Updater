@@ -7,17 +7,14 @@
 
 #define FN_LAMBDA_VOID(x) []() { }
 #define FN_LAMBDA_BOOL(x) []() -> bool { return x; }
-#define FB_LAMBDA_FALSE   []() -> bool { return false; }
-#pragma GCC diagnostic ignored "-Wunused-function"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-
+#define FN_LAMBDA_FALSE   []() -> bool { return false; }
 
 namespace SDUpdaterNS
 {
 
   namespace UpdateInterfaceNS
   {
-    static bool mode_z = false;
+    [[maybe_unused]] static bool mode_z = false;
     typedef std::function<void(size_t, size_t)> THandlerFunction_Progress;
     struct UpdateManagerInterface_t
     {
@@ -80,9 +77,9 @@ namespace SDUpdaterNS
       triggerDeinitCb finalize;
     };
 
-    static int serial( char* labelLoad,  char* labelSkip, char* labelSave, unsigned long waitdelay=5000  );
-    [[maybe_unused]] static int pushButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay=5000  );
-    [[maybe_unused]] static int touchButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay=5000 );
+    //[[maybe_unused]] static int serial( char* labelLoad,  char* labelSkip, char* labelSave, unsigned long waitdelay=5000  );
+    //[[maybe_unused]] static int pushButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay=5000  );
+    //[[maybe_unused]] static int touchButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay=5000 );
 
   }
 
@@ -193,7 +190,7 @@ namespace SDUpdaterNS
         MsgFontColor[0] = _MsgFontColor[0];
         MsgFontColor[1] = _MsgFontColor[1];
       }
-      // 16bit colors: Border  Fill    Text    Shadow
+      // 16bit colors:       Border  Fill    Text    Shadow
       const BtnStyle_t Load{ 0x73AE, 0x630C, 0xFFFF, 0x0000 };
       const BtnStyle_t Skip{ 0x73AE, 0x4208, 0xFFFF, 0x0000 };
       const BtnStyle_t Save{ 0x73AE, 0x2104, 0xFFFF, 0x0000 };

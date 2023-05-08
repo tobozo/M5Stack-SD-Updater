@@ -11,7 +11,7 @@
 // M5StackUpdater library configuration
 
 #define SDU_NO_PRAGMAS                   // don't spawn pragma messages during compilation
-#define SDU_ENABLE_GZ                    // auto-load ESP32-targz (will be loaded otherwise is previously included)
+#define SDU_ENABLE_GZ                    // auto-load ESP32-targz (implicit if ESP32-targz.h is included before M5StackUpdater.h)
 //#include <ESP32-targz.h>                 // optional gzipped firmware support, overriden by SDU_ENABLE_GZ -> https://github.com/tobozo/ESP32-targz
 #define SDU_NO_AUTODETECT                // Disable SDUpdater autodetect: this prevents <SD.h> to be auto-selected, however it also disables board detection
 #define USE_SDFATFS                      // Tell M5StackUpdater to load <SdFat.h> and wrap SdFat32 into fs::FS::SdFat32FSImpl

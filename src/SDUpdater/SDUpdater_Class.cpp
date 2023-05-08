@@ -15,14 +15,14 @@ namespace SDUpdaterNS
 
   void SDUpdater::_error( const String& errMsg, unsigned long waitdelay )
   {
-    Serial.print("[ERROR] ");
-    Serial.println( errMsg );
+    SDU_SERIAL.print("[ERROR] ");
+    SDU_SERIAL.println( errMsg );
     if( cfg->onError ) cfg->onError( errMsg, waitdelay );
   }
 
   void SDUpdater::_message( const String& msg )
   {
-    Serial.println( msg );
+    SDU_SERIAL.println( msg );
     if( cfg->onMessage ) cfg->onMessage( msg );
   }
 
@@ -177,7 +177,7 @@ namespace SDUpdaterNS
     }
     esp_image_metadata_t nusketchMeta = getSketchMeta( update_partition );
     uint32_t nuSize = nusketchMeta.image_len;
-    Serial.printf( "Updating menu.bin NVS size/digest after update: %d\n", nuSize );
+    SDU_SERIAL.printf( "Updating menu.bin NVS size/digest after update: %d\n", nuSize );
     Preferences preferences;
     preferences.begin( "sd-menu", false );
     preferences.putInt( "menusize", nuSize );
@@ -198,26 +198,26 @@ namespace SDUpdaterNS
     if (UpdateIface->begin( updateSize )) {
       size_t written = UpdateIface->writeStream( updateSource, updateSize );
       if ( written == updateSize ) {
-        Serial.println( "Written : " + String(written) + " successfully" );
+        SDU_SERIAL.println( "Written : " + String(written) + " successfully" );
       } else {
-        Serial.println( "Written only : " + String(written) + "/" + String(updateSize) + ". Retry?" );
+        SDU_SERIAL.println( "Written only : " + String(written) + "/" + String(updateSize) + ". Retry?" );
       }
       if ( UpdateIface->end() ) {
-        Serial.println( "OTA done!" );
+        SDU_SERIAL.println( "OTA done!" );
         if ( UpdateIface->isFinished() ) {
           if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
             // maintain NVS signature
             SDUpdater::updateNVS();
           }
-          Serial.println( "Update successfully completed. Rebooting." );
+          SDU_SERIAL.println( "Update successfully completed. Rebooting." );
         } else {
-          Serial.println( "Update not finished? Something went wrong!" );
+          SDU_SERIAL.println( "Update not finished? Something went wrong!" );
         }
       } else {
-        Serial.println( "Update failed. Error #: " + String( UpdateIface->getError() ) );
+        SDU_SERIAL.println( "Update failed. Error #: " + String( UpdateIface->getError() ) );
       }
     } else {
-      Serial.println( "Not enough space to begin OTA" );
+      SDU_SERIAL.println( "Not enough space to begin OTA" );
     }
   }
 
@@ -260,7 +260,7 @@ namespace SDUpdaterNS
     uint8_t image_digest[32];
     preferences.getBytes( "digest", image_digest, 32 );
     preferences.end();
-    Serial.println( "Trying rollback" );
+    SDU_SERIAL.println( "Trying rollback" );
 
     if( menuSize == 0 ) {
       log_d( "Failed to get expected menu size from NVS ram, can't check if rollback is worth a try..." );
@@ -280,11 +280,11 @@ namespace SDUpdaterNS
       return;
     }
 
-    Serial.println( "Sizes match! Checking digest..." );
+    SDU_SERIAL.println( "Sizes match! Checking digest..." );
     bool match = true;
     for( uint8_t i=0; i<32; i++ ) {
       if( image_digest[i]!=sketchMeta.image_digest[i] ) {
-        Serial.println( "NO match for NVS digest :-(" );
+        SDU_SERIAL.println( "NO match for NVS digest :-(" );
         match = false;
         break;
       }
@@ -299,7 +299,7 @@ namespace SDUpdaterNS
   void SDUpdater::updateFromStream( Stream &stream, size_t updateSize, const String& fileName )
   {
     if ( updateSize > 0 ) {
-      Serial.println( "Try to start update" );
+      SDU_SERIAL.println( "Try to start update" );
       disableCore0WDT(); // disable WDT it as suggested by twitter.com/@lovyan03
       performUpdate( stream, updateSize, fileName );
       enableCore0WDT();
@@ -337,12 +337,12 @@ namespace SDUpdaterNS
       _error( msg, 2 );
       return;
     }
-    Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
+    SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
     #ifdef M5_LIB_VERSION
-      Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] M5Stack Core version: %s\n", (char*)M5_LIB_VERSION );
+      SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] M5Stack Core version: %s\n", (char*)M5_LIB_VERSION );
     #endif
-    Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
-    Serial.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
+    SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
+    SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
 
     // try rollback first, it's faster!
     if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
@@ -388,12 +388,12 @@ namespace SDUpdaterNS
     if( waitdelay == 0 ) {
       waitdelay = 100; // at least give some time for the serial buffer to fill
     }
-    Serial.printf("SDUpdater: you have %d milliseconds to send 'update', 'rollback', 'skip' or 'save' command\n", (int)waitdelay);
+    SDU_SERIAL.printf("SDUpdater: you have %d milliseconds to send 'update', 'rollback', 'skip' or 'save' command\n", (int)waitdelay);
 
     if( cfg->onWaitForAction ) {
       int ret = cfg->onWaitForAction( nullptr, nullptr, nullptr, waitdelay );
       if ( ret == ConfigManager::SDU_BTNA_MENU ) {
-        Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
+        SDU_SERIAL.printf( SDU_LOAD_TPL, fileName.c_str() );
         updateFromFS( fileName );
         ESP.restart();
       }
@@ -405,7 +405,7 @@ namespace SDUpdaterNS
       _error( "Missing onWaitForAction!" );
     }
 
-    Serial.println("Delay expired, no SD-Update will occur");
+    SDU_SERIAL.println("Delay expired, no SD-Update will occur");
   }
 
 
@@ -447,11 +447,11 @@ namespace SDUpdaterNS
 
       if ( ret == ConfigManager::SDU_BTNA_MENU ) {
         if( isRollBack == false ) {
-          Serial.printf( SDU_LOAD_TPL, fileName.c_str() );
+          SDU_SERIAL.printf( SDU_LOAD_TPL, fileName.c_str() );
           updateFromFS( fileName );
           ESP.restart();
         } else {
-          Serial.println( SDU_ROLLBACK_MSG );
+          SDU_SERIAL.println( SDU_ROLLBACK_MSG );
           doRollBack( SDU_ROLLBACK_MSG );
         }
       }

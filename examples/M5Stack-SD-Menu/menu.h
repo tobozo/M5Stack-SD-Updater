@@ -35,39 +35,39 @@
 // TODO: moved USE_DOWNLOADER features to "AppStore.ino"
 // auto-select board
 #if defined( ARDUINO_M5STACK_Core2 )
-  #warning M5STACK Core2 DETECTED !!
+  #pragma message "M5STACK Core2 detected"
   #define PLATFORM_NAME "M5Core2"
   #define DEFAULT_REGISTRY_BOARD "m5core2"
   //#define USE_DOWNLOADER
 #elif defined( ARDUINO_M5Stack_Core_ESP32 )
-  #warning M5STACK CLASSIC DETECTED !!
+  #pragma message "M5STACK CLASSIC detected"
   #define PLATFORM_NAME "M5Stack"
   #define DEFAULT_REGISTRY_BOARD "m5stack"
   //#define USE_DOWNLOADER // moved to AppStore.ino
 #elif defined( ARDUINO_M5STACK_FIRE )
-  #warning M5STACK FIRE DETECTED !!
+  #pragma message "M5STACK FIRE detected"
   #define PLATFORM_NAME "M5Fire"
   #define DEFAULT_REGISTRY_BOARD "m5fire"
   //#define USE_DOWNLOADER
 #elif defined( ARDUINO_ODROID_ESP32 )
-  #warning ODROID DETECTED !!
+  #pragma message "ODROID detected"
   #define PLATFORM_NAME "Odroid-GO"
   #define DEFAULT_REGISTRY_BOARD "odroid"
 #elif defined ( ARDUINO_ESP32_DEV ) || defined( ARDUINO_LOLIN_D32_PRO )
-  #warning WROVER OR LOLIN_D32_PRO DETECTED !!
+  #pragma message "WROVER OR LOLIN_D32_PRO detected"
   #define DEFAULT_REGISTRY_BOARD "esp32"
   #define PLATFORM_NAME "ESP32"
   //#define USE_DOWNLOADER
 #elif defined( ARDUINO_ESP32_S3_BOX )
-  #warning ESP32_S3_BOX DETECTED !!
+  #pragma message "ESP32_S3_BOX detected"
   #define DEFAULT_REGISTRY_BOARD "esp32s3"
   #define PLATFORM_NAME "S3Box"
 #elif defined( ARDUINO_M5STACK_ATOM_AND_TFCARD )
-  #warning M5Stack ATOM DETECTED !!
+  #pragma message "M5Stack ATOM detected"
   #define DEFAULT_REGISTRY_BOARD "m5atom"
   #define PLATFORM_NAME "M5 ATOM(matrix/lite)"
 #else
-  #warning NOTHING DETECTED !!
+  #pragma message "NOTHING detected"
   #define DEFAULT_REGISTRY_BOARD "lambda"
   #define PLATFORM_NAME "LAMBDA"
 #endif

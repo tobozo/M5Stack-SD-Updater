@@ -278,8 +278,8 @@ namespace SDUpdaterNS
       auto SkipBtn    = el->SkipBtn;
       auto SaveBtn    = el->SaveBtn;
 
-      #if defined _M5Core2_H_
-        // clean handlers
+      #if ! defined HAS_LGFX // defined _M5Core2_H_ || defined _M5CORES3_H_
+        // clear TFT_eSpi button handlers
         LoadBtn->delHandlers();
         SkipBtn->delHandlers();
         SaveBtn->delHandlers();

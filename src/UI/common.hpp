@@ -2,6 +2,9 @@
 
 #include "../misc/types.h"
 
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 
 namespace SDUpdaterNS
 {

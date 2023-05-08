@@ -52,8 +52,9 @@ namespace SDUpdaterNS
 
     extern void setup();
     extern bool hasFS( SDUpdater *sdu, fs::FS &fs, bool report_errors );
-    // interface to UpdateClass, may pass through GzUpdateClass
-    extern UpdateInterfaceNS::UpdateManagerInterface_t Iface;
+    extern UpdateInterfaceNS::UpdateManagerInterface_t *GetUpdateInterface();
+
+    using namespace UpdateInterfaceNS;
 
     // SDUpdater config callbacks and params
     struct config_sdu_t

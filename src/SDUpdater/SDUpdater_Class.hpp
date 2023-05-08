@@ -25,12 +25,12 @@ extern "C" {
 #endif
 
 #include <FS.h>
-#include <Update.h>
+// #include <Update.h>
 // required to store the MENU_BIN hash
 #include <Preferences.h>
 
 #if !defined(TFCARD_CS_PIN) // override this from your sketch if the guess is wrong
-  #if defined( ARDUINO_LOLIN_D32_PRO ) || defined( ARDUINO_M5STACK_Core2  ) || defined( ARDUINO_M5Stack_Core_ESP32 ) || defined( ARDUINO_M5STACK_FIRE)
+  #if defined ARDUINO_LOLIN_D32_PRO || defined ARDUINO_M5STACK_Core2|| defined ARDUINO_M5STACK_CORE2 || defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_CORE_ESP32 || defined ARDUINO_M5STACK_FIRE
     #define TFCARD_CS_PIN  4
   #elif defined( ARDUINO_ESP32_WROVER_KIT ) || defined( ARDUINO_ODROID_ESP32 )
     #define TFCARD_CS_PIN 22
@@ -59,6 +59,10 @@ namespace SDUpdaterNS
 
   using ConfigManager::config_sdu_t;
   using UpdateInterfaceNS::UpdateManagerInterface_t;
+
+  #if !defined SDU_SERIAL
+    #define SDU_SERIAL Serial
+  #endif
 
   class SDUpdater
   {
@@ -98,6 +102,7 @@ namespace SDUpdaterNS
       void _error( const char **errMsgs, uint8_t msgCount=1, unsigned long waitdelay=2000 );
       void _message( const String& label );
       config_sdu_t* cfg;
+      //Stream &out;
 
     private:
 
@@ -106,7 +111,8 @@ namespace SDUpdaterNS
       void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
       void tryRollback( String fileName );
 
-      #if defined _M5Core2_H_ // enable additional touch button support
+      #if defined _M5Core2_H_ || defined _M5CORES3_H_
+        // Implicitely assume touch button support for TFT_eSpi based cores as per M5.begin() default behaviour
         const bool SDUHasTouch = true;
       #else
         const bool SDUHasTouch = false;
@@ -122,7 +128,7 @@ namespace SDUpdaterNS
   inline SDUpdater::SDUpdater( config_sdu_t* _cfg ) : cfg(_cfg)
   {
     if( !UpdateIface ) {
-      UpdateIface = &ConfigManager::Iface;
+      UpdateIface = ConfigManager::GetUpdateInterface();
     }
     if( ConfigManager::SDUCfgLoader ) {
       log_v("Config manager loader called");
@@ -138,7 +144,7 @@ namespace SDUpdaterNS
   inline SDUpdater::SDUpdater( const int TFCardCsPin_ )
   {
     if( !UpdateIface ) {
-      UpdateIface = &ConfigManager::Iface;
+      UpdateIface = ConfigManager::GetUpdateInterface();
     }
     //log_d("SDUpdater base mode on CS pin(%d)", TFCardCsPin_ );
     SDUCfg.setCSPin( TFCardCsPin_ );

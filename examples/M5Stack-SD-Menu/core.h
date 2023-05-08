@@ -1,13 +1,24 @@
 #pragma once
 
+//#include <FFat.h>
 #include <SD.h>
+#define ECC_NO_PRAGMAS // turn ESP32-Chimera-Core's pragma messages off
 #include <ESP32-Chimera-Core.h> // use LGFX display autodetect
 #include <ESP32-targz.h> // optional: https://github.com/tobozo/ESP32-targz
-
+#define SDU_NO_PRAGMAS // turn M5StackUpdater's pragma messages off
 #define SDU_APP_NAME "Application Launcher"
-#include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
 #if defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
+
+  #if defined _CLK && defined _MISO && defined _MOSI
+    #if !defined SDU_SPI_MODE
+      #define SDU_SPI_MODE SPI_MODE3
+    #endif
+    #if !defined SDU_SPI_FREQ
+      #define SDU_SPI_FREQ 80000000
+    #endif
+    #define SDU_SD_BEGIN [](int csPin)->bool{ SPI.begin(_CLK, _MISO, _MOSI, csPin); SPI.setDataMode(SDU_SPI_MODE); return SD.begin(csPin, SPI, SDU_SPI_FREQ); }
+  #endif
 
   class LGFX_8BIT_CVBS : public lgfx::LGFX_Device
   {
@@ -46,6 +57,7 @@
 
 #endif
 
+#include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
 static LGFX_Sprite sprite = LGFX_Sprite( &tft );
 fs::SDFS &M5_FS(SD);

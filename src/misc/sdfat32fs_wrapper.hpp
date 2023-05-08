@@ -13,12 +13,11 @@
     #error "SD Updater only supports SdFs"
   #endif
 
-  #undef __has_include
+  #undef __has_include // tell SdFat to define 'File' object needed to convert access mode to flag
   #include <FS.h>
   #include <FSImpl.h>
   #include <SdFat.h>
-  #define __has_include(STR)  __has_include__(STR)
-
+  #define __has_include(STR)  __has_include__(STR) // kudos to @GOB52 for this trick
 
   // cfr https://en.cppreference.com/w/c/io/fopen + guesses
   inline oflag_t _convert_access_mode_to_flag(const char* mode, const bool create = false)
