@@ -29,19 +29,6 @@ extern "C" {
 // required to store the MENU_BIN hash
 #include <Preferences.h>
 
-#if !defined(TFCARD_CS_PIN) // override this from your sketch if the guess is wrong
-  #if defined ARDUINO_LOLIN_D32_PRO || defined ARDUINO_M5STACK_Core2|| defined ARDUINO_M5STACK_CORE2 || defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_CORE_ESP32 || defined ARDUINO_M5STACK_FIRE
-    #define TFCARD_CS_PIN  4
-  #elif defined( ARDUINO_ESP32_WROVER_KIT ) || defined( ARDUINO_ODROID_ESP32 )
-    #define TFCARD_CS_PIN 22
-  #elif defined ARDUINO_TWATCH_BASE || defined ARDUINO_TWATCH_2020_V1 || defined ARDUINO_TWATCH_2020_V2 || defined(ARDUINO_TTGO_T1)
-    #define TFCARD_CS_PIN 13
-  #else
-    #define TFCARD_CS_PIN SS
-  #endif
-#endif
-
-
 #include "../ConfigManager/ConfigManager.hpp"
 
 namespace SDUpdaterNS
@@ -102,7 +89,6 @@ namespace SDUpdaterNS
       void _error( const char **errMsgs, uint8_t msgCount=1, unsigned long waitdelay=2000 );
       void _message( const String& label );
       config_sdu_t* cfg;
-      //Stream &out;
 
     private:
 

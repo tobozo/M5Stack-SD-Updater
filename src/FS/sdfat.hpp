@@ -13,6 +13,9 @@
     #error "SD Updater only supports SdFs"
   #endif
 
+  #include "./misc/config.h"
+  #include "./misc/types.h"
+
   #undef __has_include // tell SdFat to define 'File' object needed to convert access mode to flag
   #include <FS.h>
   #include <FSImpl.h>
@@ -122,7 +125,17 @@
       return &_fs;
     }
 
-    inline bool SDU_SDFatBegin( SdSpiConfig *SdFatCfg )
+
+    inline ConfigManager::FS_Config_t* SDU_SDFAT_GET()
+    {
+      static ConfigManager::FS_Config_t SDFAT_FS_Config = {"sdfat", ConfigManager::SDU_SdFatPtr, ConfigManager::SDU_SdSpiConfigPtr};
+      return &SDFAT_FS_Config;
+    }
+
+    //#define SDU_CONFIG_SDFAT ConfigManager::SDU_SdSpiConfigPtr
+
+
+    inline bool SDU_SDFat_Begin( SdSpiConfig *SdFatCfg )
     {
       using namespace ConfigManager;
       if( !SDU_SdFatPtr ) {

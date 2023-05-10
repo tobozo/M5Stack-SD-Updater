@@ -47,7 +47,6 @@ namespace SDUpdaterNS
       bool S3MuteButtonChanged();
     #endif
 
-
     typedef bool (*fsCheckerCb)( SDUpdater* sdu, fs::FS &fs, bool report_errors );
 
     extern void setup();
@@ -61,6 +60,7 @@ namespace SDUpdaterNS
     {
       config_sdu_t();
       fs::FS *fs = nullptr;
+      //FS_Config_t *fsConfig = nullptr;
       bool mounted = false;
       void *display = nullptr; // dereferenced display object
       void* getCompilationTimeDisplay();

@@ -108,41 +108,46 @@
 
 #if defined _SD_H_
   #define SDU_HAS_SD
-  #include <SD.h>
-  #if !defined SDU_SD_BEGIN
-    #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
+  //#include <SD.h>
+  #include "./FS/sd.hpp"
+  #if !defined SDU_BEGIN_SD
+    #define SDU_BEGIN_SD SDU_SDBegin
   #endif
 #endif
 
 #if defined _SDMMC_H_
   #define SDU_HAS_SD_MMC
-  #include <SD_MMC.h>
-  #if !defined SDU_SD_MMC_BEGIN
-    #define SDU_SD_MMC_BEGIN SD_MMC.begin
+  // #include <SD_MMC.h>
+  #include "./FS/sd_mmc.hpp"
+  #if !defined SDU_BEGIN_SD_MMC
+    #define SDU_BEGIN_SD_MMC SDU_SD_MMC_Begin
   #endif
 #endif
 
 #if defined _SPIFFS_H_
   #define SDU_HAS_SPIFFS
-  #include <SPIFFS.h>
-  #if !defined SDU_SPIFFS_BEGIN
-    #define SDU_SPIFFS_BEGIN SPIFFS.begin
+  //#include <SPIFFS.h>
+  #include "./FS/spiffs.hpp"
+  #if !defined SDU_BEGIN_SPIFFS
+    #define SDU_BEGIN_SPIFFS SDU_SPIFFS_Begin
   #endif
 #endif
 
 #if defined _FFAT_H_ //|| __has_include(<FFat.h>)
   #define SDU_HAS_FFAT
-  #include <FFat.h>
-  #if !defined SDU_FFAT_BEGIN
-    #define SDU_FFAT_BEGIN FFat.begin
+  //#include <FFat.h>
+  #include "./FS/ffat.hpp"
+  #if !defined SDU_BEGIN_FFat
+    #define SDU_BEGIN_FFat SDU_FFat_Begin
   #endif
 #endif
 
 #if defined _LiffleFS_H_ || __has_include(<LittleFS.h>)
   #define SDU_HAS_LITTLEFS
-  #include <LittleFS.h>
-  #if !defined SDU_LITTLEFS_BEGIN
-    #define SDU_LITTLEFS_BEGIN LittleFS.begin
+  //#include <LittleFS.h>
+  #include "./FS/littlefs.hpp"
+  #if !defined SDU_BEGIN_LittleFS
+    #define SDU_BEGIN_LittleFS SDU_LittleFS_Begin
   #endif
 #endif
 
@@ -157,9 +162,9 @@
 #if defined USE_SDFATFS
   #define SDU_HAS_SDFS
   SDU_PRAGMA_MESSAGE("SDUpdater will use SdFat")
-  #include "./misc/sdfat32fs_wrapper.hpp"
-  #if !defined SDU_SDFS_BEGIN
-    #define SDU_SDFS_BEGIN SDU_SDFatBegin
+  #include "./FS/sdfat.hpp"
+  #if !defined SDU_BEGIN_SDFat
+    #define SDU_BEGIN_SDFat SDU_SDFat_Begin
   #endif
 #endif
 
@@ -167,9 +172,10 @@
 #if !defined SDU_HAS_SD && !defined SDU_HAS_SD_MMC && !defined SDU_HAS_SPIFFS && !defined SDU_HAS_LITTLEFS && !defined SDU_HAS_SDFS && !defined SDU_HAS_FFAT
   SDU_PRAGMA_MESSAGE("SDUpdater didn't detect any  preselected filesystem, will use SD as default")
   #define SDU_HAS_SD
-  #include <SD.h>
-  #if !defined SDU_SD_BEGIN
-    #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
+  //#include <SD.h>
+  #include "./FS/sd.hpp"
+  #if !defined SDU_BEGIN_SD
+    #define SDU_BEGIN_SD SDU_SDBegin
   #endif
 #endif
 
@@ -427,7 +433,7 @@ namespace SDUpdaterNS
 
 
     // logic block generator for hasFS() filesystem detection/init
-    #define SDU_MOUNT_FS_IF( cond, begin_cb, name )         \
+    #define SD_MOUNT_ANY_FS_IF( cond, begin_cb, name )         \
       if( cond ) {                                          \
         if( !begin_cb ){                                    \
           msg[0] = name " MOUNT FAILED";                    \
@@ -437,6 +443,8 @@ namespace SDUpdaterNS
         mounted = true;                                     \
       }                                                     \
 
+    // function call generator to SD_MOUNT_ANY_FS_IF( condition, begin-callback, filesystem-name )
+    #define SD_MOUNT_FS_IF( fsobj ) SD_MOUNT_ANY_FS_IF( &fs == &fsobj, SDU_BEGIN_##fsobj (SDU_CONFIG_##fsobj ), #fsobj );
 
     inline bool hasFS( SDUpdater* sdu, fs::FS &fs, bool report_errors=true )
     {
@@ -444,23 +452,24 @@ namespace SDUpdaterNS
       bool mounted = sdu->cfg->mounted; // inherit config mount state as default (can be triggered by rollback)
       const char* msg[] = {nullptr, "ABORTING"};
       #if defined _SPIFFS_H_
-        SDU_MOUNT_FS_IF( &fs == &SPIFFS, SDU_SPIFFS_BEGIN(), "SPIFFS" );
+        SD_MOUNT_FS_IF( SPIFFS );
       #endif
       #if defined _LITTLEFS_H_
-        SDU_MOUNT_FS_IF( &fs == &LittleFS, SDU_LITTLEFS_BEGIN(), "LittleFS" );
+        SD_MOUNT_FS_IF( LittleFS );
       #endif
       #if defined _FFAT_H_
-        SDU_MOUNT_FS_IF( &fs == &FFat, SDU_FFAT_BEGIN(), "FFat" );
+        SD_MOUNT_FS_IF( FFat );
       #endif
       #if defined _SD_H_
-        SDU_MOUNT_FS_IF( &fs == &SD, SDU_SD_BEGIN(sdu->cfg->TFCardCsPin), "SD" );
+        SDU_SD_CONFIG_GET()->csPin = sdu->cfg->TFCardCsPin;
+        SD_MOUNT_FS_IF( SD );
       #endif
       #if defined _SDMMC_H_
-        SDU_MOUNT_FS_IF( &fs == &SD_MMC, SDU_SD_MMC_BEGIN(), "SD_MMC" );
+        //SDU_SD_MMC_CONFIG_GET()->busCfg.freq = 40000000;
+        SD_MOUNT_FS_IF( SD_MMC );
       #endif
       #if defined USE_SDFATFS
-        using namespace ConfigManager;
-        SDU_MOUNT_FS_IF( &fs==SDU_SdFatFsPtr, SDU_SDFS_BEGIN( SDU_SdSpiConfigPtr ), "SDFat" );
+        SD_MOUNT_ANY_FS_IF( &fs==ConfigManager::SDU_SdFatFsPtr, SDU_BEGIN_SDFat(ConfigManager::SDU_SdSpiConfigPtr), "SDFat" );
       #endif
       return mounted;
     }
@@ -512,6 +521,8 @@ namespace SDUpdaterNS
   }
 
 
+
+
   // provide a conditional function to cover more devices, including headless and touch
   inline void checkSDUpdater( fs::FS &fs, String fileName, unsigned long waitdelay, const int TfCardCsPin_ )
   {
@@ -554,6 +565,21 @@ namespace SDUpdaterNS
       sdUpdater.checkSDUpdaterHeadless( fileName, waitdelay );
     }
   }
+
+
+  // inline void checkSDUpdater( ConfigManager::FS_Config_t &cfg, String fileName, unsigned long waitdelay )
+  // {
+  //   SDUCfg.fsConfig = &cfg;
+  //   SDUpdater sdUpdater( &SDUCfg );
+  //
+  //   if( SDUCfg.display != nullptr ) {
+  //     sdUpdater.checkSDUpdaterUI( fileName, waitdelay );
+  //   } else {
+  //     if( waitdelay <=100 ) waitdelay = 2000;
+  //     sdUpdater.checkSDUpdaterHeadless( fileName, waitdelay );
+  //   }
+  // }
+
 
 
   #if defined USE_SDFATFS

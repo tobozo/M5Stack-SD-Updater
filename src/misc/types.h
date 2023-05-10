@@ -117,6 +117,16 @@ namespace SDUpdaterNS
       bool changed() { return cb ? cb() : false; } // trigger checker
       SDUBtnActions val; // button value to return when action is triggered
     };
+
+    // abstract filesystem config
+    struct FS_Config_t
+    {
+      const char* name;
+      void *fsPtr;
+      void *cfgPtr;
+    };
+
+
   };
 
   // directly callable (no poll, no pinMode) button
