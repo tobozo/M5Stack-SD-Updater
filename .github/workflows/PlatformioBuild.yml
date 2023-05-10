@@ -36,6 +36,7 @@ jobs:
           - m5unified
           - s3box
           - m5stack-atom
+          - m5stack-cores3
 
         platform-version:
           #- 1.0.6
@@ -101,7 +102,9 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
+          export pio_ver=${{ matrix.platform-version }}
+          export pio_env="${pio_ver//./_}"
           [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
-          pio pkg install -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} --no-save --library file://$(realpath ../../../)
-          pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
+          pio pkg install -e ${{ matrix.piocontext }}-$pio_env --no-save --library file://$(realpath ../../../)
+          pio run -e ${{ matrix.piocontext }}-$pio_env
 
