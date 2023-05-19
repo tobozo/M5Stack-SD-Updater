@@ -2,8 +2,8 @@
 
 #if defined SDU_HAS_FFAT
 
-  #include "./misc/config.h"
-  #include "./misc/types.h"
+  #include "../misc/config.h"
+  #include "../misc/types.h"
   #include <FFat.h>
 
   namespace SDUpdaterNS

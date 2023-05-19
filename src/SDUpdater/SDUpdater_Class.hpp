@@ -75,6 +75,10 @@ namespace SDUpdaterNS
       // static methods
       static void updateNVS();
       static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
+      static const esp_partition_t* getFactoryPartition();
+      static void loadFactory();
+
+
       // fs::File->name() changed behaviour after esp32 sdk 2.x.x
       inline static const char* fs_file_path( fs::File *file )
       {

@@ -2,8 +2,8 @@
 
 #if defined SDU_HAS_LITTLEFS
 
-  #include "./misc/config.h"
-  #include "./misc/types.h"
+  #include "../misc/config.h"
+  #include "../misc/types.h"
   #include <LittleFS.h>
 
   namespace SDUpdaterNS

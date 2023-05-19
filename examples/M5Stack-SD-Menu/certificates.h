@@ -1,3 +1,7 @@
+#pragma once
+
+#if defined USE_DOWNLOADER
+
 /*
 
   ssl_host="phpsecure.info" && \
@@ -166,3 +170,5 @@ const char* phpsecu_re_ca =\
 "KOqkqm57TH2H3eDJAkSnh6/DNFu0Qg==\n"\
 "-----END CERTIFICATE-----\n"\
 "";
+
+#endif

@@ -87,6 +87,7 @@
 
 #include "gitTagVersion.h"
 #include "./misc/assets.h"
+#include "./misc/config.h"
 #include "./misc/types.h"
 #include <FS.h>
 #include <Update.h>
@@ -106,60 +107,55 @@
 
 // inherit filesystem includes from sketch
 
-#if defined _SD_H_
+#if defined _SD_H_ || defined SDU_USE_SD
   #define SDU_HAS_SD
-  //#include <SD.h>
   #include "./FS/sd.hpp"
   #if !defined SDU_BEGIN_SD
     #define SDU_BEGIN_SD SDU_SDBegin
   #endif
 #endif
 
-#if defined _SDMMC_H_
+#if defined _SDMMC_H_ || defined SDU_USE_SD_MMC
   #define SDU_HAS_SD_MMC
-  // #include <SD_MMC.h>
   #include "./FS/sd_mmc.hpp"
   #if !defined SDU_BEGIN_SD_MMC
     #define SDU_BEGIN_SD_MMC SDU_SD_MMC_Begin
   #endif
 #endif
 
-#if defined _SPIFFS_H_
+#if defined _SPIFFS_H_ || defined SDU_USE_SPIFFS
   #define SDU_HAS_SPIFFS
-  //#include <SPIFFS.h>
   #include "./FS/spiffs.hpp"
   #if !defined SDU_BEGIN_SPIFFS
     #define SDU_BEGIN_SPIFFS SDU_SPIFFS_Begin
   #endif
 #endif
 
-#if defined _FFAT_H_ //|| __has_include(<FFat.h>)
+#if defined _FFAT_H_ || defined SDU_USE_FFAT
   #define SDU_HAS_FFAT
-  //#include <FFat.h>
   #include "./FS/ffat.hpp"
   #if !defined SDU_BEGIN_FFat
     #define SDU_BEGIN_FFat SDU_FFat_Begin
   #endif
 #endif
 
-#if defined _LiffleFS_H_ || __has_include(<LittleFS.h>)
+#if defined _LiffleFS_H_ || defined SDU_USE_LITTLEFS
   #define SDU_HAS_LITTLEFS
-  //#include <LittleFS.h>
   #include "./FS/littlefs.hpp"
   #if !defined SDU_BEGIN_LittleFS
     #define SDU_BEGIN_LittleFS SDU_LittleFS_Begin
   #endif
 #endif
 
-#if __has_include(<LITTLEFS.h>) || defined _LIFFLEFS_H_
+#if defined _LIFFLEFS_H_ || __has_include(<LITTLEFS.h>)
   // LittleFS is now part of esp32 package, the older, external version isn't supported
   #warning "Older version of <LITTLEFS.h> is unsupported and will be ignored"
   #warning "Use builtin version with #include <LittleFS.h> instead, if using platformio add LittleFS(esp32)@^2.0.0 to lib_deps"
 #endif
 
 // Note: SdFat can't be detected using __has_include(<SdFat.h>) without creating problems downstream in the code.
-//       Until this is solved, enabling SdFat is done by adding `#defined USE_SDFATFS` to the sketch before including the library.
-#if defined USE_SDFATFS
+//       Until this is solved, enabling SdFat is done by adding `#defined SDU_USE_SDFATFS` to the sketch before including the library.
+#if defined SDU_USE_SDFATFS || defined USE_SDFATFS
   #define SDU_HAS_SDFS
   SDU_PRAGMA_MESSAGE("SDUpdater will use SdFat")
   #include "./FS/sdfat.hpp"
@@ -172,7 +168,6 @@
 #if !defined SDU_HAS_SD && !defined SDU_HAS_SD_MMC && !defined SDU_HAS_SPIFFS && !defined SDU_HAS_LITTLEFS && !defined SDU_HAS_SDFS && !defined SDU_HAS_FFAT
   SDU_PRAGMA_MESSAGE("SDUpdater didn't detect any  preselected filesystem, will use SD as default")
   #define SDU_HAS_SD
-  //#include <SD.h>
   #include "./FS/sd.hpp"
   #if !defined SDU_BEGIN_SD
     #define SDU_BEGIN_SD SDU_SDBegin
@@ -287,8 +282,8 @@
 #endif
 
 // now that all the contextual flags are created, load the SDUpdater stack
-#include "./misc/update_interface.hpp"
 #include "./ConfigManager/ConfigManager.hpp"
+#include "./SDUpdater/Update_Interface.hpp"
 #include "./SDUpdater/SDUpdater_Class.hpp"
 #include "./UI/common.hpp"
 
@@ -362,7 +357,6 @@ namespace SDUpdaterNS
       if( !Buttons[1].cb ) setBtnB( FN_LAMBDA_BOOL(DEFAULT_BTNB_CHECKER) );
       if( !Buttons[2].cb ) setBtnC( FN_LAMBDA_BOOL(DEFAULT_BTNC_CHECKER) );
 
-
       if( !labelMenu      && LAUNCHER_LABEL ) labelMenu     = LAUNCHER_LABEL;
       if( !labelSkip      && SKIP_LABEL     ) labelSkip     = SKIP_LABEL;
       if( !labelRollback  && ROLLBACK_LABEL ) labelRollback = ROLLBACK_LABEL;
@@ -433,7 +427,7 @@ namespace SDUpdaterNS
 
 
     // logic block generator for hasFS() filesystem detection/init
-    #define SD_MOUNT_ANY_FS_IF( cond, begin_cb, name )         \
+    #define SD_MOUNT_ANY_FS_IF( cond, begin_cb, name )      \
       if( cond ) {                                          \
         if( !begin_cb ){                                    \
           msg[0] = name " MOUNT FAILED";                    \
@@ -468,7 +462,7 @@ namespace SDUpdaterNS
         //SDU_SD_MMC_CONFIG_GET()->busCfg.freq = 40000000;
         SD_MOUNT_FS_IF( SD_MMC );
       #endif
-      #if defined USE_SDFATFS
+      #if defined SDU_HAS_SDFS
         SD_MOUNT_ANY_FS_IF( &fs==ConfigManager::SDU_SdFatFsPtr, SDU_BEGIN_SDFat(ConfigManager::SDU_SdSpiConfigPtr), "SDFat" );
       #endif
       return mounted;
@@ -582,7 +576,7 @@ namespace SDUpdaterNS
 
 
 
-  #if defined USE_SDFATFS
+  #if defined SDU_HAS_SDFS
 
     inline void checkSDUpdater( SdFs &sd, String fileName=MENU_BIN, unsigned long waitdelay=0, SdSpiConfig *SdFatCfg=nullptr )
     {

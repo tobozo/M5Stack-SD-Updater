@@ -2,8 +2,8 @@
 
 #if defined SDU_HAS_SD
 
-  #include "./misc/config.h"
-  #include "./misc/types.h"
+  #include "../misc/config.h"
+  #include "../misc/types.h"
   #include <SD.h>
 
   namespace SDUpdaterNS

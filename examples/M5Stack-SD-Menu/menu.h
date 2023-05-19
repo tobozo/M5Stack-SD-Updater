@@ -117,7 +117,7 @@
 #include "compile_time.h"
 //#include <SPIFFS.h>
 
-#if defined(_CHIMERA_CORE_) || defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
+#if defined(_CHIMERA_CORE_) || defined(ARDUINO_M5STACK_ATOM_AND_TFCARD) || __has_include("lgfx/utility/lgfx_qrcode.h")
   #include "lgfx/utility/lgfx_qrcode.h"
   #define qrcode_getBufferSize lgfx_qrcode_getBufferSize
   #define qrcode_initText lgfx_qrcode_initText
@@ -179,9 +179,9 @@ void freeMeta();
 void renderIcon( FileInfo &fileInfo );
 void renderMeta( JSONMeta &jsonMeta );
 //void qrRender( String text, float sizeinpixels, int xOffset=-1, int yOffset=-1 );
-void qrRender( LGFX* gfx, String text, int posX, int posY, uint32_t width, uint32_t height );
+void qrRender( SDU_DISPLAY_TYPE gfx, String text, int posX, int posY, uint32_t width, uint32_t height );
 
-void progressBar(LGFX* tft, int x, int y, int w, int h, uint8_t val, uint16_t color, uint16_t bgcolor)
+void progressBar(SDU_DISPLAY_TYPE tft, int x, int y, int w, int h, uint8_t val, uint16_t color, uint16_t bgcolor)
 {
   tft->drawRect(x, y, w, h, color);
   if (val > 100) val = 100;
@@ -351,12 +351,12 @@ void renderMeta( JSONMeta &jsonMeta )
     sprite.print( jsonMeta.authorName );
     sprite.println( AUTHOR_SUFFIX );
     sprite.println();
-    qrRender( (LGFX*)&tft, jsonMeta.projectURL, 155, 45, 150, 150 );
+    qrRender( SDU_DISPLAY_OBJ_PTR, jsonMeta.projectURL, 155, 45, 150, 150 );
   } else if( jsonMeta.projectURL!="" ) { // only projectURL
     log_d("Rendering QRCode");
     sprite.println( jsonMeta.projectURL );
     sprite.println();
-    qrRender( (LGFX*)&tft, jsonMeta.projectURL, 155, 45, 150, 150 );
+    qrRender( SDU_DISPLAY_OBJ_PTR, jsonMeta.projectURL, 155, 45, 150, 150 );
   } else { // only authorName
     log_d("Rendering Authorname");
     sprite.println( jsonMeta.authorName );
@@ -394,7 +394,7 @@ uint8_t getLowestQRVersionFromString( String text, uint8_t ecc )
 }
 
 
-void qrRender( LGFX* gfx, String text, int posX, int posY, uint32_t width, uint32_t height )
+void qrRender( SDU_DISPLAY_TYPE gfx, String text, int posX, int posY, uint32_t width, uint32_t height )
 {
   // see https://github.com/Kongduino/M5_QR_Code/blob/master/M5_QRCode_Test.ino
   // Create the QR code
@@ -460,7 +460,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
           getFileInfo( fileInfo[appsCount], &file );
           if( appsCountProgress > 0 ) {
             float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
-            progressBar( (LGFX*)&tft, 110, 112, 100, 20, progressRatio);
+            progressBar( SDU_DISPLAY_OBJ_PTR, 110, 112, 100, 20, progressRatio);
             tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
             tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
           }
@@ -488,7 +488,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
       getFileInfo( fileInfo[appsCount], &file );
       if( appsCountProgress > 0 ) {
         float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
-        progressBar( (LGFX*)&tft, 110, 112, 100, 20, progressRatio);
+        progressBar( SDU_DISPLAY_OBJ_PTR, 110, 112, 100, 20, progressRatio);
         tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
         tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
       }
@@ -829,6 +829,8 @@ void UISetup()
 
   heapState();
 
+  //lsPart();
+
   tft.setBrightness(100);
   lastcheck = millis();
   tft.drawJpg(disk01_jpg, 1775, (tft.width()-30)/2, 100);
@@ -843,7 +845,7 @@ void UISetup()
 #ifdef _CHIMERA_CORE_
   while( !M5.sd_begin() )
 #else
-  while( !M5_FS.begin() )
+  while( !M5_FS.begin(4) )
 #endif
   {
     // TODO: make a more fancy animation
@@ -912,6 +914,14 @@ void UISetup()
       gotoSleep();
     }
   #endif
+
+      //Serial.println("Going to factory in 5s");
+      //delay(5000);
+      //loadFactory();
+      //ESP.restart();
+
+
+
 }
 
 
@@ -927,7 +937,7 @@ void doFSChecks()
   checkMenuStickyPartition();
 
   tft.fillRect(110, 112, 100, 20,0);
-  progressBar( (LGFX*)&tft, 110, 112, 100, 20, 10);
+  progressBar( SDU_DISPLAY_OBJ_PTR, 110, 112, 100, 20, 10);
 
   scanDataFolder(); // do SD / SPIFFS health checks
 
@@ -957,7 +967,7 @@ void doFSInventory()
   tft.setTextColor( TFT_WHITE );
   tft.setTextSize( 1 );
   tft.clear();
-  progressBar( (LGFX*)&tft, 110, 112, 100, 20, 20);
+  progressBar( SDU_DISPLAY_OBJ_PTR, 110, 112, 100, 20, 20);
   appsCount = 0;
   listDir(M5_FS, "/", 0, false); // count valid files first so a progress meter can be displayed
   appsCountProgress = appsCount;
@@ -987,7 +997,7 @@ void HIDMenuObserve() {
     tft.setBrightness( brightness );
   }
   switch( hidState ) {
-    #ifdef _CHIMERA_CORE_
+    #if defined _CHIMERA_CORE_ && defined USE_SCREENSHOTS
       case HID_SCREENSHOT:
         M5.ScreenShot->snap( "screenshot" );
       break;

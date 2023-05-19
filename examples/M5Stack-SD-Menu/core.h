@@ -2,8 +2,18 @@
 
 //#include <FFat.h>
 #include <SD.h>
-#define ECC_NO_PRAGMAS // turn ESP32-Chimera-Core's pragma messages off
-#include <ESP32-Chimera-Core.h> // use LGFX display autodetect
+
+// #define ECC_NO_PRAGMAS // turn ESP32-Chimera-Core's pragma messages off
+// #define ECC_NO_SCREENSHOT // comment this out to take screenshots
+// #define ECC_NO_SPEAKER // comment this out to use audio
+// #define ECC_NO_NVSUTILS
+// #define ECC_NO_POWER
+// #define ECC_NO_MPU
+// #define ECC_NO_RTC
+// #include <ESP32-Chimera-Core.h> // use LGFX display autodetect
+
+#include <M5Unified.h>
+
 #include <ESP32-targz.h> // optional: https://github.com/tobozo/ESP32-targz
 #define SDU_NO_PRAGMAS // turn M5StackUpdater's pragma messages off
 #define SDU_APP_NAME "Application Launcher"
@@ -51,6 +61,10 @@
 
   static LGFX_8BIT_CVBS tft;
 
+#elif defined __M5UNIFIED_HPP__
+
+  M5GFX &tft( M5.Lcd );
+
 #else
 
   M5Display &tft( M5.Lcd );
@@ -59,7 +73,7 @@
 
 #include <M5StackUpdater.h>  // https://github.com/tobozo/M5Stack-SD-Updater
 
-static LGFX_Sprite sprite = LGFX_Sprite( &tft );
+static SDU_Sprite sprite = SDU_Sprite( &tft );
 fs::SDFS &M5_FS(SD);
 
-void progressBar( LGFX* tft, int x, int y, int w, int h, uint8_t val, uint16_t color = 0x09F1, uint16_t bgcolor = 0x0000 );
+void progressBar( SDU_DISPLAY_TYPE tft, int x, int y, int w, int h, uint8_t val, uint16_t color = 0x09F1, uint16_t bgcolor = 0x0000 );

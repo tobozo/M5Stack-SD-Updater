@@ -2,8 +2,8 @@
 
 #if defined SDU_HAS_SPIFFS
 
-  #include "./misc/config.h"
-  #include "./misc/types.h"
+  #include "../misc/config.h"
+  #include "../misc/types.h"
   #include <SPIFFS.h>
 
   namespace SDUpdaterNS

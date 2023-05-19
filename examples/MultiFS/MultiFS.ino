@@ -1,15 +1,23 @@
 
-
+/*
 #include <SPIFFS.h>
 #include <LittleFS.h>
 #include <SD.h>
 #include <SD_MMC.h>
 #include <FFat.h>
 #include <SdFat.h>
-#include <ESP32-targz.h>
+#include <ESP32-targz.h>*/
 
 #define SDU_NO_AUTODETECT                // Disable SDUpdater autodetect: this prevents <SD.h> to be auto-selected, however it also disables board detection
-#define USE_SDFATFS                      // Tell M5StackUpdater to load <SdFat.h> and wrap SdFat32 into fs::FS::SdFat32FSImpl
+
+
+#define SDU_USE_SDFATFS                      // Tell M5StackUpdater to load <SdFat.h> and wrap SdFat32 into fs::FS::SdFat32FSImpl
+#define SDU_USE_SD
+#define SDU_USE_SD_MMC
+#define SDU_USE_SPIFFS
+#define SDU_USE_FFAT
+#define SDU_USE_LITTLEFS
+#define SDU_ENABLE_GZ
 
 #include <M5StackUpdater.h>
 

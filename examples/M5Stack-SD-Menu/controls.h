@@ -25,12 +25,12 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
   bool JOY_X_pressed = false;
 #endif
 
-#if defined ARDUINO_M5Stack_Core_ESP32 || defined ARDUINO_M5STACK_FIRE
+#if !defined __M5UNIFIED_HPP__ && (defined ARDUINO_M5Stack_Core_ESP32 || ARDUINO_M5STACK_CORE_ESP32 || defined ARDUINO_M5STACK_FIRE)
   #define CAN_I_HAZ_M5FACES
 #endif
 
 
-#if defined ARDUINO_M5STACK_Core2
+#if defined ARDUINO_M5STACK_Core2 && defined _CHIMERA_CORE_
   // enable M5Core2's haptic feedback !
   static bool isVibrating = false;
 

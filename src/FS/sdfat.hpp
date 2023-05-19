@@ -4,7 +4,7 @@
 // Inspired by @ockernuts https://github.com/ockernuts
 // See https://github.com/greiman/SdFat/issues/148#issuecomment-1464448806
 
-#if defined USE_SDFATFS
+#if defined SDU_HAS_SDFS
 
   #if !defined SDFAT_FILE_TYPE
     #define SDFAT_FILE_TYPE 3 // tell SdFat.h to support all filesystem types (fat16/fat32/ExFat)
@@ -13,8 +13,8 @@
     #error "SD Updater only supports SdFs"
   #endif
 
-  #include "./misc/config.h"
-  #include "./misc/types.h"
+  #include "../misc/config.h"
+  #include "../misc/types.h"
 
   #undef __has_include // tell SdFat to define 'File' object needed to convert access mode to flag
   #include <FS.h>

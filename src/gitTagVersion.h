@@ -1,6 +1,6 @@
 #define SDU_VERSION_MAJOR 1
 #define SDU_VERSION_MINOR 2
-#define SDU_VERSION_PATCH 6
+#define SDU_VERSION_PATCH 7
 #define _SDU_STR(x) #x
 #define SDU_STR(x) _SDU_STR(x)
 // Macro to convert library version number into an integer

@@ -27,6 +27,49 @@ namespace SDUpdaterNS
   }
 
 
+
+
+  //***********************************************************************************************
+  //                                B A C K T O F A C T O R Y                                     *
+  //***********************************************************************************************
+  // https://www.esp32.com/posting.php?mode=quote&f=2&p=19066&sid=5ba5f33d5fe650eb8a7c9f86eb5b61b8
+  // Return to factory version.                                                                   *
+  // This will set the otadata to boot from the factory image, ignoring previous OTA updates.     *
+  //***********************************************************************************************
+  void SDUpdater::loadFactory()
+  {
+    esp_partition_iterator_t  pi ;                   // Iterator for find
+    const esp_partition_t*    factory ;              // Factory partition
+    esp_err_t                 err ;
+
+    pi = esp_partition_find ( ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL ) ;
+
+    if ( pi == NULL ) {                              // Check result
+      log_e( "Failed to find factory partition" ) ;
+    } else {
+      factory = esp_partition_get ( pi ) ;           // Get partition struct
+      esp_partition_iterator_release ( pi ) ;        // Release the iterator
+      err = esp_ota_set_boot_partition ( factory ) ; // Set partition for boot
+      if ( err != ESP_OK ) {                         // Check error
+        log_e( "Failed to set boot partition" ) ;
+      } else {
+        esp_restart() ;                              // Restart ESP
+      }
+    }
+  }
+
+
+  const esp_partition_t* SDUpdater::getFactoryPartition()
+  {
+    auto factorypi = esp_partition_find ( ESP_PARTITION_TYPE_APP,  ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL );
+    if( factorypi != NULL ) {
+      return esp_partition_get(factorypi);
+    }
+    return NULL;
+  }
+
+
+
   esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition )
   {
     esp_image_metadata_t data;
@@ -39,31 +82,33 @@ namespace SDUpdaterNS
       .size = source_partition->size,
     };
     data.start_addr = source_partition_pos.offset;
-    esp_err_t ret = esp_image_verify( ESP_IMAGE_VERIFY, &source_partition_pos, &data );
-    // only verify OTA0 or OTA1
-    if( source_partition->label[3] == '1' || source_partition->label[3] == '0' ) {
+
+    esp_app_desc_t app_desc;
+    if( esp_ota_get_partition_description(source_partition, &app_desc) != ESP_OK ) {
+      // nothing flashed here
+      memset( data.image_digest, 0, sizeof(data.image_digest) );
+      data.image_len = source_partition->size;//0;
+      return data;
+    }
+
+    // only verify OTA partitions
+    if( source_partition->type==ESP_PARTITION_TYPE_APP && (source_partition->subtype>=ESP_PARTITION_SUBTYPE_APP_OTA_MIN && source_partition->subtype<ESP_PARTITION_SUBTYPE_APP_OTA_MAX) ) {
+      esp_err_t ret = esp_image_verify( ESP_IMAGE_VERIFY, &source_partition_pos, &data );
       if( ret != ESP_OK ) {
         log_e("Failed to verify image %s at addr %x", String( source_partition->label ), source_partition->address );
       } else {
-        //log_w("Successfully verified image %s at addr %x", String( source_partition->label[3] ), source_partition->address );
+        log_w("Successfully verified image %s at addr %x", String( source_partition->label[3] ), source_partition->address );
+      }
+    } else if( source_partition->type==ESP_PARTITION_TYPE_APP && source_partition->subtype==ESP_PARTITION_SUBTYPE_APP_FACTORY ) {
+      // factory partition, compute the digest
+      if( esp_partition_get_sha256(source_partition, data.image_digest) != ESP_OK ) {
+        memset( data.image_digest, 0, sizeof(data.image_digest) );
+        data.image_len = 0;
       }
     }
     return data;//.image_len;
   }
 
-  /*
-  static void SDUpdater::getFactoryPartition()
-  {
-    esp_partition_iterator_t pi = esp_partition_find( ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL );
-    if(pi != NULL) {
-      const esp_partition_t* factory = esp_partition_get(pi);
-      esp_partition_iterator_release(pi);
-      if(esp_ota_set_boot_partition(factory) == ESP_OK) {
-        //esp_restart();
-      }
-    }
-  }
-  */
 
 
   bool SDUpdater::compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length)

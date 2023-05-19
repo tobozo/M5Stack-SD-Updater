@@ -1,0 +1,51 @@
+
+# Name,   Type, SubType,    Offset,     Size
+nvs,      data, nvs,        0x9000,   0x5000
+otadata,  data, ota,        0xe000,   0x2000
+ota_0,    0,    ota_0,     0x10000, 0x300000
+ota_1,    0,    ota_1,    0x310000, 0x300000
+ota_2,    0,    ota_2,    0x610000, 0x300000
+ota_3,    0,    ota_3,    0x910000, 0x300000
+firmware, app,  factory,  0xC10000, 0x0F0000
+spiffs,   data, spiffs,   0xD00000, 0x2F0000
+coredump, data, coredump, 0xFF0000,  0x10000
+
+
+
+## Name,   Type, SubType,   Offset,     Size
+#nvs,      data, nvs,       0x9000,   0x5000
+#otadata,  data, ota,       0xe000,   0x2000
+#firmware, app,  factory,  0x10000, 0x0F0000
+#ota_0,    0,    ota_0,   0x100000, 0x300000
+#ota_1,    0,    ota_1,   0x400000, 0x300000
+#ota_2,    0,    ota_2,   0x700000, 0x300000
+#ota_3,    0,    ota_3,   0xA00000, 0x300000
+#spiffs,   data, spiffs,  0xD00000, 0x2F0000
+#coredump, data, coredump,0xFF0000,  0x10000
+
+
+
+## Name,   Type, SubType, Offset,  Size
+## Note: if you change the phy_init or app partition offset, make sure to change the offset in Kconfig.projbuild
+#nvs,      data,     nvs,   0x9000,   0x4000
+#otadata,  data,     ota,   0xd000,   0x2000
+#phy_init, data,     phy,   0xf000,   0x1000
+#firmware,  app, factory,  0x10000, 0x0F0000
+##app_0,       0,   ota_0, 0x100000, 0x200000
+##app_1,       0,   ota_1, 0x300000, 0x200000
+##app_2,       0,   ota_2, 0x500000, 0x200000
+##app_3,       0,   ota_3, 0x700000, 0x200000
+##app_4,       0,   ota_4, 0x900000, 0x200000
+##app_5,       0,   ota_5, 0xb00000, 0x200000
+##app_6,       0,   ota_6, 0xd00000, 0x200000
+##storage,  data,  spiffs, 0xf00000, 0x100000
+
+
+# default_16MB.csv:
+## Name,   Type, SubType, Offset,  Size, Flags
+#nvs,      data, nvs,     0x9000,  0x5000,
+#otadata,  data, ota,     0xe000,  0x2000,
+#app0,     app,  ota_0,   0x10000, 0x640000,
+#app1,     app,  ota_1,   0x650000,0x640000,
+#spiffs,   data, spiffs,  0xc90000,0x360000,
+#coredump, data, coredump,0xFF0000,0x10000,
