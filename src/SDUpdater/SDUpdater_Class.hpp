@@ -68,15 +68,22 @@ namespace SDUpdaterNS
       void updateFromFS( fs::FS &fs, const String& fileName = MENU_BIN );
       void updateFromStream( Stream &stream, size_t updateSize, const String& fileName );
       void doRollBack( const String& message = "" );
+
       // flash to SD binary replication
-      bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
-      bool copyFsPartition(fs::File* dst, const esp_partition_t* src, size_t length);
-      bool saveSketchToFS(fs::FS &fs, const char* binfilename = PROGMEM {MENU_BIN}, bool skipIfExists = false );
+      static bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
+      static bool copyFsPartition(fs::File* dst, const esp_partition_t* src, size_t length);
+
+      static bool saveSketchToFS( SDUpdater* sdu, fs::FS &fs, const char* binfilename={MENU_BIN}, bool skipIfExists=false );
+      inline bool saveSketchToFS( fs::FS &fs, const char* binfilename={MENU_BIN}, bool skipIfExists=false ) { return saveSketchToFS(this, fs, binfilename, skipIfExists ); }
+
       // static methods
       static void updateNVS();
       static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
       static const esp_partition_t* getFactoryPartition();
       static void loadFactory();
+      static bool saveSketchToFactory();
+      static bool compareFlashPartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length);
+      static bool copyFlashPartition(const esp_partition_t* dst, const esp_partition_t* src, size_t length);
 
 
       // fs::File->name() changed behaviour after esp32 sdk 2.x.x
@@ -89,9 +96,9 @@ namespace SDUpdaterNS
         #endif
       }
 
-      void _error( const String& errMsg, unsigned long waitdelay = 2000 );
-      void _error( const char **errMsgs, uint8_t msgCount=1, unsigned long waitdelay=2000 );
-      void _message( const String& label );
+      static void _error( const String& errMsg, unsigned long waitdelay = 2000 );
+      static void _error( const char **errMsgs, uint8_t msgCount=1, unsigned long waitdelay=2000 );
+      static void _message( const String& label );
       config_sdu_t* cfg;
 
     private:
@@ -107,9 +114,8 @@ namespace SDUpdaterNS
       #else
         const bool SDUHasTouch = false;
       #endif
-      bool _fs_begun = false;
-      bool _fsBegin( bool report_errors = true );
-      bool _fsBegin( fs::FS &fs, bool report_errors = true );
+      static bool _fsBegin( SDUpdater* sdu, bool report_errors = true );
+      static bool _fsBegin( SDUpdater* sdu, fs::FS &fs, bool report_errors = true );
 
   };
 
@@ -126,7 +132,7 @@ namespace SDUpdaterNS
     } else {
       cfg->setDefaults();
     }
-    _fs_begun = _fsBegin( false );
+    cfg->fs_begun = _fsBegin( this, false );
   };
 
 
@@ -145,22 +151,22 @@ namespace SDUpdaterNS
     } else {
       cfg->setDefaults();
     }
-    _fs_begun = _fsBegin( false );
+    cfg->fs_begun = _fsBegin( this, false );
   };
 
 
-  inline bool SDUpdater::_fsBegin( bool report_errors )
+  inline bool SDUpdater::_fsBegin( SDUpdater* sdu, bool report_errors )
   {
-    if( cfg->fs != nullptr ) return _fsBegin( *cfg->fs, report_errors );
-    if( !cfg->mounted ) _error( "No filesystem selected" ); // Note: rollback does not need filesystem
+    if( SDUCfg.fs != nullptr ) return _fsBegin( sdu, *SDUCfg.fs, report_errors );
+    if( !SDUCfg.mounted ) _error( "No filesystem selected" ); // Note: rollback does not need filesystem
     return false;
   }
 
 
-  inline bool SDUpdater::_fsBegin( fs::FS &fs, bool report_errors )
+  inline bool SDUpdater::_fsBegin( SDUpdater* sdu, fs::FS &fs, bool report_errors )
   {
-    if( _fs_begun ) return true;
-    if( cfg->fsChecker ) return cfg->fsChecker( this, *cfg->fs, report_errors );
+    if( SDUCfg.fs_begun ) return true;
+    if( SDUCfg.fsChecker ) return SDUCfg.fsChecker( sdu, *SDUCfg.fs, report_errors );
     return false;
   }
 

@@ -17,13 +17,13 @@ namespace SDUpdaterNS
   {
     SDU_SERIAL.print("[ERROR] ");
     SDU_SERIAL.println( errMsg );
-    if( cfg->onError ) cfg->onError( errMsg, waitdelay );
+    if( SDUCfg.onError ) SDUCfg.onError( errMsg, waitdelay );
   }
 
   void SDUpdater::_message( const String& msg )
   {
     SDU_SERIAL.println( msg );
-    if( cfg->onMessage ) cfg->onMessage( msg );
+    if( SDUCfg.onMessage ) SDUCfg.onMessage( msg );
   }
 
 
@@ -87,7 +87,7 @@ namespace SDUpdaterNS
     if( esp_ota_get_partition_description(source_partition, &app_desc) != ESP_OK ) {
       // nothing flashed here
       memset( data.image_digest, 0, sizeof(data.image_digest) );
-      data.image_len = source_partition->size;//0;
+      data.image_len = 0;
       return data;
     }
 
@@ -97,7 +97,7 @@ namespace SDUpdaterNS
       if( ret != ESP_OK ) {
         log_e("Failed to verify image %s at addr %x", String( source_partition->label ), source_partition->address );
       } else {
-        log_w("Successfully verified image %s at addr %x", String( source_partition->label[3] ), source_partition->address );
+        log_v("Successfully verified image %s at addr %x", String( source_partition->label[3] ), source_partition->address );
       }
     } else if( source_partition->type==ESP_PARTITION_TYPE_APP && source_partition->subtype==ESP_PARTITION_SUBTYPE_APP_FACTORY ) {
       // factory partition, compute the digest
@@ -107,6 +107,28 @@ namespace SDUpdaterNS
       }
     }
     return data;//.image_len;
+  }
+
+
+  bool SDUpdater::compareFlashPartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length)
+  {
+    size_t lengthLeft = length;
+    const size_t bufSize = SPI_FLASH_SEC_SIZE;
+    std::unique_ptr<uint8_t[]> buf1(new uint8_t[bufSize]);
+    std::unique_ptr<uint8_t[]> buf2(new uint8_t[bufSize]);
+    uint32_t offset = 0;
+    size_t i;
+    while( lengthLeft > 0) {
+      size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
+      if (!ESP.flashRead(src1->address + offset, reinterpret_cast<uint32_t*>(buf1.get()), (readBytes + 3) & ~3)
+      || !ESP.flashRead(src2->address + offset, reinterpret_cast<uint32_t*>(buf2.get()), (readBytes + 3) & ~3)) {
+          return false;
+      }
+      for (i = 0; i < readBytes; ++i) if (buf1[i] != buf2[i]) return false;
+      lengthLeft -= readBytes;
+      offset += readBytes;
+    }
+    return true;
   }
 
 
@@ -130,11 +152,11 @@ namespace SDUpdaterNS
       for (i = 0; i < readBytes; ++i) if (buf1[i] != buf2[i]) return false;
       lengthLeft -= readBytes;
       offset += readBytes;
-      if( cfg->onProgress ) {
+      if( SDUCfg.onProgress ) {
         progress = 100 * offset / length;
         if (progressOld != progress) {
           progressOld = progress;
-          cfg->onProgress( (uint8_t)progress, 100 );
+          SDUCfg.onProgress( (uint8_t)progress, 100 );
         }
       }
     }
@@ -158,11 +180,11 @@ namespace SDUpdaterNS
       if (dst) dst->write(buf.get(), (readBytes + 3) & ~3);
       lengthLeft -= readBytes;
       offset += readBytes;
-      if( cfg->onProgress ) {
+      if( SDUCfg.onProgress ) {
         progress = 100 * offset / length;
         if (progressOld != progress) {
           progressOld = progress;
-          cfg->onProgress( (uint8_t)progress, 100 );
+          SDUCfg.onProgress( (uint8_t)progress, 100 );
           vTaskDelay(10);
         }
       }
@@ -171,10 +193,82 @@ namespace SDUpdaterNS
   }
 
 
-  bool SDUpdater::saveSketchToFS( fs::FS &fs, const char* binfilename, bool skipIfExists )
+  bool SDUpdater::copyFlashPartition(const esp_partition_t* dst, const esp_partition_t* src, size_t length)
+  {
+    if( dst->size < length ) {
+      log_e("data won't fit in destination partition (available: %d, needed: %d)", dst->size, length );
+      return false;
+    }
+
+    size_t lengthLeft = length;
+    const size_t bufSize = SPI_FLASH_SEC_SIZE;
+    std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
+    uint32_t offset = 0;
+    uint32_t progress = 0, progressOld = 0;
+    while( lengthLeft > 0) {
+      size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
+      if (!ESP.flashRead(src->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)
+      || !ESP.flashEraseSector((dst->address + offset) / bufSize)
+      || !ESP.flashWrite(dst->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)) {
+          return false;
+      }
+      lengthLeft -= readBytes;
+      offset += readBytes;
+      if( SDUCfg.onProgress ) {
+        progress = 100 * offset / length;
+        if (progressOld != progress) {
+          progressOld = progress;
+          SDUCfg.onProgress( (uint8_t)progress, 100 );
+        }
+      }
+    }
+    return true;
+  }
+
+
+
+
+  bool SDUpdater::saveSketchToFactory()
+  {
+    const esp_partition_t* running     = esp_ota_get_running_partition();
+    //const esp_partition_t* nextupdate  = esp_ota_get_next_update_partition(NULL);
+    const esp_partition_t* factorypart = SDUpdater::getFactoryPartition();
+
+    if( !factorypart ) {
+      log_w( "This flash has no factory partition" );
+      return false;
+    }
+    if (!running) {
+      log_e( "Can't fetch running partition info !!" );
+      return false;
+    }
+    size_t sksize = ESP.getSketchSize();
+
+    if( running == factorypart ) {
+      log_d("Sketch is running from factory partition, no need to propagate");
+      return false;
+    }
+
+    if (!compareFlashPartition(running, factorypart, sksize)) {
+      if( copyFlashPartition( factorypart, running, sksize) ) {
+        log_d("Sketch successfully propagated to factory partition");
+        return true;
+      } else {
+        log_e("Sketch propagation to factory partition failed");
+      }
+    } else {
+      log_i("Current sketch and factory partition already match");
+      return true;
+    }
+    return false;
+  }
+
+
+
+  bool SDUpdater::saveSketchToFS( SDUpdater* sdu, fs::FS &fs, const char* binfilename, bool skipIfExists )
   {
     // no rollback possible, start filesystem
-    if( !_fsBegin( fs ) ) {
+    if( !_fsBegin( sdu, fs ) ) {
       const char *msg[] = {"No Filesystem mounted.","Can't check firmware."};
       _error( msg, 2 );
       return false;
@@ -187,26 +281,26 @@ namespace SDUpdaterNS
         return false;
       }
     }
-    if( cfg->onBefore) cfg->onBefore();
-    if( cfg->onProgress ) cfg->onProgress( 0, 100 );
+    if( SDUCfg.onBefore) SDUCfg.onBefore();
+    if( SDUCfg.onProgress ) SDUCfg.onProgress( 0, 100 );
     const esp_partition_t *running = esp_ota_get_running_partition();
     size_t sksize = ESP.getSketchSize();
     bool ret = false;
     fs::File dst = fs.open(binfilename, FILE_WRITE );
-    if( cfg->onProgress ) cfg->onProgress( 25, 100 );
+    if( SDUCfg.onProgress ) SDUCfg.onProgress( 25, 100 );
     _message( String("Overwriting ") + String(binfilename) );
 
     if (copyFsPartition( &dst, running, sksize)) {
-      if( cfg->onProgress ) cfg->onProgress( 75, 100 );
+      if( SDUCfg.onProgress ) SDUCfg.onProgress( 75, 100 );
       _message( String("Done ") + String(binfilename) );
       vTaskDelay(1000);
       ret = true;
     } else {
       _error( "Copy failed" );
     }
-    if( cfg->onProgress ) cfg->onProgress( 100, 100 );
+    if( SDUCfg.onProgress ) SDUCfg.onProgress( 100, 100 );
     dst.close();
-    if( cfg->onAfter) cfg->onAfter();
+    if( SDUCfg.onAfter) SDUCfg.onAfter();
 
     return ret;
   }
@@ -399,7 +493,7 @@ namespace SDUpdaterNS
       }
     }
     // no rollback possible, start filesystem
-    if( !_fsBegin() ) {
+    if( !_fsBegin(this) ) {
       const char* msg[] = {"No filesystem mounted.", "Can't load firmware."};
       _error( msg, 2 );
       return;

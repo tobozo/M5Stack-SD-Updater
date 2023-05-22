@@ -445,20 +445,20 @@ namespace SDUpdaterNS
       assert(sdu);
       bool mounted = sdu->cfg->mounted; // inherit config mount state as default (can be triggered by rollback)
       const char* msg[] = {nullptr, "ABORTING"};
-      #if defined _SPIFFS_H_
+      #if defined SDU_HAS_SPIFFS // _SPIFFS_H_
         SD_MOUNT_FS_IF( SPIFFS );
       #endif
-      #if defined _LITTLEFS_H_
+      #if defined SDU_HAS_LITTLEFS // _LITTLEFS_H_
         SD_MOUNT_FS_IF( LittleFS );
       #endif
-      #if defined _FFAT_H_
+      #if defined SDU_HAS_FFAT //_FFAT_H_
         SD_MOUNT_FS_IF( FFat );
       #endif
-      #if defined _SD_H_
+      #if defined SDU_HAS_SD // _SD_H_
         SDU_SD_CONFIG_GET()->csPin = sdu->cfg->TFCardCsPin;
         SD_MOUNT_FS_IF( SD );
       #endif
-      #if defined _SDMMC_H_
+      #if defined SDU_HAS_SD_MMC // _SDMMC_H_
         //SDU_SD_MMC_CONFIG_GET()->busCfg.freq = 40000000;
         SD_MOUNT_FS_IF( SD_MMC );
       #endif

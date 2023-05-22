@@ -62,6 +62,7 @@ namespace SDUpdaterNS
       fs::FS *fs = nullptr;
       //FS_Config_t *fsConfig = nullptr;
       bool mounted = false;
+      bool fs_begun = false;
       void *display = nullptr; // dereferenced display object
       void* getCompilationTimeDisplay();
       void* getRunTimeDisplay();
