@@ -240,7 +240,7 @@ void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} 
 {
   const esp_partition_t* running     = esp_ota_get_running_partition();
   const esp_partition_t* nextupdate  = esp_ota_get_next_update_partition(NULL);
-  const esp_partition_t* factorypart = SDUpdater::getFactoryPartition();
+  //const esp_partition_t* factorypart = SDUpdater::getFactoryPartition();
 
   if (!running) {
     log_e( "Can't fetch running partition info !!" );
@@ -258,26 +258,9 @@ void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} 
   tft.setCursor(0,0);
 
   // if a factory partition exists, propagate there
-  if( factorypart ) {
-    if( running == factorypart ) {
-      log_d("Running from factory partition");
-      // nothing to propagate
-      tft.setTextDatum(TL_DATUM);
-      return;
-    }
-
-    if (!comparePartition(running, factorypart, sksize)) {
-      tft.drawString("Synchronizing to 'factory' partition", 160, 24, 2);
-    }
-
-    if( copyPartition( NULL, factorypart, running, sksize) ) {
-      log_d("Success!");
-      tft.drawString("Hot-loading 'factory' partition", 160, 66, 2);
-      SDUpdater::loadFactory(); // should trigger a restart
-      log_e("Switching to factory app failed :-(");
-    } else {
-      log_e("Copying sketch to factory partition failed, will propagate to OTA1/SD instead");
-    }
+  if( SDUpdater::saveSketchToFactory() ) {
+    SDUpdater::loadFactory(); // should trigger a restart
+    log_e("Switching to factory app failed :-(");
   }
 
   // no factory partition found (or propagation failed), try OTA0/OTA1 and propagate to SD
@@ -317,9 +300,6 @@ void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} 
       tft.print("! WARNING !\r\nUpdate.rollBack() failed.");
       log_e("Failed to rollback after copy");
     }
-
-  } else {
-    log_e("can't compare running partition");
   }
   tft.setTextDatum(TL_DATUM);
 }

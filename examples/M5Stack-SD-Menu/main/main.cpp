@@ -3,6 +3,11 @@
 
 void setup()
 {
+
+  #if defined __M5UNIFIED_HPP__
+    M5.Log.setEnableColor(m5::log_target_serial, false);
+  #endif
+
   #ifdef ARDUINO_M5STACK_FIRE
     spicommon_periph_free( VSPI_HOST ); // fix 2.0.4 psramInit mess
   #endif

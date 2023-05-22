@@ -62,6 +62,10 @@
   #pragma message "ESP32_S3_BOX detected"
   #define DEFAULT_REGISTRY_BOARD "esp32s3"
   #define PLATFORM_NAME "S3Box"
+#elif defined ARDUINO_M5STACK_CORES3
+  #pragma message "M5Sack CoreS3 detected"
+  #define DEFAULT_REGISTRY_BOARD "cores3"
+  #define PLATFORM_NAME "CoreS3"
 #elif defined( ARDUINO_M5STACK_ATOM_AND_TFCARD )
   #pragma message "M5Stack ATOM detected"
   #define DEFAULT_REGISTRY_BOARD "m5atom"
