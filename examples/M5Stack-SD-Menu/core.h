@@ -3,16 +3,16 @@
 //#include <FFat.h>
 #include <SD.h>
 
-// #define ECC_NO_PRAGMAS // turn ESP32-Chimera-Core's pragma messages off
-// #define ECC_NO_SCREENSHOT // comment this out to take screenshots
-// #define ECC_NO_SPEAKER // comment this out to use audio
-// #define ECC_NO_NVSUTILS
-// #define ECC_NO_POWER
-// #define ECC_NO_MPU
-// #define ECC_NO_RTC
-// #include <ESP32-Chimera-Core.h> // use LGFX display autodetect
+#define ECC_NO_PRAGMAS // turn ESP32-Chimera-Core's pragma messages off
+#define ECC_NO_SCREENSHOT // comment this out to take screenshots
+#define ECC_NO_SPEAKER // comment this out to use audio
+#define ECC_NO_NVSUTILS
+#define ECC_NO_POWER
+#define ECC_NO_MPU
+#define ECC_NO_RTC
+#include <ESP32-Chimera-Core.h> // use LGFX display autodetect
 
-#include <M5Unified.h>
+//#include <M5Unified.h>
 
 #include <ESP32-targz.h> // optional: https://github.com/tobozo/ESP32-targz
 #define SDU_NO_PRAGMAS // turn M5StackUpdater's pragma messages off
