@@ -37,6 +37,7 @@ jobs:
           - s3box
           - m5stack-atom
           - m5stack-cores3
+          - sdfat-test
 
         platform-version:
           #- 1.0.6
