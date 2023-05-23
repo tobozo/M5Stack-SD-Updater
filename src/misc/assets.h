@@ -278,4 +278,3 @@ const unsigned char sdUpdaterIcon32x40_jpg[] = {
 };
 const unsigned int sdUpdaterIcon32x40_jpg_len = 1855;
 
-//#endif

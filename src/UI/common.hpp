@@ -2,6 +2,9 @@
 
 #include "../misc/types.h"
 
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 
 namespace SDUpdaterNS
 {
@@ -174,19 +177,23 @@ namespace SDUpdaterNS
     static int actionTriggered( char* labelLoad,  char* labelSkip, char* labelSave, unsigned long waitdelay )
     {
       auto trigger = SDUCfg.triggers;
+
       if( !trigger ) {
         log_e("No triggers assigned, aborting");
         return -1;
       }
+
+      trigger->waitdelay = waitdelay;
+
       if( trigger->waitdelay == 0 ) {
         log_i("waitdelay=0 -> skipping action trigger detection");
         return -1;
       }
 
       switch( trigger->source ) {
-        case SDU_TRIGGER_SERIAL:      log_d("Listening to trigger source: Serial"); break;
-        case SDU_TRIGGER_PUSHBUTTON:  log_d("Listening to trigger source: Push Button"); break;
-        case SDU_TRIGGER_TOUCHBUTTON: log_d("Listening to trigger source: Touch Button"); break;
+        case SDU_TRIGGER_SERIAL:      log_d("Listening to trigger source: Serial, delay=%ms", trigger->waitdelay); break;
+        case SDU_TRIGGER_PUSHBUTTON:  log_d("Listening to trigger source: Push Button, delay=%ms", trigger->waitdelay); break;
+        case SDU_TRIGGER_TOUCHBUTTON: log_d("Listening to trigger source: Touch Button, delay=%ms", trigger->waitdelay); break;
       }
       auto msec = millis();
       int ret = -1;

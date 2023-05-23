@@ -4,7 +4,7 @@
 // Inspired by @ockernuts https://github.com/ockernuts
 // See https://github.com/greiman/SdFat/issues/148#issuecomment-1464448806
 
-#if defined USE_SDFATFS
+#if defined SDU_HAS_SDFS
 
   #if !defined SDFAT_FILE_TYPE
     #define SDFAT_FILE_TYPE 3 // tell SdFat.h to support all filesystem types (fat16/fat32/ExFat)
@@ -13,12 +13,14 @@
     #error "SD Updater only supports SdFs"
   #endif
 
-  #undef __has_include
+  #include "../misc/config.h"
+  #include "../misc/types.h"
+
+  #undef __has_include // tell SdFat to define 'File' object needed to convert access mode to flag
   #include <FS.h>
   #include <FSImpl.h>
   #include <SdFat.h>
-  #define __has_include(STR)  __has_include__(STR)
-
+  #define __has_include(STR)  __has_include__(STR) // kudos to @GOB52 for this trick
 
   // cfr https://en.cppreference.com/w/c/io/fopen + guesses
   inline oflag_t _convert_access_mode_to_flag(const char* mode, const bool create = false)
@@ -123,7 +125,17 @@
       return &_fs;
     }
 
-    inline bool SDU_SDFatBegin( SdSpiConfig *SdFatCfg )
+
+    inline ConfigManager::FS_Config_t* SDU_SDFAT_GET()
+    {
+      static ConfigManager::FS_Config_t SDFAT_FS_Config = {"sdfat", ConfigManager::SDU_SdFatPtr, ConfigManager::SDU_SdSpiConfigPtr};
+      return &SDFAT_FS_Config;
+    }
+
+    //#define SDU_CONFIG_SDFAT ConfigManager::SDU_SdSpiConfigPtr
+
+
+    inline bool SDU_SDFat_Begin( SdSpiConfig *SdFatCfg )
     {
       using namespace ConfigManager;
       if( !SDU_SdFatPtr ) {

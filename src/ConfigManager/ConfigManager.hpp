@@ -47,20 +47,22 @@ namespace SDUpdaterNS
       bool S3MuteButtonChanged();
     #endif
 
-
     typedef bool (*fsCheckerCb)( SDUpdater* sdu, fs::FS &fs, bool report_errors );
 
     extern void setup();
     extern bool hasFS( SDUpdater *sdu, fs::FS &fs, bool report_errors );
-    // interface to UpdateClass, may pass through GzUpdateClass
-    extern UpdateInterfaceNS::UpdateManagerInterface_t Iface;
+    extern UpdateInterfaceNS::UpdateManagerInterface_t *GetUpdateInterface();
+
+    using namespace UpdateInterfaceNS;
 
     // SDUpdater config callbacks and params
     struct config_sdu_t
     {
       config_sdu_t();
       fs::FS *fs = nullptr;
+      //FS_Config_t *fsConfig = nullptr;
       bool mounted = false;
+      bool fs_begun = false;
       void *display = nullptr; // dereferenced display object
       void* getCompilationTimeDisplay();
       void* getRunTimeDisplay();

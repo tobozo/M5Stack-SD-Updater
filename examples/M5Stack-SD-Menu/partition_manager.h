@@ -28,6 +28,8 @@
  *
  */
 
+#include "esp_partition.h"
+
 /*
 static esp_image_metadata_t getSketchMeta( const esp_partition_t* running ) {
   esp_image_metadata_t data;
@@ -154,7 +156,7 @@ bool copyPartition(File* fs, const esp_partition_t* dst, const esp_partition_t* 
     progress = 100 * offset / length;
     if (progressOld != progress) {
       progressOld = progress;
-      progressBar( (LGFX*)&tft, 110, 112, 100, 20, progress);
+      progressBar( SDU_DISPLAY_OBJ_PTR, 110, 112, 100, 20, progress);
     }
   }
   return true;
@@ -180,56 +182,65 @@ void copyPartition( const char* binfilename = PROGMEM {MENU_BIN} )
 }
 
 
-#if defined ESP_PARTITION_TYPE_ANY
-  struct digest_t {
-    String toString( uint8_t dig[32] ) {
-      static String digest;
-      digest = "";
-      char hex[3] = {0};
-      for(int i=0;i<32;i++) {
-        snprintf( hex, 3, "%02x", dig[i] );
-        digest += String(hex);
-      }
-      return digest;
+struct digest_t {
+  String str{"0000000000000000000000000000000000000000000000000000000000000000"};
+  const char* toString( uint8_t dig[32] )
+  {
+    str = "";
+    char hex[3] = {0};
+    for(int i=0;i<32;i++) {
+      snprintf( hex, 3, "%02x", dig[i] );
+      str += String(hex);
     }
-  } ;
-
-  digest_t digest;
-#endif
+    return str.c_str();
+  }
+};
 
 
 void lsPart()
 {
-  #if defined ESP_PARTITION_TYPE_ANY
-    esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
-    log_w("Partition  Type   Subtype    Address   PartSize   ImgSize   Digest");
-    log_w("---------+------+---------+----------+----------+---------+--------");
-    while(pi != NULL) {
-      const esp_partition_t* part = esp_partition_get(pi);
-      esp_image_metadata_t meta;
-      bool isOta = (part->label[3]=='1' || part->label[3] == '0');
-      if( isOta ) meta  = SDUpdater::getSketchMeta( part );
-      log_w("%-8s   0x%02x      0x%02x   0x%06x   %8d  %8s   %s",
-        String( part->label ),
-        part->type,
-        part->subtype,
-        part->address,
-        part->size,
-        isOta ? String(meta.image_len) : "n/a",
-        isOta ? digest.toString(meta.image_digest).c_str() : "n/a"
-      );
-      pi = esp_partition_next( pi );
-    }
-    esp_partition_iterator_release(pi);
-  #endif
+  esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
+  log_w("Partition  Type   Subtype    Address   PartSize   ImgSize    Info    Digest");
+  log_w("---------+------+---------+----------+----------+---------+--------+--------");
+  while(pi != NULL) {
+    const esp_partition_t* part = esp_partition_get(pi);
+    esp_image_metadata_t meta = esp_image_metadata_t();
+    digest_t digest;
+    bool isFactory = part->type==ESP_PARTITION_TYPE_APP && part->subtype==ESP_PARTITION_SUBTYPE_APP_FACTORY;
+    bool isOta = part->type==ESP_PARTITION_TYPE_APP && (part->subtype>=ESP_PARTITION_SUBTYPE_APP_OTA_MIN && part->subtype<ESP_PARTITION_SUBTYPE_APP_OTA_MAX);
+    //bool isOta = (part->label[3]=='1' || part->label[3] == '0');
+    String OTAName = "OTA";
+    if( isOta || isFactory ) {
+      meta  = SDUpdater::getSketchMeta( part );
+      OTAName += String( part->subtype-ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
+    }/* else if( isFactory ) {
+      if( esp_partition_get_sha256(part, meta.image_digest) != ESP_OK ) {
+        log_e("Bad sha");
+        memset( meta.image_digest, 0, sizeof( meta.image_digest ) );
+      }
+    }*/
+    log_w("%-8s   0x%02x      0x%02x   0x%06x   %8d  %8s %8s %8s",
+      String( part->label ),
+      part->type,
+      part->subtype,
+      part->address,
+      part->size,
+      meta.image_len>0 ? String(meta.image_len) : "n/a",
+      isOta ? OTAName.c_str() : isFactory ? "Factory" : "n/a",
+      (isOta || isFactory) /*&& meta.image_len>0*/ ? digest.toString(meta.image_digest) : ""
+    );
+    pi = esp_partition_next( pi );
+  }
+  esp_partition_iterator_release(pi);
 }
 
 
 // from https://github.com/lovyan03/M5Stack_LovyanLauncher
 void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} )
 {
-  const esp_partition_t* running = esp_ota_get_running_partition();
-  const esp_partition_t* nextupdate = esp_ota_get_next_update_partition(NULL);
+  const esp_partition_t* running     = esp_ota_get_running_partition();
+  const esp_partition_t* nextupdate  = esp_ota_get_next_update_partition(NULL);
+  //const esp_partition_t* factorypart = SDUpdater::getFactoryPartition();
 
   if (!running) {
     log_e( "Can't fetch running partition info !!" );
@@ -242,14 +253,23 @@ void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} 
 
   lsPart();
 
-  //const char* menubinfilename PROGMEM {MENU_BIN} ;
+  size_t sksize = ESP.getSketchSize();
   tft.setTextDatum(MC_DATUM);
   tft.setCursor(0,0);
+
+  // if a factory partition exists, propagate there
+  if( SDUpdater::saveSketchToFactory() ) {
+    SDUpdater::loadFactory(); // should trigger a restart
+    log_e("Switching to factory app failed :-(");
+  }
+
+  // no factory partition found (or propagation failed), try OTA0/OTA1 and propagate to SD
+
   if (!nextupdate) {
     // tft.setTextFont(4);
     tft.print("! WARNING !\r\nNo OTA partition.\r\nCan't use SD-Updater.");
     delay(3000);
-  } else if (running && running->label[3] == '0' && nextupdate->label[3] == '1') {
+  } else if( running->subtype==ESP_PARTITION_SUBTYPE_APP_OTA_MIN && nextupdate->subtype==ESP_PARTITION_SUBTYPE_APP_OTA_MIN+1) { // OTA0 was flashed and OTA1 is the next in range
     tft.drawString("Checking 'app0' partition", 160, 10, 2);
     size_t sksize = ESP.getSketchSize();
     if (!comparePartition(running, nextupdate, sksize)) {
@@ -264,10 +284,15 @@ void checkMenuStickyPartition( const char* menubinfilename = PROGMEM {MENU_BIN} 
       if (copyPartition( flgSD ? &dst : NULL, nextupdate, running, sksize)) {
         tft.drawString("Done", 160, 52, 2);
       }
+
       if (flgSD) dst.close();
+    } else {
+      log_d("Running partition and nextupdate partition match, no propagation needed");
     }
+
     SDUpdater::updateNVS();
     tft.drawString("Hot-loading 'app1' partition", 160, 66, 2);
+
     if (Update.canRollBack()) {
       Update.rollBack();
       ESP.restart();

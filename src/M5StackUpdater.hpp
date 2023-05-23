@@ -87,6 +87,7 @@
 
 #include "gitTagVersion.h"
 #include "./misc/assets.h"
+#include "./misc/config.h"
 #include "./misc/types.h"
 #include <FS.h>
 #include <Update.h>
@@ -94,7 +95,7 @@
 
 #define resetReason (int)rtc_get_reset_reason(0)
 
-// use `#define SDU_NO_PRAGMAS` to disable pragma messages
+// use `#define SDU_NO_PRAGMAS` to disable duplicate pragma messages
 #if !defined SDU_NO_PRAGMAS
   #define SDU_STRINGIFY(a) #a
   #define SDU_PRAGMA_MESSAGE(msg) \
@@ -105,59 +106,72 @@
 
 
 // inherit filesystem includes from sketch
-#if defined _SD_H_
+
+#if defined _SD_H_ || defined SDU_USE_SD
   #define SDU_HAS_SD
-  #if defined _CLK && defined _MISO && defined _MOSI
-    // user provided specific pinout via build extra flags
-    #if !defined SDU_SPI_MODE
-      #define SDU_SPI_MODE SPI_MODE3
-    #endif
-    #if !defined SDU_SPI_FREQ
-      #define SDU_SPI_FREQ 80000000
-    #endif
-    SDU_PRAGMA_MESSAGE("SD has custom SPI pins")
-    #define SDU_SD_BEGIN [](int csPin)->bool{ SPI.begin(_CLK, _MISO, _MOSI, csPin); SPI.setDataMode(SDU_SPI_MODE); return SD.begin(csPin, SPI, SDU_SPI_FREQ); }
-  #else
-    #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
+  #include "./FS/sd.hpp"
+  #if !defined SDU_BEGIN_SD
+    #define SDU_BEGIN_SD SDU_SDBegin
   #endif
 #endif
 
-#if defined _SDMMC_H_
+#if defined _SDMMC_H_ || defined SDU_USE_SD_MMC
   #define SDU_HAS_SD_MMC
-  /*#include <SD_MMC.h>*/
+  #include "./FS/sd_mmc.hpp"
+  #if !defined SDU_BEGIN_SD_MMC
+    #define SDU_BEGIN_SD_MMC SDU_SD_MMC_Begin
+  #endif
 #endif
 
-#if defined _SPIFFS_H_
+#if defined _SPIFFS_H_ || defined SDU_USE_SPIFFS
   #define SDU_HAS_SPIFFS
-  /*#include <SPIFFS.h>*/
+  #include "./FS/spiffs.hpp"
+  #if !defined SDU_BEGIN_SPIFFS
+    #define SDU_BEGIN_SPIFFS SDU_SPIFFS_Begin
+  #endif
 #endif
 
-#if defined _LiffleFS_H_ || __has_include(<LittleFS.h>)
+#if defined _FFAT_H_ || defined SDU_USE_FFAT
+  #define SDU_HAS_FFAT
+  #include "./FS/ffat.hpp"
+  #if !defined SDU_BEGIN_FFat
+    #define SDU_BEGIN_FFat SDU_FFat_Begin
+  #endif
+#endif
+
+#if defined _LiffleFS_H_ || defined SDU_USE_LITTLEFS
   #define SDU_HAS_LITTLEFS
-  #include <LittleFS.h>
+  #include "./FS/littlefs.hpp"
+  #if !defined SDU_BEGIN_LittleFS
+    #define SDU_BEGIN_LittleFS SDU_LittleFS_Begin
+  #endif
 #endif
 
-#if __has_include(<LITTLEFS.h>) || defined _LIFFLEFS_H_
+#if defined _LIFFLEFS_H_ || __has_include(<LITTLEFS.h>)
   // LittleFS is now part of esp32 package, the older, external version isn't supported
   #warning "Older version of <LITTLEFS.h> is unsupported and will be ignored"
   #warning "Use builtin version with #include <LittleFS.h> instead, if using platformio add LittleFS(esp32)@^2.0.0 to lib_deps"
 #endif
 
 // Note: SdFat can't be detected using __has_include(<SdFat.h>) without creating problems downstream in the code.
-//       Until this is solved, enabling SdFat is done by adding `#defined USE_SDFATFS` to the sketch before including the library.
-#if defined USE_SDFATFS
+//       Until this is solved, enabling SdFat is done by adding `#defined SDU_USE_SDFATFS` to the sketch before including the library.
+#if defined SDU_USE_SDFATFS || defined USE_SDFATFS
   #define SDU_HAS_SDFS
   SDU_PRAGMA_MESSAGE("SDUpdater will use SdFat")
-  #include "./misc/sdfat32fs_wrapper.hpp"
-  #define SDU_SDFS_BEGIN SDU_SDFatBegin
+  #include "./FS/sdfat.hpp"
+  #if !defined SDU_BEGIN_SDFat
+    #define SDU_BEGIN_SDFat SDU_SDFat_Begin
+  #endif
 #endif
 
 
-#if !defined SDU_HAS_SD && !defined SDU_HAS_SD_MMC && !defined SDU_HAS_SPIFFS && !defined SDU_HAS_LITTLEFS && !defined SDU_HAS_SDFS
+#if !defined SDU_HAS_SD && !defined SDU_HAS_SD_MMC && !defined SDU_HAS_SPIFFS && !defined SDU_HAS_LITTLEFS && !defined SDU_HAS_SDFS && !defined SDU_HAS_FFAT
   SDU_PRAGMA_MESSAGE("SDUpdater didn't detect any  preselected filesystem, will use SD as default")
   #define SDU_HAS_SD
-  #include <SD.h>
-  #define SDU_SD_BEGIN(csPin) SD.begin(csPin)
+  #include "./FS/sd.hpp"
+  #if !defined SDU_BEGIN_SD
+    #define SDU_BEGIN_SD SDU_SDBegin
+  #endif
 #endif
 
 #if defined SDU_ENABLE_GZ || defined _ESP_TGZ_H || __has_include(<ESP32-targz.h>)
@@ -183,7 +197,7 @@
     #define SDU_TouchButton LGFX_Button
     #define HAS_LGFX
     // ESP32-Chimera-Core creates the HAS_TOUCH macro when the selected display supports it
-    #if !defined SDU_HAS_TOUCH && /*ARDUINO_M5STACK_Core2 ||*/ defined HAS_TOUCH
+    #if !defined SDU_HAS_TOUCH && defined HAS_TOUCH
       #define SDU_HAS_TOUCH
     #endif
   #elif defined _M5STACK_H_
@@ -198,6 +212,13 @@
     #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
     #define SDU_TouchButton TFT_eSPI_Button
     #define SDU_HAS_TOUCH // M5Core2 has implicitely enabled touch interface
+  #elif defined _M5CORES3_H_
+    SDU_PRAGMA_MESSAGE("M5Core3.h detected")
+    #define SDU_Sprite TFT_eSprite
+    #define SDU_DISPLAY_TYPE M5Display*
+    #define SDU_DISPLAY_OBJ_PTR &M5.Lcd
+    #define SDU_TouchButton TFT_eSPI_Button
+    #define SDU_HAS_TOUCH // M5Core3 has implicitely enabled touch interface
   #elif defined _M5STICKC_H_
     SDU_PRAGMA_MESSAGE("M5StickC.h detected")
     #define SDU_Sprite TFT_eSprite
@@ -210,15 +231,17 @@
     #define SDU_DISPLAY_OBJ_PTR &M5.Display
     #define SDU_TouchButton LGFX_Button
     #define HAS_LGFX
-    #if !defined SDU_HAS_TOUCH && defined ARDUINO_M5STACK_Core2
+    #if !defined SDU_HAS_TOUCH && (defined ARDUINO_M5STACK_Core2 || defined ARDUINO_M5STACK_CORE2 || defined ARDUINO_M5STACK_CORES3 )
       #define SDU_HAS_TOUCH
     #endif
   #else
-    SDU_PRAGMA_MESSAGE(message "No display driver detected")
+    #if defined SDU_USE_DISPLAY
+      SDU_PRAGMA_MESSAGE(message "No display driver detected")
+      #undef SDU_USE_DISPLAY
+    #endif
     #define SDU_DISPLAY_OBJ_PTR nullptr
     //#define SDU_DISPLAY_TYPE void*
     //#define SDU_Sprite void*
-    #undef SDU_USE_DISPLAY
     #undef HAS_M5_API
   #endif
 #endif
@@ -235,7 +258,7 @@
   #endif
 #else
   // SDUpdater will use Serial as trigger source
-  #if !defined SDU_NO_AUTODETECT
+  #if !defined SDU_NO_AUTODETECT && !defined SDU_HEADLESS
     SDU_PRAGMA_MESSAGE(message "No M5 API found")
   #endif
   #define DEFAULT_BTN_POLLER nullptr
@@ -258,22 +281,21 @@
   #endif
 #endif
 
-// load the SDUpdater stack
-#include "./misc/update_interface.hpp"
+// now that all the contextual flags are created, load the SDUpdater stack
 #include "./ConfigManager/ConfigManager.hpp"
+#include "./SDUpdater/Update_Interface.hpp"
 #include "./SDUpdater/SDUpdater_Class.hpp"
 #include "./UI/common.hpp"
 
-// load the lobby and button decorations if applicable
-#if defined SDU_USE_DISPLAY
+#if defined SDU_USE_DISPLAY // load the lobby and button decorations if applicable
   SDU_PRAGMA_MESSAGE("Attached UI")
-  #define SDU_GFX ((SDU_DISPLAY_TYPE)(SDUCfg.display)) // macro for UI.hpp
+  #define SDU_GFX ((SDU_DISPLAY_TYPE)(SDUCfg.display)) // type-casted display macro for UI.hpp
   #include "./UI/UI.hpp"
-  #if defined SDU_HAS_TOUCH // load touch helpers
+  #if defined SDU_HAS_TOUCH // load touch helpers if applicable
     SDU_PRAGMA_MESSAGE("Attached Touch support")
     #include "./UI/Touch.hpp"
   #endif
-#else // bind unknown display to SDUCfg.display, whatever it is...
+#else // bind null display to SDUCfg.display
   #define SDU_GFX ((void*)(SDUCfg.display)) // macro for UI.hpp
 #endif
 
@@ -303,21 +325,21 @@ namespace SDUpdaterNS
     {
       using namespace TriggerSource;
       using namespace SDU_UI;
-      triggers = new triggerMap_t( SDU_TRIGGER_TOUCHBUTTON, labelMenu, labelSkip, labelRollback, triggerInitTouch, triggerActionTouch, triggerFinalizeTouch );
+      SDUCfg.triggers = new triggerMap_t( SDU_TRIGGER_TOUCHBUTTON, labelMenu, labelSkip, labelRollback, triggerInitTouch, triggerActionTouch, triggerFinalizeTouch );
     }
 
     inline void config_sdu_t::useBuiltinPushButton()
     {
       using namespace TriggerSource;
       using namespace SDU_UI;
-      triggers = new triggerMap_t( SDU_TRIGGER_PUSHBUTTON, labelMenu, labelSkip, labelRollback, triggerInitButton, triggerActionButton, triggerFinalizeButton );
+      SDUCfg.triggers = new triggerMap_t( SDU_TRIGGER_PUSHBUTTON, labelMenu, labelSkip, labelRollback, triggerInitButton, triggerActionButton, triggerFinalizeButton );
     }
 
     inline void config_sdu_t::useBuiltinSerial()
     {
       using namespace TriggerSource;
       using namespace SDU_UI;
-      triggers = new TriggerSource::triggerMap_t( SDU_TRIGGER_SERIAL, labelMenu, labelSkip, labelRollback, triggerInitSerial, triggerActionSerial, triggerFinalizeSerial );
+      SDUCfg.triggers = new TriggerSource::triggerMap_t( SDU_TRIGGER_SERIAL, labelMenu, labelSkip, labelRollback, triggerInitSerial, triggerActionSerial, triggerFinalizeSerial );
     }
 
 
@@ -334,7 +356,6 @@ namespace SDUpdaterNS
       if( !Buttons[0].cb ) setBtnA( FN_LAMBDA_BOOL(DEFAULT_BTNA_CHECKER) );
       if( !Buttons[1].cb ) setBtnB( FN_LAMBDA_BOOL(DEFAULT_BTNB_CHECKER) );
       if( !Buttons[2].cb ) setBtnC( FN_LAMBDA_BOOL(DEFAULT_BTNC_CHECKER) );
-
 
       if( !labelMenu      && LAUNCHER_LABEL ) labelMenu     = LAUNCHER_LABEL;
       if( !labelSkip      && SKIP_LABEL     ) labelSkip     = SKIP_LABEL;
@@ -404,64 +425,45 @@ namespace SDUpdaterNS
     }
 
 
-    inline bool hasFS( SDUpdater* sdu, fs::FS &fs, bool report_errors )
+
+    // logic block generator for hasFS() filesystem detection/init
+    #define SD_MOUNT_ANY_FS_IF( cond, begin_cb, name )      \
+      if( cond ) {                                          \
+        if( !begin_cb ){                                    \
+          msg[0] = name " MOUNT FAILED";                    \
+          if( report_errors ) sdu->_error( msg, 2 );        \
+          return false;                                     \
+        } else { log_d("%s Successfully mounted", name); }  \
+        mounted = true;                                     \
+      }                                                     \
+
+    // function call generator to SD_MOUNT_ANY_FS_IF( condition, begin-callback, filesystem-name )
+    #define SD_MOUNT_FS_IF( fsobj ) SD_MOUNT_ANY_FS_IF( &fs == &fsobj, SDU_BEGIN_##fsobj (SDU_CONFIG_##fsobj ), #fsobj );
+
+    inline bool hasFS( SDUpdater* sdu, fs::FS &fs, bool report_errors=true )
     {
       assert(sdu);
       bool mounted = sdu->cfg->mounted; // inherit config mount state as default (can be triggered by rollback)
       const char* msg[] = {nullptr, "ABORTING"};
-      #if defined _SPIFFS_H_
-        if( &fs == &SPIFFS ) {
-          if( !SPIFFS.begin() ){
-            msg[0] = "SPIFFS MOUNT FAILED";
-            if( report_errors ) sdu->_error( msg, 2 );
-            return false;
-          } else { log_d("SPIFFS Successfully mounted"); }
-          mounted = true;
-        }
+      #if defined SDU_HAS_SPIFFS // _SPIFFS_H_
+        SD_MOUNT_FS_IF( SPIFFS );
       #endif
-      #if defined (_LITTLEFS_H_)
-        if( &fs == &LittleFS ) {
-          if( !LittleFS.begin() ){
-            msg[0] = "LittleFS MOUNT FAILED";
-            if( report_errors ) sdu->_error( msg, 2 );
-            return false;
-          } else { log_d("LittleFS Successfully mounted"); }
-          mounted = true;
-        }
+      #if defined SDU_HAS_LITTLEFS // _LITTLEFS_H_
+        SD_MOUNT_FS_IF( LittleFS );
       #endif
-      #if defined (_SD_H_)
-        if( &fs == &SD ) {
-          if( ! SDU_SD_BEGIN(sdu->cfg->TFCardCsPin) ) {
-            msg[0] = String("SD MOUNT FAILED (pin #" + String(sdu->cfg->TFCardCsPin) + ")").c_str();
-            if( report_errors ) sdu->_error( msg, 2 );
-            return false;
-          } else {
-            log_d("[%d] SD Successfully mounted (pin #%d)", ESP.getFreeHeap(), sdu->cfg->TFCardCsPin );
-          }
-          mounted = true;
-        }
+      #if defined SDU_HAS_FFAT //_FFAT_H_
+        SD_MOUNT_FS_IF( FFat );
       #endif
-      #if defined (_SDMMC_H_)
-        if( &fs == &SD_MMC ) {
-          if( !SD_MMC.begin() ){
-            msg[0] = "SD_MMC FAILED";
-            if( report_errors ) sdu->_error( msg, 2 );
-            return false;
-          } else { log_d( "SD_MMC Successfully mounted"); }
-          mounted = true;
-        }
+      #if defined SDU_HAS_SD // _SD_H_
+        SDU_SD_CONFIG_GET()->csPin = sdu->cfg->TFCardCsPin;
+        SD_MOUNT_FS_IF( SD );
       #endif
-      #if defined USE_SDFATFS
-        using namespace ConfigManager;
-        if( SDU_SdFatFsPtr ) {
-          if( !SDU_SDFS_BEGIN( SDU_SdSpiConfigPtr ) ) {
-            msg[0] = String("SDFat MOUNT FAILED ").c_str();
-            if( report_errors ) sdu->_error( msg, 2 );
-            return false;
-          }
-          log_d("[%d] SDFat Successfully mounted (pin #%d)", ESP.getFreeHeap(), SDU_SdSpiConfigPtr->csPin );
-          mounted = true;
-        }
+      #if defined SDU_HAS_SD_MMC // _SDMMC_H_
+        //SDU_SD_MMC_CONFIG_GET()->busCfg.freq = 40000000;
+        SD_MOUNT_FS_IF( SD_MMC );
+      #endif
+      #if defined SDU_HAS_SDFS
+        SD_MOUNT_ANY_FS_IF( &fs==ConfigManager::SDU_SdFatFsPtr, SDU_BEGIN_SDFat(ConfigManager::SDU_SdSpiConfigPtr), "SDFat" );
       #endif
       return mounted;
     }
@@ -513,6 +515,8 @@ namespace SDUpdaterNS
   }
 
 
+
+
   // provide a conditional function to cover more devices, including headless and touch
   inline void checkSDUpdater( fs::FS &fs, String fileName, unsigned long waitdelay, const int TfCardCsPin_ )
   {
@@ -557,7 +561,22 @@ namespace SDUpdaterNS
   }
 
 
-  #if defined USE_SDFATFS
+  // inline void checkSDUpdater( ConfigManager::FS_Config_t &cfg, String fileName, unsigned long waitdelay )
+  // {
+  //   SDUCfg.fsConfig = &cfg;
+  //   SDUpdater sdUpdater( &SDUCfg );
+  //
+  //   if( SDUCfg.display != nullptr ) {
+  //     sdUpdater.checkSDUpdaterUI( fileName, waitdelay );
+  //   } else {
+  //     if( waitdelay <=100 ) waitdelay = 2000;
+  //     sdUpdater.checkSDUpdaterHeadless( fileName, waitdelay );
+  //   }
+  // }
+
+
+
+  #if defined SDU_HAS_SDFS
 
     inline void checkSDUpdater( SdFs &sd, String fileName=MENU_BIN, unsigned long waitdelay=0, SdSpiConfig *SdFatCfg=nullptr )
     {

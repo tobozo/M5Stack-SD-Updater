@@ -36,6 +36,8 @@ jobs:
           - m5unified
           - s3box
           - m5stack-atom
+          - m5stack-cores3
+          - sdfat-test
 
         platform-version:
           #- 1.0.6
@@ -45,9 +47,10 @@ jobs:
           #- 2.0.3
           #- 2.0.4
           #- 2.0.5
-          - 2.0.6
+          #- 2.0.6
           - 2.0.7
           - 2.0.8
+          - 2.0.9
 
         #exclude:
           #- { piocontext: s3box, platform-version: 1.0.6 }
@@ -64,7 +67,7 @@ jobs:
           - piocontext: m5stack-core2
           - piocontext: m5unified
           - piocontext: s3box
-          - { platform-version: 2.0.8, piocontext: sdfat-test }
+          - piocontext: sdfat-test
 
       fail-fast: false
 
@@ -101,7 +104,9 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
+          export pio_ver=${{ matrix.platform-version }}
+          export pio_env="${pio_ver//./_}"
           [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
-          pio pkg install -e ${{ matrix.piocontext }}@${{ matrix.platform-version }} --no-save --library file://$(realpath ../../../)
-          pio run -e ${{ matrix.piocontext }}@${{ matrix.platform-version }}
+          pio pkg install -e ${{ matrix.piocontext }}-$pio_env --no-save --library file://$(realpath ../../../)
+          pio run -e ${{ matrix.piocontext }}-$pio_env
 

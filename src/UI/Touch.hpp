@@ -82,15 +82,15 @@ namespace SDUpdaterNS
     inline TouchStyles::TouchStyles()
     {
       padx    = 4;                                    // buttons padding X
-      pady    = 5;                                    // buttons padding Y
-      marginx = 4;                                    // buttons margin X
-      marginy = 4;                                    // buttons margin Y
+      pady    = 1;                                    // buttons padding Y
+      marginx = 2;                                    // buttons margin X
+      marginy = 2;                                    // buttons margin Y
       x1      = marginx + SDU_GFX->width()/4;              // button 1 X position
       x2      = marginx+SDU_GFX->width()-SDU_GFX->width()/4;    // button 2 X position
       x3      = SDU_GFX->width()/2;                         // button 3 X position
-      y       = SDU_GFX->height()/2.2;                       // buttons Y position
+      y       = SDU_GFX->height()/2;                       // buttons Y position
       w       = (SDU_GFX->width()/2)-(marginx*2);          // buttons width
-      h       = SDU_GFX->height()/4,                       // buttons height
+      h       = SDU_GFX->height()/5,                       // buttons height
       y1      = marginx*3+SDU_GFX->height()-h;               // button3 y position
       icon_x  = marginx+12;                           // icon (button 1) X position
       icon_y  = y-8;                                  // icon (button 1) Y position
@@ -278,8 +278,8 @@ namespace SDUpdaterNS
       auto SkipBtn    = el->SkipBtn;
       auto SaveBtn    = el->SaveBtn;
 
-      #if defined _M5Core2_H_
-        // clean handlers
+      #if ! defined HAS_LGFX // defined _M5Core2_H_ || defined _M5CORES3_H_
+        // clear TFT_eSpi button handlers
         LoadBtn->delHandlers();
         SkipBtn->delHandlers();
         SaveBtn->delHandlers();

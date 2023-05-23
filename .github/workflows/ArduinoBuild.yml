@@ -29,9 +29,10 @@ jobs:
           #- 2.0.3
           #- 2.0.4
           #- 2.0.5
-          - 2.0.6
+          #- 2.0.6
           - 2.0.7
           - 2.0.8
+          - 2.0.9
 
         matrix-context:
           - M5Core2-test
@@ -65,9 +66,10 @@ jobs:
           #- sdk-version: 2.0.0
           #- sdk-version: 2.0.1
           #- sdk-version: 2.0.5
-          - sdk-version: 2.0.6
+          #- sdk-version: 2.0.6
           - sdk-version: 2.0.7
           - sdk-version: 2.0.8
+          - sdk-version: 2.0.9
 
           # library health test sketches
           - { matrix-context: M5Core2-test,   arduino-board: m5stack-core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
