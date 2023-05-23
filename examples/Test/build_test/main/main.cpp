@@ -11,7 +11,7 @@
   #include "../../../M5Stack-SDLoader-Snippet/M5Stack-SDLoader-Snippet.ino"
 #elif defined TEST_M5StickC
   #include "../../../M5StickC-SPIFFS-Loader-Snippet/M5StickC-SPIFFS-Loader-Snippet.ino"
-#elif defined TEST_M5Unified || defined TestM5CoreS3
+#elif defined TEST_M5Unified || defined TestM5CoreS3 || defined ARDUINO_M5STACK_ATOM_AND_TFCARD
   #include "../../../M5Unified/M5Unified.ino"
 #elif defined TEST_SdFat
     #include "../../../SdFatUpdater/SdFatUpdater.ino"
