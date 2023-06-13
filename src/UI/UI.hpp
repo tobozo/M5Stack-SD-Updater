@@ -33,6 +33,32 @@ namespace SDUpdaterNS
       };
     #endif
 
+
+
+    #if defined HAS_LGFX
+      //#define fontInto_t fontInfo_t
+      struct fontInfo_t
+      {
+        const lgfx::IFont* font;
+        const float fontSize;
+      };
+      fontInfo_t Font0Size1 = {&Font0, 1};
+      fontInfo_t Font0Size2 = {&Font0, 2};
+      fontInfo_t Font2Size1 = {&Font2, 1};
+    #else
+      //#define fontInto_t basic_fontInfo_t
+      struct fontInfo_t
+      {
+        const uint8_t  fontNumber;
+        const uint8_t  fontSize;
+      };
+      fontInfo_t Font0Size1 = {0, 1};
+      fontInfo_t Font0Size2 = {0, 2};
+      fontInfo_t Font2Size1 = {2, 1};
+    #endif
+
+
+
     // default theme
     static const BtnStyle_t DefaultLoadBtn{0x73AE,0x630C,TFT_WHITE,TFT_BLACK};
     static const BtnStyle_t DefaultSkipBtn{0x73AE,0x630C,TFT_WHITE,TFT_BLACK};
@@ -42,13 +68,13 @@ namespace SDUpdaterNS
     static const BtnStyles_t DefaultBtnStyle(
       DefaultLoadBtn, DefaultSkipBtn, DefaultSaveBtn,
       BUTTON_HEIGHT, BUTTON_WIDTH, BUTTON_HWIDTH,
-      1, 1, 2, DefaultMsgFontColors
+      &Font0Size1, &Font0Size2, DefaultMsgFontColors
     );
 
-    static SplashPageElementStyle_t SplashTitleStyle      = { TFT_BLACK,     TFT_WHITE, 2, MC_DATUM, TFT_LIGHTGREY, TFT_DARKGREY };
-    static SplashPageElementStyle_t SplashAppNameStyle    = { TFT_LIGHTGREY, TFT_BLACK, 2, BC_DATUM, 0, 0 };
-    static SplashPageElementStyle_t SplashAuthorNameStyle = { TFT_LIGHTGREY, TFT_BLACK, 2, BC_DATUM, 0, 0 };
-    static SplashPageElementStyle_t SplashAppPathStyle    = { TFT_DARKGREY,  TFT_BLACK, 1, BC_DATUM, 0, 0 };
+    static SplashPageElementStyle_t SplashTitleStyle      = { TFT_BLACK,     TFT_WHITE, &Font0Size2, MC_DATUM, TFT_LIGHTGREY, TFT_DARKGREY };
+    static SplashPageElementStyle_t SplashAppNameStyle    = { TFT_LIGHTGREY, TFT_BLACK, &Font0Size2, BC_DATUM, 0, 0 };
+    static SplashPageElementStyle_t SplashAuthorNameStyle = { TFT_LIGHTGREY, TFT_BLACK, &Font0Size2, BC_DATUM, 0, 0 };
+    static SplashPageElementStyle_t SplashAppPathStyle    = { TFT_DARKGREY,  TFT_BLACK, &Font0Size1, BC_DATUM, 0, 0 };
 
     static ProgressBarStyle_t ProgressStyle = {
       200,        // width
@@ -56,9 +82,10 @@ namespace SDUpdaterNS
       true,       // clip "xx%" text
       TFT_LIGHTGREY,  // border color
       TFT_DARKGREY,  // fill color
-      0,          // font number
+      &Font0Size1,
+      //0,          // font number
       TC_DATUM,   // text alignment
-      1,          // text size
+      //1,          // text size
       TFT_WHITE,  // text color
       TFT_BLACK   // text bgcolor
     };
@@ -68,6 +95,7 @@ namespace SDUpdaterNS
 
     // API Specifics
     #if defined HAS_LGFX // using LovyanGFX or M5GFX
+      #define setFontInfo(x, i) {auto info=(fontInfo_t*)i;if(info->font){x->setFont((lgfx::IFont*)info->font);}x->setTextSize(info->fontSize);}
       #define getTextFgColor(x) x->getTextStyle().fore_rgb888
       #define getTextBgColor(x) x->getTextStyle().back_rgb888
       #define getTextDatum(x)   x->getTextStyle().datum
@@ -140,6 +168,7 @@ namespace SDUpdaterNS
       }
 
     #else // using TFT_eSPI based core (M5Core2.h, M5Stack.h, M5StickC.h).
+      #define setFontInfo(x, i) {auto info=(fontInfo_t*)i;x->setTextFont(info->fontNumber);x->setTextSize(info->fontSize);}
       #define getTextFgColor(x) x->textcolor
       #define getTextBgColor(x) x->textbgcolor
       #define getTextDatum(x)   x->textdatum
@@ -163,12 +192,13 @@ namespace SDUpdaterNS
         // log_v("can't freeze twice, thaw first !");
         return;
       }
+
       SDUTextStyle.textcolor   = getTextFgColor(SDU_GFX);
       SDUTextStyle.textbgcolor = getTextBgColor(SDU_GFX);
       SDUTextStyle.textdatum   = getTextDatum(SDU_GFX);
       SDUTextStyle.textsize    = getTextSize(SDU_GFX);
       SDUTextStyle.frozen = true;
-      log_d("Froze textStyle, size: %d, datum: %d, color: 0x%08x, bgcolor: 0x%08x", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
+      //log_d("Froze textStyle, size: %d, datum: %d, color: 0x%08x, bgcolor: 0x%08x", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
     }
 
     static void thawTextStyle()
@@ -179,7 +209,7 @@ namespace SDUpdaterNS
       resetFont(SDU_GFX);
       SDU_GFX->setCursor(0,0);
       SDU_GFX->fillScreen(TFT_BLACK);
-      log_d("Thawed textStyle, size: %d, datum: %d, color: 0x%08x, bgcolor: 0x%08x", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
+      //log_d("Thawed textStyle, size: %d, datum: %d, color: 0x%08x, bgcolor: 0x%08x", SDUTextStyle.textsize, SDUTextStyle.textdatum, SDUTextStyle.textcolor, SDUTextStyle.textbgcolor );
       SDUTextStyle.frozen = false;
     }
 
@@ -195,7 +225,7 @@ namespace SDUpdaterNS
 
     static void drawSDUSplashElement( const char* msg, int32_t x, int32_t y, SplashPageElementStyle_t *style )
     {
-      SDU_GFX->setTextSize( style->fontSize );
+      setFontInfo( SDU_GFX, style->fontInfo );
       SDU_GFX->setTextDatum( style->textDatum );
       uint8_t lineHeight = SDU_GFX->fontHeight()*1.8;
       fillStyledRect( style, 0, y, SDU_GFX->width(), lineHeight );
@@ -217,6 +247,7 @@ namespace SDUpdaterNS
       uint8_t binFileNamePosY = authorNamePosY+lineHeightSmall*1.8;
 
       SDU_GFX->fillScreen(TFT_BLACK); // M5StickC does not have tft.clear()
+
       drawSDUSplashElement( msg, centerX, titleNamePosy, &SplashTitleStyle );
 
       if( SDUCfg.appName != nullptr ) {
@@ -234,20 +265,22 @@ namespace SDUpdaterNS
     static void drawSDUPushButton( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor, uint16_t shadowcolor )
     {
       Theme_t defaultTheme(&DefaultBtnStyle, &SplashTitleStyle, &SplashAppNameStyle, &SplashAuthorNameStyle, &SplashAppPathStyle, &ProgressStyle );
-
+      bool use_default_theme = false;
       if( !SDUCfg.theme ) {
+        use_default_theme = true;
         SDUCfg.theme = &defaultTheme;
       }
-
       const BtnStyles_t *bs = SDUCfg.theme->buttons; // ( SDUTheme.userBtnStyle == nullptr ) ? &DefaultBtnStyle : SDUTheme.userBtnStyle;
       uint32_t bx = SDUButtonsXOffset[position];
       uint32_t by = SDU_GFX->height() - bs->height - 2 - SDUButtonsYOffset[position];
       SDU_GFX->fillRoundRect( bx, by, bs->width, bs->height, 3, fillcolor );
       SDU_GFX->drawRoundRect( bx, by, bs->width, bs->height, 3, outlinecolor );
-      SDU_GFX->setTextSize( bs->FontSize );
       SDU_GFX->setTextDatum( MC_DATUM );
-      SDU_GFX->setTextFont( bs->BtnFontNumber );
+      setFontInfo( SDU_GFX, bs->BtnFontInfo );
       drawTextShadow( label, bx+bs->width/2, by+bs->height/2, textcolor, shadowcolor );
+      if( use_default_theme ) {
+        SDUCfg.theme = nullptr;
+      }
     }
 
     static void SDMenuProgressUI( int state, int size )
@@ -280,9 +313,8 @@ namespace SDUpdaterNS
       }
       if( ProgressStyle.clipText ) {
         String percentStr = " " + String( percent ) + "% ";
-        SDU_GFX->setTextFont( ProgressStyle.fontNumber );
+        setFontInfo( SDU_GFX, ProgressStyle.fontInfo );
         SDU_GFX->setTextDatum( ProgressStyle.textDatum );
-        SDU_GFX->setTextSize( ProgressStyle.textSize );
         SDU_GFX->setTextColor( ProgressStyle.textColor, ProgressStyle.bgColor );
         SDU_GFX->drawString( percentStr, SDU_GFX->width() >> 1, posY+ProgressStyle.height+SDU_GFX->fontHeight() );
       }
@@ -294,31 +326,19 @@ namespace SDUpdaterNS
 
       SDU_GFX->fillScreen( TFT_BLACK );
       SDU_GFX->setTextColor( TFT_WHITE, TFT_BLACK );
-      SDU_GFX->setTextFont( 0 );
-      SDU_GFX->setTextSize( 2 );
-      SDU_GFX->setTextDatum( ML_DATUM );
-      // attemtp to center the text
-      int16_t xpos = ( SDU_GFX->width() / 2) - ( SDU_GFX->textWidth( label ) / 2 );
-      if ( xpos < 0 ) {
-        // try with smaller size
-        SDU_GFX->setTextSize(1);
-        xpos = ( SDU_GFX->width() / 2 ) - ( SDU_GFX->textWidth( label ) / 2 );
-        if( xpos < 0 ) {
-          // give up
-          xpos = 0 ;
-        }
+      SDU_GFX->setTextDatum( MC_DATUM );
+      setFontInfo( SDU_GFX, &Font0Size2 );
+      if( SDU_GFX->textWidth(label)>SDU_GFX->width() ) {
+        setFontInfo( SDU_GFX, &Font0Size1 );
       }
-      //int posX = (SDU_GFX->width() - ProgressStyle.width+2) >> 1;
-      int posY = (SDU_GFX->height()- ProgressStyle.height+2) >> 1;
-      SDU_GFX->setCursor( xpos, posY - 20 );
-      SDU_GFX->print( label );
+      int posY = ((SDU_GFX->height()- ProgressStyle.height+2) >> 1) - 20;
+      SDU_GFX->drawString( label, SDU_GFX->width()/2, posY );
     }
 
     static void DisplayErrorUI( const String& msg, unsigned long wait )
     {
       static uint8_t msgposy = 0;
-      SDU_GFX->setTextSize( 2 );
-      SDU_GFX->setTextFont( 0 );
+      setFontInfo( SDU_GFX, &Font0Size2 );
       uint8_t headerHeight = SDU_GFX->fontHeight()*1.8; // = 28px
       log_v("Header height: %d", headerHeight );
       if( msgposy == 0 ) {

@@ -74,6 +74,7 @@ namespace SDUpdaterNS
       int TFCardCsPin = -1;
       //bool load_defaults = true;
       bool use_rollback = true;
+      bool rollBackToFactory = false;
       const char* labelMenu     = LAUNCHER_LABEL;
       const char* labelSkip     = SKIP_LABEL;
       const char* labelRollback = ROLLBACK_LABEL;

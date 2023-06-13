@@ -30,6 +30,8 @@ extern "C" {
 #include <Preferences.h>
 
 #include "../ConfigManager/ConfigManager.hpp"
+#include "../PartitionManager/PartitionManager.hpp"
+
 
 namespace SDUpdaterNS
 {
@@ -69,22 +71,11 @@ namespace SDUpdaterNS
       void updateFromStream( Stream &stream, size_t updateSize, const String& fileName );
       void doRollBack( const String& message = "" );
 
-      // flash to SD binary replication
-      static bool compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length);
-      static bool copyFsPartition(fs::File* dst, const esp_partition_t* src, size_t length);
-
       static bool saveSketchToFS( SDUpdater* sdu, fs::FS &fs, const char* binfilename={MENU_BIN}, bool skipIfExists=false );
       inline bool saveSketchToFS( fs::FS &fs, const char* binfilename={MENU_BIN}, bool skipIfExists=false ) { return saveSketchToFS(this, fs, binfilename, skipIfExists ); }
 
-      // static methods
-      static void updateNVS();
-      static esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
-      static const esp_partition_t* getFactoryPartition();
-      static void loadFactory();
       static bool saveSketchToFactory();
-      static bool compareFlashPartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length);
-      static bool copyFlashPartition(const esp_partition_t* dst, const esp_partition_t* src, size_t length);
-
+      static void updateNVS();
 
       // fs::File->name() changed behaviour after esp32 sdk 2.x.x
       inline static const char* fs_file_path( fs::File *file )
@@ -158,7 +149,7 @@ namespace SDUpdaterNS
   inline bool SDUpdater::_fsBegin( SDUpdater* sdu, bool report_errors )
   {
     if( SDUCfg.fs != nullptr ) return _fsBegin( sdu, *SDUCfg.fs, report_errors );
-    if( !SDUCfg.mounted ) _error( "No filesystem selected" ); // Note: rollback does not need filesystem
+    if( !SDUCfg.mounted && report_errors ) _error( "No filesystem selected" ); // Note: rollback does not need filesystem
     return false;
   }
 
@@ -169,6 +160,16 @@ namespace SDUpdaterNS
     if( SDUCfg.fsChecker ) return SDUCfg.fsChecker( sdu, *SDUCfg.fs, report_errors );
     return false;
   }
+
+  inline bool SDUpdater::saveSketchToFactory()
+  {
+    if( !SDUCfg.triggers ) {
+      SDUCfg.setDefaults();
+    }
+    return PartitionManager::FlashFactory();
+  }
+
+
 
 
 }; // end namespace

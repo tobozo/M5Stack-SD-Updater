@@ -65,7 +65,11 @@ namespace SDUpdaterNS
         TouchStyles bs;
         auto IconSprite = SDU_Sprite( SDU_GFX );
         IconSprite.createSprite(15,16);
-        IconSprite.drawJpg(sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 0,0, 15, 16);
+        if( SDUCfg.rollBackToFactory ) {
+          IconSprite.drawJpg(flashUpdaterIcon16x16_jpg, flashUpdaterIcon16x16_jpg_len, 0,0, 16, 16);
+        } else {
+          IconSprite.drawJpg(sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 0,0, 15, 16);
+        }
         IconSprite.pushSprite( bs.icon_x, bs.icon_y, SDU_GFX->color565( 0x01, 0x00, 0x80 ) );
         IconSprite.deleteSprite();
       }
@@ -228,18 +232,18 @@ namespace SDUpdaterNS
 
       if( tbWrapper.justReleased( LoadBtn, ispressed, trigger->labelLoad ) ) {
         trigger->ret = 1;
-        log_d("LoadBTN Pressed at [%d:%d]!", t_x, t_y);
+        log_d("LoadBTN Pressed");
         return true;
       }
       if( tbWrapper.justReleased( SkipBtn, ispressed, trigger->labelSkip ) ) {
         trigger->ret = 0;
-        log_d("SkipBTN Pressed at [%d:%d]!", t_x, t_y);
+        log_d("SkipBTN Pressed");
         return true;
       }
       if( SDUCfg.binFileName != nullptr ) {
         if( tbWrapper.justReleased( SaveBtn, ispressed, trigger->labelSave ) ) {
           trigger->ret = 2;
-          log_d("SaveBtn Pressed at [%d:%d]!", t_x, t_y);
+          log_d("SaveBtn Pressed");
           return true;
         }
       }
@@ -292,138 +296,136 @@ namespace SDUpdaterNS
     }
 
 
-
-
-    static int touchButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
-    {
-      /* auto &tft = M5.Lcd; */
-      if( waitdelay == 0 ) return -1;
-      // touch support + buttons
-      SDU_TouchButton *LoadBtn = new SDU_TouchButton();
-      SDU_TouchButton *SkipBtn = new SDU_TouchButton();
-      SDU_TouchButton *SaveBtn = new SDU_TouchButton();
-
-      SDU_UI::TouchButtonWrapper tbWrapper;
-      SDU_UI::TouchStyles ts;
-
-      #if !defined HAS_LGFX
-        LoadBtn->setFont(nullptr);
-        SkipBtn->setFont(nullptr);
-        if( SDUCfg.binFileName != nullptr ) {
-          SaveBtn->setFont(nullptr);
-        }
-      #endif
-
-      LoadBtn->initButton(
-        SDU_GFX,
-        ts.x1, ts.y,  ts.w, ts.h,
-        ts.Load->BorderColor, ts.Load->FillColor, ts.Load->TextColor,
-        labelLoad, ts.btn_fsize
-      );
-      SkipBtn->initButton(
-        SDU_GFX,
-        ts.x2, ts.y,  ts.w, ts.h,
-        ts.Skip->BorderColor, ts.Skip->FillColor, ts.Skip->TextColor,
-        labelSkip, ts.btn_fsize
-      );
-
-      if( SDUCfg.binFileName != nullptr ) {
-        SaveBtn->initButton(
-          SDU_GFX,
-          ts.x3, ts.y1,  ts.w, ts.h,
-          ts.Save->BorderColor, ts.Save->FillColor, ts.Save->TextColor,
-          labelSave, ts.btn_fsize
-        );
-        SaveBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
-        SaveBtn->drawButton();
-        SaveBtn->press(false);
-      }
-
-      LoadBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
-      SkipBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
-
-      LoadBtn->drawButton();
-      SkipBtn->drawButton();
-
-      LoadBtn->press(false);
-      SkipBtn->press(false);
-
-      uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
-      bool ispressed = false;
-      int retval = -1; // return status
-
-      SDU_GFX->drawFastHLine( ts.pgbar_x, ts.pgbar_y, ts.pgbar_w-1, TFT_WHITE );
-
-      auto msectouch = millis();
-      do {
-
-        if( tbWrapper.iconRendered == false ) {
-          tbWrapper.pushIcon( labelLoad );
-          tbWrapper.iconRendered = true;
-        }
-        tbWrapper.handlePressed( LoadBtn, ispressed, t_x, t_y );
-        tbWrapper.handlePressed( SkipBtn, ispressed, t_x, t_y );
-        if( SDUCfg.binFileName != nullptr ) {
-          tbWrapper.handlePressed( SaveBtn, ispressed, t_x, t_y );
-        }
-        tbWrapper.handleJustPressed( LoadBtn, labelLoad );
-        tbWrapper.handleJustPressed( SkipBtn, labelSkip );
-        if( SDUCfg.binFileName != nullptr ) {
-          tbWrapper.handleJustPressed( SaveBtn, labelSave );
-        }
-
-        if( tbWrapper.justReleased( LoadBtn, ispressed, labelLoad ) ) {
-          retval = 1;
-          log_v("LoadBTN Pressed at [%d:%d]!", t_x, t_y);
-          break;
-        }
-        if( tbWrapper.justReleased( SkipBtn, ispressed, labelSkip ) ) {
-          retval = 0;
-          log_v("SkipBTN Pressed at [%d:%d]!", t_x, t_y);
-          break;
-        }
-        if( SDUCfg.binFileName != nullptr ) {
-          if( tbWrapper.justReleased( SaveBtn, ispressed, labelSave ) ) {
-            retval = 2;
-            log_v("SaveBtn Pressed at [%d:%d]!", t_x, t_y);
-            break;
-          }
-        }
-
-        #if defined HAS_LGFX
-          lgfx::touch_point_t tp;
-          uint16_t number = SDU_GFX->getTouch(&tp, 1);
-          t_x = tp.x;
-          t_y = tp.y;
-          ispressed = number > 0;
-        #else // M5Core2.h / TFT_eSPI_Button syntax
-          ispressed = SDU_GFX->getTouch(&t_x, &t_y);
-        #endif
-
-        float barprogress = float(millis() - msectouch) / float(waitdelay);
-        int linewidth = float(ts.pgbar_w) * barprogress;
-        if( linewidth > 0 ) {
-          int linepos = ts.pgbar_w - ( linewidth +1 );
-          uint16_t grayscale = 255 - (192*barprogress);
-          SDU_GFX->drawFastHLine( ts.pgbar_x,         ts.pgbar_y, ts.pgbar_w-linewidth-1, SDU_GFX->color565( grayscale, grayscale, grayscale ) );
-          SDU_GFX->drawFastHLine( ts.pgbar_x+linepos, ts.pgbar_y, 1,                      TFT_BLACK );
-        }
-
-      } while (millis() - msectouch < waitdelay);
-
-      #if defined _M5Core2_H_
-        // clean handlers
-        LoadBtn->delHandlers();
-        SkipBtn->delHandlers();
-        SaveBtn->delHandlers();
-      #endif
-
-      delete LoadBtn;
-      delete SkipBtn;
-      delete SaveBtn;
-
-      return retval;
-    }
+    // static int touchButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
+    // {
+    //   /* auto &tft = M5.Lcd; */
+    //   if( waitdelay == 0 ) return -1;
+    //   // touch support + buttons
+    //   SDU_TouchButton *LoadBtn = new SDU_TouchButton();
+    //   SDU_TouchButton *SkipBtn = new SDU_TouchButton();
+    //   SDU_TouchButton *SaveBtn = new SDU_TouchButton();
+    //
+    //   SDU_UI::TouchButtonWrapper tbWrapper;
+    //   SDU_UI::TouchStyles ts;
+    //
+    //   #if !defined HAS_LGFX
+    //     LoadBtn->setFont(nullptr);
+    //     SkipBtn->setFont(nullptr);
+    //     if( SDUCfg.binFileName != nullptr ) {
+    //       SaveBtn->setFont(nullptr);
+    //     }
+    //   #endif
+    //
+    //   LoadBtn->initButton(
+    //     SDU_GFX,
+    //     ts.x1, ts.y,  ts.w, ts.h,
+    //     ts.Load->BorderColor, ts.Load->FillColor, ts.Load->TextColor,
+    //     labelLoad, ts.btn_fsize
+    //   );
+    //   SkipBtn->initButton(
+    //     SDU_GFX,
+    //     ts.x2, ts.y,  ts.w, ts.h,
+    //     ts.Skip->BorderColor, ts.Skip->FillColor, ts.Skip->TextColor,
+    //     labelSkip, ts.btn_fsize
+    //   );
+    //
+    //   if( SDUCfg.binFileName != nullptr ) {
+    //     SaveBtn->initButton(
+    //       SDU_GFX,
+    //       ts.x3, ts.y1,  ts.w, ts.h,
+    //       ts.Save->BorderColor, ts.Save->FillColor, ts.Save->TextColor,
+    //       labelSave, ts.btn_fsize
+    //     );
+    //     SaveBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
+    //     SaveBtn->drawButton();
+    //     SaveBtn->press(false);
+    //   }
+    //
+    //   LoadBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
+    //   SkipBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
+    //
+    //   LoadBtn->drawButton();
+    //   SkipBtn->drawButton();
+    //
+    //   LoadBtn->press(false);
+    //   SkipBtn->press(false);
+    //
+    //   uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
+    //   bool ispressed = false;
+    //   int retval = -1; // return status
+    //
+    //   SDU_GFX->drawFastHLine( ts.pgbar_x, ts.pgbar_y, ts.pgbar_w-1, TFT_WHITE );
+    //
+    //   auto msectouch = millis();
+    //   do {
+    //
+    //     if( tbWrapper.iconRendered == false ) {
+    //       tbWrapper.pushIcon( labelLoad );
+    //       tbWrapper.iconRendered = true;
+    //     }
+    //     tbWrapper.handlePressed( LoadBtn, ispressed, t_x, t_y );
+    //     tbWrapper.handlePressed( SkipBtn, ispressed, t_x, t_y );
+    //     if( SDUCfg.binFileName != nullptr ) {
+    //       tbWrapper.handlePressed( SaveBtn, ispressed, t_x, t_y );
+    //     }
+    //     tbWrapper.handleJustPressed( LoadBtn, labelLoad );
+    //     tbWrapper.handleJustPressed( SkipBtn, labelSkip );
+    //     if( SDUCfg.binFileName != nullptr ) {
+    //       tbWrapper.handleJustPressed( SaveBtn, labelSave );
+    //     }
+    //
+    //     if( tbWrapper.justReleased( LoadBtn, ispressed, labelLoad ) ) {
+    //       retval = 1;
+    //       log_v("LoadBTN Pressed at [%d:%d]!", t_x, t_y);
+    //       break;
+    //     }
+    //     if( tbWrapper.justReleased( SkipBtn, ispressed, labelSkip ) ) {
+    //       retval = 0;
+    //       log_v("SkipBTN Pressed at [%d:%d]!", t_x, t_y);
+    //       break;
+    //     }
+    //     if( SDUCfg.binFileName != nullptr ) {
+    //       if( tbWrapper.justReleased( SaveBtn, ispressed, labelSave ) ) {
+    //         retval = 2;
+    //         log_v("SaveBtn Pressed at [%d:%d]!", t_x, t_y);
+    //         break;
+    //       }
+    //     }
+    //
+    //     #if defined HAS_LGFX
+    //       lgfx::touch_point_t tp;
+    //       uint16_t number = SDU_GFX->getTouch(&tp, 1);
+    //       t_x = tp.x;
+    //       t_y = tp.y;
+    //       ispressed = number > 0;
+    //     #else // M5Core2.h / TFT_eSPI_Button syntax
+    //       ispressed = SDU_GFX->getTouch(&t_x, &t_y);
+    //     #endif
+    //
+    //     float barprogress = float(millis() - msectouch) / float(waitdelay);
+    //     int linewidth = float(ts.pgbar_w) * barprogress;
+    //     if( linewidth > 0 ) {
+    //       int linepos = ts.pgbar_w - ( linewidth +1 );
+    //       uint16_t grayscale = 255 - (192*barprogress);
+    //       SDU_GFX->drawFastHLine( ts.pgbar_x,         ts.pgbar_y, ts.pgbar_w-linewidth-1, SDU_GFX->color565( grayscale, grayscale, grayscale ) );
+    //       SDU_GFX->drawFastHLine( ts.pgbar_x+linepos, ts.pgbar_y, 1,                      TFT_BLACK );
+    //     }
+    //
+    //   } while (millis() - msectouch < waitdelay);
+    //
+    //   #if defined _M5Core2_H_
+    //     // clean handlers
+    //     LoadBtn->delHandlers();
+    //     SkipBtn->delHandlers();
+    //     SaveBtn->delHandlers();
+    //   #endif
+    //
+    //   delete LoadBtn;
+    //   delete SkipBtn;
+    //   delete SaveBtn;
+    //
+    //   return retval;
+    // }
 
   }; // end TriggerSource namespace
 

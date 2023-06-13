@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <functional>
+#include <vector>
 #include <Stream.h>
 #include <WString.h>
 
@@ -146,7 +147,7 @@ namespace SDUpdaterNS
     {
       const uint16_t textColor;
       const uint16_t bgColor;
-      const uint16_t fontSize;
+      const void* fontInfo; // holds font size + font face
       const uint16_t textDatum;
       const uint16_t colorStart; // gradient color start
       const uint16_t colorEnd;   // gradient color end
@@ -159,9 +160,14 @@ namespace SDUpdaterNS
       const bool     clipText;
       const uint16_t borderColor;
       const uint16_t fillColor;
-      const uint8_t  fontNumber;
+
+      //const uint8_t  fontNumber;
+      const void* fontInfo; // holds font size + font face
+
       const uint8_t  textDatum;
-      const uint8_t  textSize;
+
+      //const uint8_t  textSize;
+
       const uint16_t textColor;
       const uint16_t bgColor;
     };
@@ -191,11 +197,12 @@ namespace SDUpdaterNS
       BtnStyles_t(
         const BtnStyle_t _Load, const BtnStyle_t _Skip, const BtnStyle_t _Save,
         const uint16_t _height, const uint16_t _width, const uint16_t _hwidth,
-        const uint8_t _FontSize, const uint8_t _BtnFontNumber, const uint8_t _MsgFontSize, const uint16_t _MsgFontColor[2]
+        const void* _BtnfontInfo, const void* _MsgfontInfo,
+        const uint16_t _MsgFontColor[2]
       ) :
         Load(_Load), Skip(_Skip), Save(_Save),
         height(_height), width(_width), hwidth(_hwidth),
-        FontSize(_FontSize), BtnFontNumber(_BtnFontNumber), MsgFontSize(_MsgFontSize)
+        BtnFontInfo(_BtnfontInfo), MsgFontInfo(_MsgfontInfo)
       {
         MsgFontColor[0] = _MsgFontColor[0];
         MsgFontColor[1] = _MsgFontColor[1];
@@ -207,9 +214,8 @@ namespace SDUpdaterNS
       const uint16_t height{28};
       const uint16_t width{68};
       const uint16_t hwidth{34};
-      const uint8_t  FontSize{1}; // buttons font size
-      const uint8_t  BtnFontNumber{1};
-      const uint8_t  MsgFontSize{2}; // welcome message font size
+      const void* BtnFontInfo; // holds font size + font face
+      const void* MsgFontInfo; // holds font size + font face
       uint16_t MsgFontColor[2]{0xFFFF, 0x0000}; // foreground, background
     };
 
