@@ -1,5 +1,7 @@
 #pragma once
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+//#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#include <vector>
 
 #if !defined(ARDUINO_M5STACK_ATOM_AND_TFCARD)
 #include "core.h"
@@ -46,7 +48,7 @@ class M5SAM
     void clearList();
     byte getListID();
     void setListID(byte idx);
-    String getListString();
+    //String getListString();
     void nextList( bool renderAfter = true );
     void addList(String inLabel);
     void setListCaption(String inCaption);
@@ -80,7 +82,8 @@ class M5SAM
       signed char gotoLevel;
       void (*function)();
     };
-    String list_labels[M5SAM_LIST_MAX_COUNT];
+    //String list_labels[M5SAM_LIST_MAX_COUNT];
+    std::vector<std::string> list_labels_str;
     byte list_lastpagelines;
     byte list_count;
     byte list_pages;
@@ -132,17 +135,18 @@ void M5SAM::clearList()
   list_page = 0;
   list_lastpagelines = 0;
   list_idx = 0;
-  for(byte x = 0; x<M5SAM_LIST_MAX_COUNT;x++){
-    list_labels[x] = "";
-  }
+  list_labels_str.clear();
+  // for(byte x = 0; x<M5SAM_LIST_MAX_COUNT;x++){
+  //   list_labels[x] = "";
+  // }
   listCaption = "";
 }
 
 
 void M5SAM::addList(String inStr)
 {
-  if(inStr.length()<=listMaxLabelSize and inStr.length()>0 and list_count < M5SAM_LIST_MAX_COUNT){
-    list_labels[list_count] = inStr;
+  if(inStr.length()<=listMaxLabelSize && inStr.length()>0 && list_count<M5SAM_LIST_MAX_COUNT){
+    list_labels_str.push_back( inStr.c_str() );
     list_count++;
   }
   if(list_count>0){
@@ -178,10 +182,11 @@ void M5SAM::setListID(byte idx)
 
 
 
-String M5SAM::getListString()
-{
-  return list_labels[list_idx];
-}
+// String M5SAM::getListString()
+// {
+//   return String( list_labels_str[list_idx] );
+//   //return list_labels[list_idx];
+// }
 
 
 
@@ -204,11 +209,14 @@ void M5SAM::nextList( bool renderAfter )
 
 void M5SAM::drawListItem(byte inIDX, byte postIDX)
 {
+  tft.setFont( &Font2 );
   if(inIDX==list_idx){
-    tft.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
-    tft.drawString(">",3,listPageLabelsOffset+(postIDX*20),2);
+    tft.setFont( &Font2 );
+    //tft.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20));
+    tft.drawString(list_labels_str[inIDX].c_str(), 15, listPageLabelsOffset+(postIDX*20) );
+    tft.drawString(">",3,listPageLabelsOffset+(postIDX*20),&Font2);
   }else{
-    tft.drawString(list_labels[inIDX],15,listPageLabelsOffset+(postIDX*20),2);
+    tft.drawString(list_labels_str[inIDX].c_str(), 15, listPageLabelsOffset+(postIDX*20) );
   }
 }
 
@@ -220,7 +228,7 @@ void M5SAM::showList()
     byte labelid = 0;
     tft.setTextDatum( listCaptionDatum );
     //tft.drawCentreString(listCaption,tft.width()/2,45,2);
-    tft.drawString(listCaption, listCaptionXPos, listCaptionYPos, 2);
+    tft.drawString(listCaption, listCaptionXPos, listCaptionYPos, &Font2);
     tft.setTextDatum( TL_DATUM );
     if((list_page + 1) == list_pages){
       if(list_lastpagelines == 0 and list_count >= listPagination){
@@ -357,7 +365,7 @@ String M5SAM::keyboardGetString()
   boolean tmp_klock = HIGH;
   keyboardEnable();
   tft.fillRoundRect(0,tft.height()-28,tft.width(),28,3,windowcolor);
-  tft.drawString(">"+tmp_str,5,tft.height()-28+6,2);
+  tft.drawString(">"+tmp_str,5,tft.height()-28+6,&Font2);
   while(tmp_klock==HIGH){
     if(_keyboardIRQRcvd==HIGH){
       if(_keyboardChar == 0x08){
@@ -368,7 +376,7 @@ String M5SAM::keyboardGetString()
         tmp_str = tmp_str + char(_keyboardChar);
       }
       tft.fillRoundRect(0,tft.height()-28,tft.width(),28,3,windowcolor);
-      tft.drawString(">"+tmp_str,5,tft.height()-28+6,2);
+      tft.drawString(">"+tmp_str,5,tft.height()-28+6,&Font2);
       _keyboardIRQRcvd = LOW;
     }
   }
@@ -439,11 +447,12 @@ void M5SAM::btnRestore()
 {
   //using namespace SDU_UI;
   tft.setTextColor(menutextcolor);
+  tft.setFont( &Font2 );
   tft.fillRoundRect(0,tft.height()-BUTTON_HEIGHT,tft.width(),BUTTON_HEIGHT,3,0x00);
   for( byte i=0; i<BUTTONS_COUNT; i++ ) {
     tft.fillRoundRect(buttonsXOffset[i],tft.height()-BUTTON_HEIGHT,BUTTON_WIDTH,BUTTON_HEIGHT,3,menucolor);
     if( lastBtnTittle[i] != "" ) {
-      tft.drawCentreString( lastBtnTittle[i], buttonsXOffset[i]+BUTTON_HWIDTH, tft.height()-BUTTON_HEIGHT+6, 2);
+      tft.drawCentreString( lastBtnTittle[i], buttonsXOffset[i]+BUTTON_HWIDTH, tft.height()-BUTTON_HEIGHT+6 );
 
     }
   }
@@ -470,10 +479,11 @@ void M5SAM::drawMenu(String inmenuttl, String inbtnAttl, String inbtnBttl, Strin
   tft.fillRoundRect(0,32,tft.width(),tft.height()-32-32,3,inwindowcolor);
 
   tft.setTextColor(intxtcolor);
-  tft.drawCentreString(inmenuttl,tft.width()/2,6,2);
+  tft.setFont( &Font2 );
+  tft.drawCentreString(inmenuttl,tft.width()/2,6);
   for( byte i=0; i<BUTTONS_COUNT; i++ ) {
     if( lastBtnTittle[i] != "" ) {
-      tft.drawCentreString(lastBtnTittle[i],buttonsXOffset[i]+BUTTON_HWIDTH,tft.height()-BUTTON_HEIGHT+6,2);
+      tft.drawCentreString(lastBtnTittle[i],buttonsXOffset[i]+BUTTON_HWIDTH,tft.height()-BUTTON_HEIGHT+6 );
     }
   }
 }
