@@ -475,6 +475,51 @@ void *menuItemGetter(std::vector<Item_t> items, uint8_t idx)
 }
 
 
+
+void snoozeUI()
+{
+  using namespace AppTheme;
+  using namespace SDU_UI;
+  drawSDUSplashElement( "Snooze settings", M5.Lcd.width()/2, 0, &TitleStyle );
+  drawSDUSplashElement( "Disabled", M5.Lcd.width()/2, M5.Lcd.height()/3, &TitleStyle );
+
+  uint8_t delay_mn = 10;
+
+  while( 1 ) {
+    auto btnId = getPressedButton();
+    switch( btnId ) {
+      case M5_BTNA: delay_mn++; break;
+      case M5_BTNC: delay_mn--; break;
+      default: return; break; // TODO: save delay_mn in NVS
+    }
+    drawSDUSplashElement( String("Sleep after " + String(delay_mn)+"mn").c_str(), M5.Lcd.width()/2, M5.Lcd.height()/2, &TitleStyle );
+  }
+}
+
+
+void brightnessUI()
+{
+  using namespace AppTheme;
+  using namespace SDU_UI;
+  drawSDUSplashElement( "Brightness", M5.Lcd.width()/2, 0, &TitleStyle );
+  drawSDUSplashElement( String(M5.Lcd.getBrightness()).c_str(), M5.Lcd.width()/2, M5.Lcd.height()/2, &TitleStyle );
+
+  while( 1 ) {
+    uint8_t brightness = M5.Lcd.getBrightness();
+    auto btnId = getPressedButton();
+    switch( btnId ) {
+      case M5_BTNA: brightness+=8; break;
+      case M5_BTNC: brightness-=8; break;
+      default: return; break; // TODO: save brightness in NVS
+    }
+    M5.Lcd.setBrightness( brightness );
+    drawSDUSplashElement( String(brightness).c_str(), M5.Lcd.width()/2, M5.Lcd.height()/2, &TitleStyle );
+  }
+}
+
+
+
+
 void toolsPicker()
 {
   using namespace AppTheme;
@@ -486,6 +531,8 @@ void toolsPicker()
   labels_vec.push_back({"Backup firmware", nullptr});
   labels_vec.push_back({"Remove firmware", nullptr});
   labels_vec.push_back({"Verify firmware", nullptr});
+  labels_vec.push_back({"Clear NVS", nullptr}); // TODO: implement this
+  labels_vec.push_back({"List NVS key/value pairs", nullptr}); // TODO: implement this
 
   while(1) {
     drawSDUSplashElement( "Partition Tools", M5.Lcd.width()/2, 0, &TitleStyle );
@@ -506,6 +553,36 @@ void toolsPicker()
 }
 
 
+void preferencesPicker()
+{
+  using namespace AppTheme;
+  using namespace SDU_UI;
+  std::vector<Item_t> labels_vec;
+  labels_vec.push_back({"..", nullptr});
+  labels_vec.push_back({"Change Bightness", nullptr});
+  labels_vec.push_back({"Set snooze delay", nullptr});
+  labels_vec.push_back({"Restart", nullptr});
+  labels_vec.push_back({"Power Off", nullptr});
+
+  while(1) {
+    drawSDUSplashElement( "Misc Tools", M5.Lcd.width()/2, 0, &TitleStyle );
+    uint8_t menu_idx = 0;
+    int8_t* ret = (int8_t*)paginateLoop( menu_idx, labels_vec, menuItemGetter, renderList );
+
+    if( ret ) {
+      switch( *ret ) {
+        case 1: brightnessUI(); break;
+        case 2: snoozeUI(); break;
+        case 3: ESP.restart() ; break;
+        case 4: M5.Power.powerOff(); break;
+        default: log_d("Leaving Tools"); return; break;
+      }
+    }
+  }
+}
+
+
+
 void launcherPicker()
 {
   using namespace AppTheme;
@@ -516,6 +593,7 @@ void launcherPicker()
   labels_vec.push_back({"Load Firmware (Flash)", nullptr});
   labels_vec.push_back({"Load Firmware (Filesystem)", nullptr});
   labels_vec.push_back({"Manage Partitions (this is a super long, scrollable title)", nullptr});
+  labels_vec.push_back({"Tools", nullptr});
 
   while(1) {
     drawSDUSplashElement( "Firmware Launcher", M5.Lcd.width()/2, 0, &TitleStyle );
@@ -526,6 +604,7 @@ void launcherPicker()
         case 1: menuItemLoadFW(); break;
         case 2: menuItemLoadFS(); break;
         case 3: toolsPicker(); break;
+        case 4: preferencesPicker(); break;
         default: log_d("Leaving launcherPicker"); return; break;
       }
     }
