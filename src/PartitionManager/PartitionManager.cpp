@@ -104,7 +104,6 @@ namespace SDUpdaterNS
         if( !Flash::MetadataHasDigest( meta ) ) continue;       // ignore empty partitions
         if( Flash::PartitionIsFactory( flash_part ) ) continue; // ignore factory partition
         if( !Flash::PartitionIsApp( flash_part ) ) continue;    // ignore non-app partitions
-        auto ota_num = flash_part->subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN;
         auto sdu_nvs_part = NVS::FindPartition(sdu_flash_part);
 
         if( sdu_nvs_part ) { // flash partition is documented in NVS, compare digests
@@ -113,6 +112,7 @@ namespace SDUpdaterNS
             needs_saving = true;
           }
         } else {
+          [[maybe_unused]] auto ota_num = flash_part->subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN;
           log_e("No matching partition for ota #%d", ota_num );
         }
       }
