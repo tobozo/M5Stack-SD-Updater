@@ -41,8 +41,8 @@ namespace SDUpdaterNS
     PartitionDesc_t* findPartition( Flash::Partition_t* flash_partition );
 
     int         erase();
-    bool        getBLobPartitions();
-    bool        parseBlobPartitions( const char* blob, size_t size );
+    bool        getPartitions();
+    bool        parsePartitions( const char* blob, size_t size );
 
   };
 

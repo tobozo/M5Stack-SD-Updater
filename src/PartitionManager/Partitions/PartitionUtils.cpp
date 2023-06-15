@@ -474,7 +474,7 @@ namespace SDUpdaterNS
       }
       Partitions.push_back({*part,meta});
       if( partitionIsFactory( part ) ) {
-        log_d("Found factory partition");
+        log_v("Found factory partition");
         FactoryPartition = &Partitions[Partitions.size()-1];
       }
     }

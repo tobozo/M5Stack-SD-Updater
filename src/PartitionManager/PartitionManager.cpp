@@ -143,16 +143,10 @@ namespace SDUpdaterNS
             nvs_part->bin_size = 0;
             memset( nvs_part->digest, 0, 32 );
             if( savePartitions() ) {
-              log_d("TODO: implement partitions reload instead of restart");
+              // TODO: implement partitions reload instead of restart
               ESP.restart();
             }
           }
-        }
-
-        if( nvs_part->bin_size > 0 ) {
-          Serial.printf("[%d] %s %s %s\n", nvs_part->ota_num, nvs_part->name, digests.toString( nvs_part->digest ), is_factory_dupe ? "(dupe of factory)" : "" );
-        } else {
-          Serial.printf("[%d] Available slot\n", nvs_part->ota_num );
         }
       }
     }

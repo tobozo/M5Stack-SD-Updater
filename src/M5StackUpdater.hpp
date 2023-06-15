@@ -383,13 +383,13 @@ namespace SDUpdaterNS
       if( display ) {
 
         #if defined SDU_USE_DISPLAY
-          if( !onProgress   )  { setProgressCb(   SDMenuProgressUI );  log_d("Attached onProgress");   }
-          if( !onMessage    )  { setMessageCb(    DisplayUpdateUI );   log_d("Attached onMessage");    }
-          if( !onError      )  { setErrorCb(      DisplayErrorUI );    log_d("Attached onError");      }
-          if( !onBefore     )  { setBeforeCb(     freezeTextStyle );   log_d("Attached onBefore");     }
-          if( !onAfter      )  { setAfterCb(      thawTextStyle );     log_d("Attached onAfter");      }
-          if( !onSplashPage )  { setSplashPageCb( drawSDUSplashPage ); log_d("Attached onSplashPage"); }
-          if( !onButtonDraw )  { setButtonDrawCb( drawSDUPushButton ); log_d("Attached onButtonDraw"); }
+          if( !onProgress   )  { setProgressCb(   SDMenuProgressUI );  log_v("Attached onProgress");   }
+          if( !onMessage    )  { setMessageCb(    DisplayUpdateUI );   log_v("Attached onMessage");    }
+          if( !onError      )  { setErrorCb(      DisplayErrorUI );    log_v("Attached onError");      }
+          if( !onBefore     )  { setBeforeCb(     freezeTextStyle );   log_v("Attached onBefore");     }
+          if( !onAfter      )  { setAfterCb(      thawTextStyle );     log_v("Attached onAfter");      }
+          if( !onSplashPage )  { setSplashPageCb( drawSDUSplashPage ); log_v("Attached onSplashPage"); }
+          if( !onButtonDraw )  { setButtonDrawCb( drawSDUPushButton ); log_v("Attached onButtonDraw"); }
         #endif
 
         #if defined ARDUINO_ESP32_S3_BOX
@@ -407,13 +407,13 @@ namespace SDUpdaterNS
 
       } else {
 
-        if( !onProgress ) { setProgressCb( SDMenuProgressHeadless ); log_d("Attached onProgress"); }
-        if( !onMessage  ) { setMessageCb( DisplayUpdateHeadless );   log_d("Attached onMessage"); }
+        if( !onProgress ) { setProgressCb( SDMenuProgressHeadless ); log_v("Attached onProgress"); }
+        if( !onMessage  ) { setMessageCb( DisplayUpdateHeadless );   log_v("Attached onMessage"); }
         triggerSource = SDU_TRIGGER_SERIAL; // no display detected, fallback to serial
 
       }
 
-      if( !onWaitForAction) { setWaitForActionCb( actionTriggered ); log_d("Attached onWaitForAction(any)"); }
+      if( !onWaitForAction) { setWaitForActionCb( actionTriggered ); log_v("Attached onWaitForAction(any)"); }
 
       if( !triggers ) {
         switch( triggerSource ) {

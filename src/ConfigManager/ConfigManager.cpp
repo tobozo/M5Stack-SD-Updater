@@ -44,10 +44,10 @@ namespace SDUpdaterNS
     void config_sdu_t::setBinFileName( const char* name )         { if( name && strstr(name, ".gz")!=NULL ) binFileName = name; }
     void config_sdu_t::useRolllback( bool use )                   { use_rollback = use; }
 
-    void config_sdu_t::setBtnPoller( BtnPollCb cb )            { log_d("Assigning Btn Poller"); buttonsUpdate = cb; }
-    void config_sdu_t::setBtnA( BtnXPressCb Btn )              { log_d("Assigning BtnA"); setBtns(SDU_BTNA_MENU, Btn ); }
-    void config_sdu_t::setBtnB( BtnXPressCb Btn )              { log_d("Assigning BtnB"); setBtns(SDU_BTNB_SKIP, Btn ); }
-    void config_sdu_t::setBtnC( BtnXPressCb Btn )              { log_d("Assigning BtnC"); setBtns(SDU_BTNC_SAVE, Btn ); }
+    void config_sdu_t::setBtnPoller( BtnPollCb cb )            { log_v("Assigning Btn Poller"); buttonsUpdate = cb; }
+    void config_sdu_t::setBtnA( BtnXPressCb Btn )              { log_v("Assigning BtnA"); setBtns(SDU_BTNA_MENU, Btn ); }
+    void config_sdu_t::setBtnB( BtnXPressCb Btn )              { log_v("Assigning BtnB"); setBtns(SDU_BTNB_SKIP, Btn ); }
+    void config_sdu_t::setBtnC( BtnXPressCb Btn )              { log_v("Assigning BtnC"); setBtns(SDU_BTNC_SAVE, Btn ); }
     void config_sdu_t::setBtns( SDUBtnActions BtnVal, BtnXPressCb cb )
     {
       int _id = -1;

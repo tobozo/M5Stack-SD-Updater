@@ -29,7 +29,7 @@ namespace SDUpdaterNS
       log_v("Find by ota number %d", ota_num);
       for( int i=0; i<Partitions.size(); i++ ) {
         if( Partitions[i].ota_num == ota_num ) {
-          log_d("OTA %d found", ota_num );
+          log_v("OTA %d found", ota_num );
           return &Partitions[i];
         }
       }
@@ -61,7 +61,7 @@ namespace SDUpdaterNS
     }
 
 
-    bool getBLobPartitions()
+    bool getPartitions()
     {
       size_t blob_size;
       char* out = nullptr;
@@ -89,7 +89,7 @@ namespace SDUpdaterNS
         goto _nvs_close;
       }
 
-      ret = parseBlobPartitions( out, blob_size-1 );
+      ret = parsePartitions( out, blob_size-1 );
       free( out );
 
       _nvs_close:
@@ -98,7 +98,7 @@ namespace SDUpdaterNS
     }
 
 
-    bool parseBlobPartitions( const char* blob, size_t size )
+    bool parsePartitions( const char* blob, size_t size )
     {
       size_t idx = 0;
       size_t found = 0;
@@ -111,7 +111,7 @@ namespace SDUpdaterNS
         idx += sizeof(PartitionDesc_t);
       } while( idx < size );
 
-      log_d("Found %d items in NVS partitions blob", found );
+      log_d("Found %d items", found );
 
       return found>0;
     }
