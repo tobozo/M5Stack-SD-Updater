@@ -62,6 +62,7 @@ typedef void(*listRenderer_t)( std::vector<Item_t> items, uint8_t selected_idx )
 typedef void(*cb_t)();
 
 void lsFlashPartitions();
+void lsNVSpartitions();
 
 
 std::vector<sdu_filesystem_t> filesystems_enabled;
@@ -82,6 +83,9 @@ namespace AppTheme
   fontInfo_t Font2Size1 = {&Font2, 1};
   fontInfo_t DejaVu12Size1 = {&DejaVu12, 1};
   fontInfo_t DejaVu18Size1 = {&DejaVu18, 1};
+  fontInfo_t Font8x8C64Size1 = {&Font8x8C64, 1};
+  fontInfo_t FreeMono9pt7bSize1 = {&FreeMono9pt7b,1};
+  fontInfo_t FreeMono12pt7bSize1 = {&FreeMono12pt7b,1};
   fontInfo_t FreeSans9pt7bSize1 = {&FreeSans9pt7b, 1};
   fontInfo_t FreeSans12pt7bSize1 = {&FreeSans12pt7b, 1};
 
@@ -418,9 +422,85 @@ void menuItemLoadFS()
   updateFromFS( *fs, fsBin );
 }
 
-void menuItemPartitionsList()
+
+void menuItemPartitionsInfo()
 {
-  lsFlashPartitions();
+  using namespace AppTheme;
+  using namespace SDU_UI;
+  while(1) {
+    auto ota_num = slotPicker("Show Partition Info", false); // load apps
+    if( ota_num < 0 ) {
+      log_d("leaving menuItemPartitionsInfo");
+      return;
+    }
+
+    drawSDUSplashElement( "Partition Info", M5.Lcd.width()/2, 0, &TitleStyle );
+    uint16_t box_top_y = ListOffsetY;
+    uint16_t box_height = M5.Lcd.height() - (box_top_y + BtnStyles.height + ListPadding*2);
+    uint16_t box_hmiddle = M5.Lcd.width()/2;
+    uint16_t box_vmiddle = M5.Lcd.height()/2;
+    M5.Lcd.fillRoundRect( 0, ListOffsetY-ListPadding, M5.Lcd.width(), box_height, ListPadding*2, ListBgColor );
+    M5.Lcd.setTextColor( MsgFontColors[0], MsgFontColors[1] );
+
+    auto nvs_part = NVS::findPartition( ota_num );
+    auto sdu_part = Flash::findPartition( ota_num );
+    auto part     = &sdu_part.part;
+    auto meta     = sdu_part.meta;
+    if(!part) continue;
+
+    String AppName = "n/a";
+
+    if( Flash::partitionIsApp( part ) ) {
+      if( Flash::partitionIsFactory( part ) ) {
+        AppName = "Factory";
+      } else {
+        // TODO: match digest with application meta (binary name, initial path, picture, description)
+        AppName = "OTA" + String( part->subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
+      }
+    }
+
+    M5.Lcd.setTextDatum( TL_DATUM ); // text coords are top-left based
+    setFontInfo( SDU_GFX, &FreeMono9pt7bSize1 );
+
+    M5.Lcd.setClipRect( ListPadding, box_top_y, M5.Lcd.width(), box_height );
+    M5.Lcd.setCursor( ListPadding, box_top_y );
+
+    M5.Lcd.printf("Name:  %s\n", nvs_part->name);
+    M5.Lcd.printf("Slot:  %d (%s)\n", nvs_part->ota_num, AppName.c_str());
+    M5.Lcd.printf("Type:  0x%02x\n", part->type);
+    M5.Lcd.printf("SType: 0x%02x\n", part->subtype);
+    M5.Lcd.printf("Addr:  0x%06x\n", part->address);
+    M5.Lcd.printf("Size:  %d\n", part->size);
+    M5.Lcd.printf("Used:  %s\n", meta.image_len>0 ? String(meta.image_len).c_str() : "n/a");
+    M5.Lcd.printf("Desc:  %s\n", nvs_part->desc[0]!=0?nvs_part->desc:"none");
+
+    M5.Lcd.clearClipRect();
+
+    if( Flash::partitionIsApp(part)&&Flash::metadataHasDigest(&meta) ) {
+
+      setFontInfo( SDU_GFX, &Font8x8C64Size1 );
+
+      uint16_t *metaBytes16 = (uint16_t*)meta.image_digest;
+      uint16_t squareSize = M5.Lcd.fontWidth()*12;
+      uint16_t clipLeft = M5.Lcd.width()-squareSize;
+
+      M5.Lcd.drawString( "digest", clipLeft, box_top_y+30);
+      M5.Lcd.setClipRect( clipLeft, box_top_y+42, squareSize, squareSize );
+      M5.Lcd.setCursor( clipLeft, box_top_y+42);
+
+      for( int i=0;i<16;i++ ) {
+        uint8_t* bytes = (uint8_t*)&metaBytes16[i];
+        M5.Lcd.printf("%02x %02x ", bytes[0], bytes[1] );
+      }
+
+      M5.Lcd.clearClipRect();
+
+      // draw a 4x4@16bpp matrix of the digest, directly from the partition metadata buffer :)
+      M5.Lcd.pushImageRotateZoom( M5.Lcd.width()-(16+ListPadding), box_vmiddle+60, 2, 2, 0.0, 8.0, 8.0, 4, 4, metaBytes16, lgfx::rgb565_2Byte );
+    }
+
+    getPressedButton();
+  }
 }
 
 
@@ -531,8 +611,8 @@ void toolsPicker()
   labels_vec.push_back({"Backup firmware", nullptr});
   labels_vec.push_back({"Remove firmware", nullptr});
   labels_vec.push_back({"Verify firmware", nullptr});
-  labels_vec.push_back({"Clear NVS", nullptr}); // TODO: implement this
-  labels_vec.push_back({"List NVS key/value pairs", nullptr}); // TODO: implement this
+  //labels_vec.push_back({"Clear NVS", nullptr});
+  //labels_vec.push_back({"List NVS key/value pairs", nullptr});
 
   while(1) {
     drawSDUSplashElement( "Partition Tools", M5.Lcd.width()/2, 0, &TitleStyle );
@@ -541,7 +621,7 @@ void toolsPicker()
 
     if( ret ) {
       switch( *ret ) {
-        case 1: menuItemPartitionsList() ; break;
+        case 1: menuItemPartitionsInfo() ; break;
         case 2: menuItemPartitionFlash() ; break;
         case 3: menuItemPartitionBackup(); break;
         case 4: menuItemPartitionErase() ; break;
@@ -594,6 +674,9 @@ void launcherPicker()
   labels_vec.push_back({"Load Firmware (Filesystem)", nullptr});
   labels_vec.push_back({"Manage Partitions (this is a super long, scrollable title)", nullptr});
   labels_vec.push_back({"Tools", nullptr});
+  if( Update.canRollBack() ) {
+    labels_vec.push_back({"Rollback", nullptr});
+  }
 
   while(1) {
     drawSDUSplashElement( "Firmware Launcher", M5.Lcd.width()/2, 0, &TitleStyle );
@@ -605,6 +688,7 @@ void launcherPicker()
         case 2: menuItemLoadFS(); break;
         case 3: toolsPicker(); break;
         case 4: preferencesPicker(); break;
+        case 5: Update.rollBack(); ESP.restart(); break;
         default: log_d("Leaving launcherPicker"); return; break;
       }
     }
@@ -626,7 +710,6 @@ void printFlasPartition( Flash::Partition_t* sdu_partition )
     if( Flash::partitionIsFactory( &part ) ) {
       AppName = "Factory";
     } else {
-      // TODO: match digest with application meta (binary name, initial path, picture, description)
       AppName = "OTA" + String( part.subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
     }
   }
@@ -654,6 +737,20 @@ void lsFlashPartitions()
 }
 
 
+void lsNVSpartitions()
+{
+  Flash::digest_t digests = Flash::digest_t();
+  for(int i=0;i<NVS::Partitions.size();i++ ) {
+    auto nvs_part = &NVS::Partitions[i];
+    if( nvs_part->bin_size > 0 ) {
+      Serial.printf("[%d] %s %s\n", nvs_part->ota_num, nvs_part->name, digests.toString( nvs_part->digest ) );
+    } else {
+      Serial.printf("[%d] %s slot\n", nvs_part->ota_num, i==0?"Reserved":"Available" );
+    }
+  }
+}
+
+
 bool checkFactoryStickyPartition()
 {
   Flash::scan();
@@ -676,7 +773,7 @@ bool checkFactoryStickyPartition()
     return false;
   }
 
-  if( !NVS::getBLobPartitions() ) {
+  if( !NVS::getPartitions() ) {
     log_w("Partitions not found on NVS, creating"); // first visit!
     PartitionManager::createPartitions();
   } else {
@@ -725,8 +822,9 @@ void setup()
     while(1);
   }
 
-  SDUpdater::_message("Enumerating slots...");
-
+  SDUpdater::_message("Enumerating NVS partition...");
+  lsNVSpartitions();
+  SDUpdater::_message("Enumerating flash partition...");
   lsFlashPartitions();
 }
 
