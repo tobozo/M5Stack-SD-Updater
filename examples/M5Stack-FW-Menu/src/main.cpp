@@ -440,28 +440,28 @@ void handleResult( bool res, const char* msg )
 
 void menuItemPartitionFlash()
 {
-  auto ret = PartitionManager::Flash( slotPicker("Flash Slot", true), fsPicker, filePicker );
+  auto ret = PartitionManager::flash( slotPicker("Flash Slot", true), fsPicker, filePicker );
   handleResult( ret, "Flash");
 }
 
 
 void menuItemPartitionBackup()
 {
-  auto ret = PartitionManager::Backup( slotPicker("Backup Slot", true), fsPicker );
+  auto ret = PartitionManager::backup( slotPicker("Backup Slot", true), fsPicker );
   handleResult( ret, "Backup");
 }
 
 
 void menuItemPartitionErase()
 {
-  auto ret = PartitionManager::Erase(slotPicker("Erase Slot"));
+  auto ret = PartitionManager::erase(slotPicker("Erase Slot"));
   handleResult( ret, "Erase");
 }
 
 
 void menuItemPartitionVerify()
 {
-  auto ret = PartitionManager::Verify(slotPicker("Verify Slot"));
+  auto ret = PartitionManager::verify(slotPicker("Verify Slot"));
   handleResult( ret, "Verify");
 }
 
@@ -622,8 +622,8 @@ void printFlasPartition( Flash::Partition_t* sdu_partition )
 
   String AppName = "n/a";
 
-  if( Flash::PartitionIsApp( &part ) ) {
-    if( Flash::PartitionIsFactory( &part ) ) {
+  if( Flash::partitionIsApp( &part ) ) {
+    if( Flash::partitionIsFactory( &part ) ) {
       AppName = "Factory";
     } else {
       // TODO: match digest with application meta (binary name, initial path, picture, description)
@@ -639,7 +639,7 @@ void printFlasPartition( Flash::Partition_t* sdu_partition )
     part.size,
     meta.image_len>0 ? String(meta.image_len).c_str() : "n/a",
     AppName.c_str(),
-    Flash::PartitionIsApp(&part)&&Flash::MetadataHasDigest(&meta) ? digests.toString(meta.image_digest) : "n/a"
+    Flash::partitionIsApp(&part)&&Flash::metadataHasDigest(&meta) ? digests.toString(meta.image_digest) : "n/a"
   );
 }
 
@@ -656,7 +656,7 @@ void lsFlashPartitions()
 
 bool checkFactoryStickyPartition()
 {
-  Flash::Scan();
+  Flash::scan();
 
   if( Flash::Partitions.size() == 0 ) {
     log_e("No flash partitions found");
@@ -676,11 +676,11 @@ bool checkFactoryStickyPartition()
     return false;
   }
 
-  if( !NVS::GetBLobPartitions() ) {
+  if( !NVS::getBLobPartitions() ) {
     log_w("Partitions not found on NVS, creating"); // first visit!
-    PartitionManager::Create();
+    PartitionManager::createPartitions();
   } else {
-    PartitionManager::Update(); // refresh
+    PartitionManager::updatePartitions(); // refresh
   }
 
   if( NVS::Partitions.size() == 0 ) {
@@ -689,7 +689,7 @@ bool checkFactoryStickyPartition()
   }
 
   // cleanup/update shadow copy of partitions table in NVS
-  PartitionManager::Process();
+  PartitionManager::processPartitions();
   return Flash::FactoryPartition != nullptr;
 }
 

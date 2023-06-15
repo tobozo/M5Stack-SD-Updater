@@ -83,7 +83,7 @@ namespace SDUpdaterNS
         if (!ESP.flashRead(src1->address + offset, reinterpret_cast<uint32_t*>(buf1.get()), (readBytes + 3) & ~3)
         || !src2->read(                           reinterpret_cast<uint8_t*>(buf2.get()), (readBytes + 3) & ~3)
         ) {
-            return false;
+          return false;
         }
         for (i = 0; i < readBytes; ++i) if (buf1[i] != buf2[i]) return false;
         lengthLeft -= readBytes;
@@ -105,7 +105,6 @@ namespace SDUpdaterNS
       bool ret = false;
       running_partition = esp_ota_get_running_partition();
       nextupd_partition = esp_ota_get_next_update_partition(NULL);
-      //const char* menubinfilename PROGMEM {MENU_BIN} ;
       size_t sksize = ESP.getSketchSize();
       bool flgSD = fs?true:false;
       File dst;
@@ -127,9 +126,8 @@ namespace SDUpdaterNS
       uint32_t progress = 0, progressOld = 1;
       while( lengthLeft > 0) {
         size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
-        if (!ESP.flashRead(src->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)
-        ) {
-            return false;
+        if (!ESP.flashRead(src->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3) ) {
+          return false;
         }
         if (dst) dst->write(buf.get(), (readBytes + 3) & ~3);
         lengthLeft -= readBytes;
@@ -149,6 +147,10 @@ namespace SDUpdaterNS
 
     bool copyPartition(fs::File* dstFile, const esp_partition_t* dst, const esp_partition_t* src, size_t length)
     {
+      if( dst->size < length ) {
+        log_e("data won't fit in destination partition (available: %d, needed: %d)", dst->size, length );
+        return false;
+      }
       size_t lengthLeft = length;
       const size_t bufSize = SPI_FLASH_SEC_SIZE;
       std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
@@ -159,7 +161,7 @@ namespace SDUpdaterNS
         if (!ESP.flashRead(src->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)
         || !ESP.flashEraseSector((dst->address + offset) / bufSize)
         || !ESP.flashWrite(dst->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)) {
-            return false;
+          return false;
         }
         if (dstFile) dstFile->write(buf.get(), (readBytes + 3) & ~3);
         lengthLeft -= readBytes;
@@ -182,7 +184,6 @@ namespace SDUpdaterNS
         log_e("data won't fit in destination partition (available: %d, needed: %d)", dst->size, length );
         return false;
       }
-
       size_t lengthLeft = length;
       const size_t bufSize = SPI_FLASH_SEC_SIZE;
       std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
@@ -193,7 +194,7 @@ namespace SDUpdaterNS
         if (!ESP.flashRead(src->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)
         || !ESP.flashEraseSector((dst->address + offset) / bufSize)
         || !ESP.flashWrite(dst->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)) {
-            return false;
+          return false;
         }
         lengthLeft -= readBytes;
         offset += readBytes;
@@ -255,7 +256,6 @@ namespace SDUpdaterNS
     }
 
 
-
     //***********************************************************************************************
     //                                B A C K T O F A C T O R Y                                     *
     //***********************************************************************************************
@@ -265,70 +265,54 @@ namespace SDUpdaterNS
     //***********************************************************************************************
     void loadFactory()
     {
-      esp_partition_iterator_t  pi ;                   // Iterator for find
-      //const esp_partition_t*    factory ;              // Factory partition
-      esp_err_t                 err ;
+      factory_partition = getFactoryPartition();
 
-      pi = esp_partition_find ( ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL ) ;
+      if( !factory_partition ) {
+        log_e( "Failed to find factory partition" );
+        return;
+      }
 
-      if ( pi == NULL ) {                              // Check result
-        log_e( "Failed to find factory partition" ) ;
+      auto err = esp_ota_set_boot_partition ( factory_partition ) ; // Set partition for boot
+
+      if ( err != ESP_OK ) {                         // Check error
+        log_e( "Failed to set boot partition" ) ;
       } else {
-        factory_partition = esp_partition_get ( pi ) ;           // Get partition struct
-        esp_partition_iterator_release ( pi ) ;        // Release the iterator
-        err = esp_ota_set_boot_partition ( factory_partition ) ; // Set partition for boot
-        if ( err != ESP_OK ) {                         // Check error
-          log_e( "Failed to set boot partition" ) ;
-        } else {
-          log_i("Will reboot to factory partition");
-          esp_restart() ;                              // Restart ESP
-        }
+        log_i("Will reboot to factory partition");
+        esp_restart() ;                              // Restart ESP
       }
     }
 
 
-    const esp_partition_t* getFactoryPartition()
-    {
-      auto factorypi = esp_partition_find ( ESP_PARTITION_TYPE_APP,  ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL );
-      if( factorypi != NULL ) {
-        return esp_partition_get(factorypi);
-      }
-      return NULL;
-    }
-
-
-    esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition )
+    esp_image_metadata_t getSketchMeta( const esp_partition_t* src )
     {
       esp_image_metadata_t data;
-      if ( !source_partition ) {
+      if ( !src ) {
         log_e("No source partition provided");
         return data;
       }
-      const esp_partition_pos_t source_partition_pos  = {
-        .offset = source_partition->address,
-        .size = source_partition->size,
+      const esp_partition_pos_t src_pos  = {
+        .offset = src->address,
+        .size = src->size,
       };
-      data.start_addr = source_partition_pos.offset;
+      data.start_addr = src_pos.offset;
 
       esp_app_desc_t app_desc;
-      if( esp_ota_get_partition_description(source_partition, &app_desc) != ESP_OK ) {
+      if( esp_ota_get_partition_description(src, &app_desc) != ESP_OK ) {
         // nothing flashed here
         memset( data.image_digest, 0, sizeof(data.image_digest) );
         data.image_len = 0;
         return data;
       }
 
-      // only verify OTA partitions
-      if( source_partition->type==ESP_PARTITION_TYPE_APP && (source_partition->subtype>=ESP_PARTITION_SUBTYPE_APP_OTA_MIN && source_partition->subtype<ESP_PARTITION_SUBTYPE_APP_OTA_MAX) ) {
-        esp_err_t ret = esp_image_verify( ESP_IMAGE_VERIFY, &source_partition_pos, &data );
+      if( partitionIsOTA(src) ) { // only verify OTA partitions
+        esp_err_t ret = esp_image_verify( ESP_IMAGE_VERIFY, &src_pos, &data );
         if( ret != ESP_OK ) {
-          log_e("Failed to verify image %s at addr %x", String( source_partition->label ), source_partition->address );
+          log_e("Failed to verify image %s at addr %x", String( src->label ), src->address );
         } else {
-          log_v("Successfully verified image %s at addr %x", String( source_partition->label[3] ), source_partition->address );
+          log_v("Successfully verified image %s at addr %x", String( src->label[3] ), src->address );
         }
-      } else if( source_partition->type==ESP_PARTITION_TYPE_APP && source_partition->subtype==ESP_PARTITION_SUBTYPE_APP_FACTORY ) {
-        // factory partition, compute the digest
-        if( esp_partition_get_sha256(source_partition, data.image_digest) != ESP_OK ) {
+      } else if( partitionIsFactory(src)  ) { // compute the digest
+        if( esp_partition_get_sha256(src, data.image_digest) != ESP_OK ) {
           memset( data.image_digest, 0, sizeof(data.image_digest) );
           data.image_len = 0;
         }
@@ -342,7 +326,6 @@ namespace SDUpdaterNS
       factory_partition = getFactoryPartition();
       return factory_partition!=nullptr;
     }
-
 
 
     bool isRunningFactory()
@@ -388,6 +371,16 @@ namespace SDUpdaterNS
     }
 
 
+    const esp_partition_t* getFactoryPartition()
+    {
+      auto factorypi = esp_partition_find( ESP_PARTITION_TYPE_APP,  ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL );
+      if( factorypi != NULL ) {
+        return esp_partition_get(factorypi);
+      }
+      return NULL;
+    }
+
+
     const esp_partition_t* getPartition( uint8_t ota_num )
     {
       esp_partition_subtype_t subtype = (esp_partition_subtype_t)(ESP_PARTITION_SUBTYPE_APP_OTA_MIN+ota_num);
@@ -414,54 +407,57 @@ namespace SDUpdaterNS
 
     bool bootPartition( uint8_t ota_num )
     {
-      esp_partition_subtype_t subtype = (esp_partition_subtype_t)(ESP_PARTITION_SUBTYPE_APP_OTA_MIN+ota_num);
-      esp_partition_iterator_t  pi = esp_partition_find ( ESP_PARTITION_TYPE_APP, subtype, NULL ) ;
-      if ( pi == NULL ) {
-        log_e( "Failed to find partition" ) ;
+      const esp_partition_t* part = getPartition( ota_num );
+      if ( !part ) {
+        log_e( "Failed to find partition OTA%d", ota_num ) ;
         return false;
       }
-      const esp_partition_t* part = esp_partition_get ( pi );
-      esp_partition_iterator_release ( pi ) ;
       esp_err_t err = esp_ota_set_boot_partition ( part );
       if ( err != ESP_OK ) {
-        log_e( "Failed to set boot partition" ) ;
+        log_e( "Failed to set OTA%d as boot partition", ota_num );
         return false;
       }
-      log_i("Will reboot to partition %d", ota_num);
+      log_i("Will reboot to partition OTA%d", ota_num);
       esp_restart() ;
       return true;
     }
 
 
-    bool PartitionIsApp( const esp_partition_t *part )
+    bool partitionIsApp( const esp_partition_t *part )
     {
       return part->type==ESP_PARTITION_TYPE_APP;
     }
 
 
-    bool PartitionIsFactory( const esp_partition_t *part )
+    bool partitionIsFactory( const esp_partition_t *part )
     {
-      return PartitionIsApp( part ) && part->subtype==ESP_PARTITION_SUBTYPE_APP_FACTORY;
+      return partitionIsApp( part ) && part->subtype==ESP_PARTITION_SUBTYPE_APP_FACTORY;
     }
 
 
-    bool MetadataHasDigest( const esp_image_metadata_t *meta )
+    bool partitionIsOTA( const esp_partition_t *part )
+    {
+      return partitionIsApp( part ) && (part->subtype>=ESP_PARTITION_SUBTYPE_APP_OTA_MIN && part->subtype<ESP_PARTITION_SUBTYPE_APP_OTA_MAX);
+    }
+
+
+    bool metadataHasDigest( const esp_image_metadata_t *meta )
     {
       digest_t digests = digest_t();
       return meta && meta->image_digest ? !digests.isEmpty( meta->image_digest ) : false;
     }
 
 
-    bool IsEmpty( Partition_t* sdu_partition )
+    bool isEmpty( Partition_t* sdu_partition )
     {
-      return PartitionIsApp( &sdu_partition->part ) && !PartitionIsFactory( &sdu_partition->part ) && !MetadataHasDigest( &sdu_partition->meta );
+      return partitionIsApp( &sdu_partition->part ) && !partitionIsFactory( &sdu_partition->part ) && !metadataHasDigest( &sdu_partition->meta );
     }
 
 
     const esp_partition_t* getNextAvailPartition()
     {
       for( int i=0; i<Partitions.size(); i++ ) {
-        if( IsEmpty( &Partitions[i] ) ) {
+        if( isEmpty( &Partitions[i] ) ) {
           return &Partitions[i].part;
         }
       }
@@ -469,27 +465,27 @@ namespace SDUpdaterNS
     }
 
 
-    void Memoize( const esp_partition_t *part )
+    void memoize( const esp_partition_t *part )
     {
       esp_image_metadata_t meta = esp_image_metadata_t();
 
-      if( part->type==ESP_PARTITION_TYPE_APP ) {
+      if( partitionIsApp(part) ) {
         meta  = getSketchMeta( part );
       }
       Partitions.push_back({*part,meta});
-      if( PartitionIsFactory( part ) ) {
+      if( partitionIsFactory( part ) ) {
         log_d("Found factory partition");
         FactoryPartition = &Partitions[Partitions.size()-1];
       }
     }
 
 
-    void Scan()
+    void scan()
     {
       esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
       while(pi != NULL) {
         const esp_partition_t* part = esp_partition_get(pi);
-        Memoize( part );
+        memoize( part );
         pi = esp_partition_next( pi );
       }
       esp_partition_iterator_release(pi);
@@ -497,7 +493,7 @@ namespace SDUpdaterNS
 
 
 
-    bool Erase( uint8_t ota_num )
+    bool erase( uint8_t ota_num )
     {
       auto part = getPartition( ota_num );
       log_d("Erasing ota partition %d (%#x)", ota_num, part->subtype );
@@ -507,20 +503,6 @@ namespace SDUpdaterNS
       log_e("FATAL: can't erase running partition");
       return false;
     }
-
-
-    bool EraseRunning()
-    {
-      running_partition = esp_ota_get_running_partition();
-      size_t sksize = ESP.getSketchSize();
-      log_d("Attempting to erase running partition (%#x)", running_partition->subtype );
-      if( ESP.partitionEraseRange(running_partition, 0, sksize ) ) {
-        return true;
-      }
-      log_e("Erasing failed");
-      return false;
-    }
-
 
   };
 };

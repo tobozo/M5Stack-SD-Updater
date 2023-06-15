@@ -15,24 +15,23 @@ namespace SDUpdaterNS
     typedef fs::FS*(*sdu_fs_picker_t)();
     typedef const char*(*sdu_file_picker_t)(fs::FS*);
 
-    bool Save();
-    void Create();
-    void Delete();
-    void Update();
-    void Process();
+    void createPartitions();
+    void deletePartitions();
+    void updatePartitions();
+    void processPartitions();
 
-    bool Flash( const esp_partition_t *dstpart, fs::FS *dstfs, const char* srcpath );
-    bool Flash( uint8_t ota_num, sdu_fs_picker_t fsPicker, sdu_file_picker_t filePicker );
+    bool savePartitions();
+    bool flashFactory();
+    bool canMigrateToFactory();
 
-    bool Backup( uint8_t ota_num, sdu_fs_picker_t fsPicker );
-    bool Backup( NVS::PartitionDesc_t *src_nvs_part, sdu_fs_picker_t fsPicker );
+    bool verify( uint8_t ota_num );
+    bool erase( uint8_t ota_num );
 
-    bool Verify( uint8_t ota_num );
+    bool flash( const esp_partition_t *dstpart, fs::FS *dstfs, const char* srcpath );
+    bool flash( uint8_t ota_num, sdu_fs_picker_t fsPicker, sdu_file_picker_t filePicker );
 
-    bool Erase( uint8_t ota_num );
-
-    bool NeedsMigration();
-    bool FlashFactory();
+    bool backup( uint8_t ota_num, sdu_fs_picker_t fsPicker );
+    bool backup( NVS::PartitionDesc_t *src_nvs_part, sdu_fs_picker_t fsPicker );
 
     struct sdu_fs_copy_t
     {
@@ -41,7 +40,7 @@ namespace SDUpdaterNS
       const esp_partition_t *dstPart{nullptr};
       bool commit()
       {
-        return Flash( dstPart, srcFs, name );
+        return flash( dstPart, srcFs, name );
       }
     };
 

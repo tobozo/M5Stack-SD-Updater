@@ -8,7 +8,7 @@ namespace SDUpdaterNS
   namespace PartitionManager
   {
 
-    bool Save()
+    bool savePartitions()
     {
       bool ret = true;
       if( NVS::Partitions.size() > 0 ) {
@@ -48,32 +48,32 @@ namespace SDUpdaterNS
     }
 
 
-    void Create()
+    void createPartitions()
     {
       NVS::Partitions.clear();
       Flash::digest_t digests = Flash::digest_t();
       for( int i=0; i<Flash::Partitions.size(); i++ ) {
         auto part = &Flash::Partitions[i].part;
         auto meta = &Flash::Partitions[i].meta;
-        if( Flash::PartitionIsFactory( part ) ) continue;
-        if( !Flash::PartitionIsApp( part ) ) continue;
+        if( Flash::partitionIsFactory( part ) ) continue;
+        if( !Flash::partitionIsApp( part ) ) continue;
         NVS::PartitionDesc_t nvs_part;
         nvs_part.ota_num  = part->subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN;
         snprintf( nvs_part.name, 39, "OTA %d",  nvs_part.ota_num );
         nvs_part.bin_size = 0;
-        if( Flash::MetadataHasDigest( meta ) ) {
+        if( Flash::metadataHasDigest( meta ) ) {
           nvs_part.bin_size = meta->image_len;
           memcpy( nvs_part.digest, meta->image_digest, 32 );
           log_d("Added flash digest to NVS::Partitions[]: %s", digests.toString( nvs_part.digest ) );
         }
         NVS::Partitions.push_back( nvs_part );
       }
-      Save();
+      savePartitions();
       log_i("Found %d application(s)", NVS::Partitions.size() );
     }
 
 
-    void Delete()
+    void deletePartitions()
     {
       auto err = nvs_open(SDU_PARTITION_NS, NVS_READWRITE, &NVS::handle);
       if( err != ESP_OK ) {
@@ -92,7 +92,7 @@ namespace SDUpdaterNS
 
 
     // update NVS blob with flash partition infos
-    void Update()
+    void updatePartitions()
     {
       log_v("Comparing Flash and NVS partitions");
       bool needs_saving = false;
@@ -101,10 +101,10 @@ namespace SDUpdaterNS
         auto sdu_flash_part = &Flash::Partitions[i];
         auto flash_part = &sdu_flash_part->part;
         auto meta = &sdu_flash_part->meta;
-        if( !Flash::MetadataHasDigest( meta ) ) continue;       // ignore empty partitions
-        if( Flash::PartitionIsFactory( flash_part ) ) continue; // ignore factory partition
-        if( !Flash::PartitionIsApp( flash_part ) ) continue;    // ignore non-app partitions
-        auto sdu_nvs_part = NVS::FindPartition(sdu_flash_part);
+        if( !Flash::metadataHasDigest( meta ) ) continue;       // ignore empty partitions
+        if( Flash::partitionIsFactory( flash_part ) ) continue; // ignore factory partition
+        if( !Flash::partitionIsApp( flash_part ) ) continue;    // ignore non-app partitions
+        auto sdu_nvs_part = NVS::findPartition(sdu_flash_part);
 
         if( sdu_nvs_part ) { // flash partition is documented in NVS, compare digests
           if( !digests.match( sdu_nvs_part->digest, sdu_flash_part->meta.image_digest ) ) { // image digests differ
@@ -118,8 +118,8 @@ namespace SDUpdaterNS
       }
 
       if( needs_saving ) {
-        log_d("Updating NVS partitions");
-        Save();
+        //log_d("Saving NVS partitions");
+        savePartitions();
       }
     }
 
@@ -127,7 +127,7 @@ namespace SDUpdaterNS
     // Called after factory firmware was flashed and copied to factory partition,
     // will erase the originating OTA partition to make it available for next
     // flashing.
-    void Process()
+    void processPartitions()
     {
       Flash::digest_t digests = Flash::digest_t();
       for( int i=0; i<NVS::Partitions.size(); i++ ) {
@@ -139,10 +139,10 @@ namespace SDUpdaterNS
 
         if( is_factory_dupe > 0 ) {
           // erase ota version of factory partition now that it's been duplicated
-          if( Flash::Erase( nvs_part->ota_num ) ) {
+          if( Flash::erase( nvs_part->ota_num ) ) {
             nvs_part->bin_size = 0;
             memset( nvs_part->digest, 0, 32 );
-            if( Save() ) {
+            if( savePartitions() ) {
               log_d("TODO: implement partitions reload instead of restart");
               ESP.restart();
             }
@@ -160,7 +160,7 @@ namespace SDUpdaterNS
 
     // copy firmware from SD/SPIFFS://path to OTA flash partition
     //bool Flash( fs::FS &fs, const char* path, const esp_partition_t *dstpart )
-    bool Flash( const esp_partition_t *dstpart, fs::FS *dstfs, const char* srcpath )
+    bool flash( const esp_partition_t *dstpart, fs::FS *dstfs, const char* srcpath )
     {
       if( !srcpath ) return false;
       if( !dstpart ) return false;
@@ -176,7 +176,7 @@ namespace SDUpdaterNS
       bool ret = Flash::copyPartition(dstpart, &file, fsize );
       file.close();
       if( ret ) {
-        auto nvs_part = NVS::FindPartition( dstpart->subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
+        auto nvs_part = NVS::findPartition( dstpart->subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
         if( !nvs_part ) {
           log_e("FATAL: can't update nvs with new partition info");
           return false;
@@ -187,7 +187,7 @@ namespace SDUpdaterNS
           log_e("WARN: partition has no sha");
           //return false;
         }
-        return Save();
+        return savePartitions();
       }
       return ret;
     }
@@ -195,7 +195,7 @@ namespace SDUpdaterNS
 
     // Copy firmware from filesystem to ota slot in transaction style.
     // Implements a picker for source filesystem and source filename.
-    bool Flash( uint8_t ota_num, sdu_fs_picker_t fsPicker, sdu_file_picker_t filePicker )
+    bool flash( uint8_t ota_num, sdu_fs_picker_t fsPicker, sdu_file_picker_t filePicker )
     {
       auto dest_part = Flash::findPartition( ota_num );
       //if( !dest_part.part ) return false; // invalid ota number
@@ -209,15 +209,15 @@ namespace SDUpdaterNS
     }
 
 
-    bool Backup( uint8_t ota_num, sdu_fs_picker_t fsPicker )
+    bool backup( uint8_t ota_num, sdu_fs_picker_t fsPicker )
     {
-      auto nvs_part = NVS::FindPartition( ota_num );
+      auto nvs_part = NVS::findPartition( ota_num );
       if( !nvs_part ) return false;
-      return Backup( nvs_part, fsPicker );
+      return backup( nvs_part, fsPicker );
     }
 
 
-    bool Backup( NVS::PartitionDesc_t *src_nvs_part, sdu_fs_picker_t fsPicker )
+    bool backup( NVS::PartitionDesc_t *src_nvs_part, sdu_fs_picker_t fsPicker )
     {
       if( !src_nvs_part ) return false;
       if( src_nvs_part->bin_size == 0 ) return false;
@@ -236,7 +236,7 @@ namespace SDUpdaterNS
     }
 
 
-    bool Verify( uint8_t ota_num )
+    bool verify( uint8_t ota_num )
     {
       auto part = Flash::getPartition( ota_num );
       if( !part ) return false;
@@ -244,7 +244,7 @@ namespace SDUpdaterNS
       Flash::digest_t digests = Flash::digest_t();
       if( digests.isEmpty( meta.image_digest ) ) return false;
 
-      auto nvs_part = NVS::FindPartition( ota_num );
+      auto nvs_part = NVS::findPartition( ota_num );
       if( !nvs_part ) return false;
 
       uint8_t sha256[32];
@@ -263,18 +263,18 @@ namespace SDUpdaterNS
     }
 
 
-    bool Erase( uint8_t ota_num )
+    bool erase( uint8_t ota_num )
     {
-      NVS::PartitionDesc_t* nvs_part = NVS::FindPartition(ota_num);
+      NVS::PartitionDesc_t* nvs_part = NVS::findPartition(ota_num);
       if( !nvs_part ) return false;
       auto flash_part = Flash::getPartition( ota_num );
       if( !flash_part ) return false;
-      if( Flash::Erase(ota_num) ) {
+      if( Flash::erase(ota_num) ) {
         nvs_part->bin_size = 0;
         nvs_part->name[0] = 0;
         nvs_part->desc[0] = 0;
         for( int i=0;i<32;i++ ) nvs_part->digest[i] = 0;
-        if( Save() ) {
+        if( savePartitions() ) {
           log_d("TODO: implement partitions reload instead of restart");
           ESP.restart(); // force partition reload
         }
@@ -283,7 +283,7 @@ namespace SDUpdaterNS
     }
 
 
-    bool NeedsMigration()
+    bool canMigrateToFactory()
     {
       if( !Flash::hasFactory() ) return false;
       if( Flash::isRunningFactory() ) return false;
@@ -291,9 +291,9 @@ namespace SDUpdaterNS
     }
 
 
-    bool FlashFactory()
+    bool flashFactory()
     {
-      if( NeedsMigration() ) {
+      if( canMigrateToFactory() ) {
         SDUpdater::_message( String("Migrating to factory") );
         auto ret = Flash::saveSketchToFactory();
         if( !ret ) {

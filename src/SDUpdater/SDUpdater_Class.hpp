@@ -166,7 +166,7 @@ namespace SDUpdaterNS
     if( !SDUCfg.triggers ) {
       SDUCfg.setDefaults();
     }
-    return PartitionManager::FlashFactory();
+    return PartitionManager::flashFactory();
   }
 
 
