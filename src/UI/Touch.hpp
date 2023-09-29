@@ -150,27 +150,27 @@ namespace SDUpdaterNS
       //SDU_UI::TouchStyles ts;
 
       #if !defined HAS_LGFX
-        LoadBtn->setFont(nullptr);
-        SkipBtn->setFont(nullptr);
-        if( SDUCfg.binFileName != nullptr ) {
+        if( SDUCfg.Buttons[0].enabled ) LoadBtn->setFont(nullptr);
+        if( SDUCfg.Buttons[1].enabled ) SkipBtn->setFont(nullptr);
+        if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].enabled ) {
           SaveBtn->setFont(nullptr);
         }
       #endif
 
-      LoadBtn->initButton(
+      if( SDUCfg.Buttons[0].enabled ) LoadBtn->initButton(
         SDU_GFX,
         ts.x1, ts.y,  ts.w, ts.h,
         ts.Load->BorderColor, ts.Load->FillColor, ts.Load->TextColor,
         (char*)trigger->labelLoad, ts.btn_fsize
       );
-      SkipBtn->initButton(
+      if( SDUCfg.Buttons[1].enabled ) SkipBtn->initButton(
         SDU_GFX,
         ts.x2, ts.y,  ts.w, ts.h,
         ts.Skip->BorderColor, ts.Skip->FillColor, ts.Skip->TextColor,
         (char*)trigger->labelSkip, ts.btn_fsize
       );
 
-      if( SDUCfg.binFileName != nullptr ) {
+      if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].enabled ) {
         SaveBtn->initButton(
           SDU_GFX,
           ts.x3, ts.y1,  ts.w, ts.h,
@@ -182,14 +182,14 @@ namespace SDUpdaterNS
         SaveBtn->press(false);
       }
 
-      LoadBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
-      SkipBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
+      if( SDUCfg.Buttons[0].enabled ) LoadBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
+      if( SDUCfg.Buttons[1].enabled ) SkipBtn->setLabelDatum(ts.padx, ts.pady, MC_DATUM);
 
-      LoadBtn->drawButton();
-      SkipBtn->drawButton();
+      if( SDUCfg.Buttons[0].enabled ) LoadBtn->drawButton();
+      if( SDUCfg.Buttons[1].enabled ) SkipBtn->drawButton();
 
-      LoadBtn->press(false);
-      SkipBtn->press(false);
+      if( SDUCfg.Buttons[0].enabled ) LoadBtn->press(false);
+      if( SDUCfg.Buttons[1].enabled ) SkipBtn->press(false);
 
       //uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
       //bool ispressed = false;
@@ -219,28 +219,28 @@ namespace SDUpdaterNS
         tbWrapper.pushIcon( trigger->labelLoad );
         tbWrapper.iconRendered = true;
       }
-      tbWrapper.handlePressed( LoadBtn, ispressed, t_x, t_y );
-      tbWrapper.handlePressed( SkipBtn, ispressed, t_x, t_y );
-      if( SDUCfg.binFileName != nullptr ) {
+      if( SDUCfg.Buttons[0].enabled ) tbWrapper.handlePressed( LoadBtn, ispressed, t_x, t_y );
+      if( SDUCfg.Buttons[1].enabled ) tbWrapper.handlePressed( SkipBtn, ispressed, t_x, t_y );
+      if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].enabled ) {
         tbWrapper.handlePressed( SaveBtn, ispressed, t_x, t_y );
       }
-      tbWrapper.handleJustPressed( LoadBtn, trigger->labelLoad );
-      tbWrapper.handleJustPressed( SkipBtn, trigger->labelSkip );
-      if( SDUCfg.binFileName != nullptr ) {
+      if( SDUCfg.Buttons[0].enabled ) tbWrapper.handleJustPressed( LoadBtn, trigger->labelLoad );
+      if( SDUCfg.Buttons[1].enabled ) tbWrapper.handleJustPressed( SkipBtn, trigger->labelSkip );
+      if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].enabled ) {
         tbWrapper.handleJustPressed( SaveBtn, trigger->labelSave );
       }
 
-      if( tbWrapper.justReleased( LoadBtn, ispressed, trigger->labelLoad ) ) {
+      if( SDUCfg.Buttons[0].enabled && tbWrapper.justReleased( LoadBtn, ispressed, trigger->labelLoad ) ) {
         trigger->ret = 1;
         log_d("LoadBTN Pressed");
         return true;
       }
-      if( tbWrapper.justReleased( SkipBtn, ispressed, trigger->labelSkip ) ) {
+      if( SDUCfg.Buttons[1].enabled ) if( tbWrapper.justReleased( SkipBtn, ispressed, trigger->labelSkip ) ) {
         trigger->ret = 0;
         log_d("SkipBTN Pressed");
         return true;
       }
-      if( SDUCfg.binFileName != nullptr ) {
+      if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].enabled ) {
         if( tbWrapper.justReleased( SaveBtn, ispressed, trigger->labelSave ) ) {
           trigger->ret = 2;
           log_d("SaveBtn Pressed");
@@ -284,9 +284,9 @@ namespace SDUpdaterNS
 
       #if ! defined HAS_LGFX // defined _M5Core2_H_ || defined _M5CORES3_H_
         // clear TFT_eSpi button handlers
-        LoadBtn->delHandlers();
-        SkipBtn->delHandlers();
-        SaveBtn->delHandlers();
+        if( SDUCfg.Buttons[0].enabled ) LoadBtn->delHandlers();
+        if( SDUCfg.Buttons[1].enabled ) SkipBtn->delHandlers();
+        if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].enabled ) SaveBtn->delHandlers();
       #endif
       delete LoadBtn;
       delete SkipBtn;

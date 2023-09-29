@@ -95,6 +95,7 @@ namespace SDUpdaterNS
 
     // API Specifics
     #if defined HAS_LGFX // using LovyanGFX or M5GFX
+
       #define setFontInfo(x, i) {auto info=(fontInfo_t*)i;if(info->font){x->setFont((lgfx::IFont*)info->font);}x->setTextSize(info->fontSize);}
       #define getTextFgColor(x) x->getTextStyle().fore_rgb888
       #define getTextBgColor(x) x->getTextStyle().back_rgb888
@@ -167,6 +168,30 @@ namespace SDUpdaterNS
         }
       }
 
+
+      static void resetScroll()
+      {
+        assert( SDU_GFX );
+        uint16_t rst = 0;
+        SDU_GFX->startWrite();
+        SDU_GFX->writecommand(0x33);  // VSCRDEF Vertical scroll definition
+        SDU_GFX->writedata(rst >> 8); // Top Fixed Area line count
+        SDU_GFX->writedata(rst);
+        SDU_GFX->writedata(rst >> 8); // Vertical Scrolling Area line count
+        SDU_GFX->writedata(rst);
+        SDU_GFX->writedata(rst >> 8); // Bottom Fixed Area line count
+        SDU_GFX->writedata(rst);
+        SDU_GFX->endWrite();
+
+        SDU_GFX->startWrite();
+        SDU_GFX->writecommand(0x37); // VSCRSADD Vertical scrolling pointer
+        SDU_GFX->writedata(rst>>8);
+        SDU_GFX->writedata(rst);
+        SDU_GFX->endWrite();
+      }
+
+
+
     #else // using TFT_eSPI based core (M5Core2.h, M5Stack.h, M5StickC.h).
       #define setFontInfo(x, i) {auto info=(fontInfo_t*)i;x->setTextFont(info->fontNumber);x->setTextSize(info->fontSize);}
       #define getTextFgColor(x) x->textcolor
@@ -177,6 +202,7 @@ namespace SDUpdaterNS
       inline void loaderAnimator_t::init() {}
       inline void loaderAnimator_t::animate() {}
       inline void loaderAnimator_t::deinit() {}
+      static void resetScroll() { }
       static void fillStyledRect( SplashPageElementStyle_t *style, int32_t x, int32_t y, uint16_t width, uint16_t height ) { SDU_GFX->fillRect( x, y, width, height, style->bgColor ); }
       static void adjustFontSize( uint8_t *lineHeightBig, uint8_t *lineHeightSmall ) { *lineHeightBig = 14; *lineHeightSmall = 8; }
       static void fillProgressBox( int32_t posX, int32_t posY, uint16_t offset, ProgressBarStyle_t *pgstyle )
@@ -186,8 +212,9 @@ namespace SDUpdaterNS
       }
     #endif
 
-    static void freezeTextStyle()
+    static void freezeTextStyle() // onBeforeCb
     {
+      resetScroll();
       if( SDUTextStyle.frozen ) {
         // log_v("can't freeze twice, thaw first !");
         return;

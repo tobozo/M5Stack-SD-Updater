@@ -27,7 +27,7 @@ extern "C" {
 #include <FS.h>
 // #include <Update.h>
 // required to store the MENU_BIN hash
-#include <Preferences.h>
+// #include <Preferences.h>
 
 #include "../ConfigManager/ConfigManager.hpp"
 #include "../PartitionManager/PartitionManager.hpp"
@@ -61,10 +61,10 @@ namespace SDUpdaterNS
       SDUpdater( const int TFCardCsPin_ = TFCARD_CS_PIN);
 
       // check methods
-      void checkSDUpdaterHeadless( String fileName, unsigned long waitdelay );
-      void checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay );
-      void checkSDUpdaterUI( String fileName, unsigned long waitdelay );
-      void checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay );
+      void checkUpdaterHeadless( String fileName );
+      void checkUpdaterHeadless( fs::FS &fs, String fileName );
+      void checkUpdaterUI( String fileName );
+      void checkUpdaterUI( fs::FS &fs, String fileName );
       // update methods
       void updateFromFS( const String& fileName );
       void updateFromFS( fs::FS &fs, const String& fileName = MENU_BIN );
@@ -75,6 +75,7 @@ namespace SDUpdaterNS
       inline bool saveSketchToFS( fs::FS &fs, const char* binfilename={MENU_BIN}, bool skipIfExists=false ) { return saveSketchToFS(this, fs, binfilename, skipIfExists ); }
 
       static bool saveSketchToFactory();
+      //static bool migrateSketch();
       static void updateNVS();
 
       // fs::File->name() changed behaviour after esp32 sdk 2.x.x
@@ -96,6 +97,7 @@ namespace SDUpdaterNS
 
       UpdateManagerInterface_t *UpdateIface = nullptr;
       const char* MenuBin = MENU_BIN;
+      bool checkUpdaterCommon( String fileName );
       void performUpdate( Stream &updateSource, size_t updateSize, String fileName );
       void tryRollback( String fileName );
 
@@ -161,6 +163,7 @@ namespace SDUpdaterNS
     return false;
   }
 
+
   inline bool SDUpdater::saveSketchToFactory()
   {
     if( !SDUCfg.triggers ) {
@@ -169,6 +172,15 @@ namespace SDUpdaterNS
     return PartitionManager::flashFactory();
   }
 
+
+  // inline bool SDUpdater::migrateSketch()
+  // {
+  //   if( !SDUCfg.binFileName ) return false; // need this in NVS
+  //   if( !SDUCfg.triggers ) {
+  //     SDUCfg.setDefaults();
+  //   }
+  //   return PartitionManager::migrateSketch( SDUCfg.binFileName );
+  // }
 
 
 

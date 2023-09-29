@@ -16,12 +16,11 @@ namespace SDUpdaterNS
     typedef const char*(*sdu_file_picker_t)(fs::FS*);
 
     void createPartitions();
-    void deletePartitions();
     void updatePartitions();
     void processPartitions();
 
-    bool savePartitions();
     bool flashFactory();
+    bool migrateSketch( const char* binFileName );
     bool canMigrateToFactory();
 
     bool verify( uint8_t ota_num );
@@ -32,6 +31,8 @@ namespace SDUpdaterNS
 
     bool backup( uint8_t ota_num, sdu_fs_picker_t fsPicker );
     bool backup( NVS::PartitionDesc_t *src_nvs_part, sdu_fs_picker_t fsPicker );
+
+    bool backupFlash( fs::FS* dstFs, const char* dstName );
 
     struct sdu_fs_copy_t
     {

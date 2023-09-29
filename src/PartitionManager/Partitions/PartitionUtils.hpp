@@ -57,8 +57,11 @@ namespace SDUpdaterNS
     bool comparePartition(const esp_partition_t* src1, fs::File* src2, size_t length);
 
     bool hasFactory();
+    bool hasFactoryApp();
     bool isRunningFactory(); // checks if running partition is the factory partition
     bool saveSketchToFactory();
+    bool saveSketchToPartition( const esp_partition_t* dst_partition );
+    bool dumpFW( fs::FS *fs, const char* fw_name );
     bool partitionIsApp( const esp_partition_t *part );
     bool partitionIsOTA( const esp_partition_t *part );
     bool partitionIsFactory( const esp_partition_t *part );
@@ -67,9 +70,10 @@ namespace SDUpdaterNS
 
     const esp_partition_t* getPartition( uint8_t ota_num );
     const esp_partition_t* getFactoryPartition();
-    const esp_partition_t* getNextAvailPartition();
+    const esp_partition_t* getNextAvailPartition( esp_partition_type_t type=ESP_PARTITION_TYPE_APP, esp_partition_subtype_t filter_subtype=ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
 
     Partition_t findPartition( uint8_t ota_num );
+    Partition_t *findDupePartition( esp_image_metadata_t *meta, esp_partition_type_t type=ESP_PARTITION_TYPE_APP, esp_partition_subtype_t filter_subtype=ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
 
     esp_image_metadata_t getSketchMeta( const esp_partition_t* source_partition );
 

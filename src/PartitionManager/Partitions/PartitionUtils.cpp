@@ -256,6 +256,52 @@ namespace SDUpdaterNS
     }
 
 
+
+    bool dumpFW( fs::FS *fs, const char* fw_name )
+    {
+      const uint32_t fw_size = ESP.getFlashChipSize();//0x1000000; // 0x1000000 = 16MB
+      //ESP.getFlashChipSize();
+
+
+      uint8_t buffer[SPI_FLASH_SEC_SIZE];
+
+      size_t size_left = fw_size;
+      uint32_t page_addr = 0;
+      uint32_t total_written = 0;
+
+      auto file = fs->open( fw_name, "w" );
+      if( !file ) return false;
+
+      log_w("Start dumping (estimated 0x%06x bytes to read)", fw_size );
+
+      uint32_t progress = 0, progressOld = 0;
+
+      while( size_left ) {
+        #if ESP_IDF_VERSION_MAJOR < 5
+          esp_err_t ret = spi_flash_read(page_addr, buffer, SPI_FLASH_SEC_SIZE);
+        #else
+          esp_err_t ret = esp_flash_read(NULL, buffer, page_addr, SPI_FLASH_SEC_SIZE);
+        #endif
+        if( ret ) return false;
+        total_written += file.write( buffer, SPI_FLASH_SEC_SIZE );
+        size_left -= SPI_FLASH_SEC_SIZE;
+        page_addr += SPI_FLASH_SEC_SIZE;
+        if( SDUCfg.onProgress ) {
+          progress = 100 * page_addr / fw_size;
+          if (progressOld != progress) {
+            progressOld = progress;
+            SDUCfg.onProgress( (uint8_t)progress, 100 );
+          }
+        }
+      }
+
+      log_w("Dumping finished, wrote 0x%06x bytes", total_written);
+
+      file.close();
+      return fw_size == total_written;
+    }
+
+
     //***********************************************************************************************
     //                                B A C K T O F A C T O R Y                                     *
     //***********************************************************************************************
@@ -324,7 +370,18 @@ namespace SDUpdaterNS
     bool hasFactory()
     {
       factory_partition = getFactoryPartition();
-      return factory_partition!=nullptr;
+      if(!factory_partition) return false;
+      return true;
+    }
+
+
+    bool hasFactoryApp()
+    {
+      if( !hasFactory() ) return false;
+      auto meta = getSketchMeta( factory_partition );
+      digest_t digests = digest_t();
+      if( digests.isEmpty( meta.image_digest ) ) return false;
+      return true;
     }
 
 
@@ -334,6 +391,33 @@ namespace SDUpdaterNS
       if( !hasFactory() ) return false;
       return factory_partition==running_partition;
     }
+
+
+
+    bool saveSketchToPartition( const esp_partition_t* dst_partition )
+    {
+      if (!running_partition) {
+        log_e( "Can't fetch running partition info !!" );
+        return false;
+      }
+
+      size_t sksize = ESP.getSketchSize();
+
+      if (!comparePartition(running_partition, dst_partition, sksize)) {
+        if( copyPartition( dst_partition, running_partition, sksize) ) {
+          log_d("Sketch successfully propagated to destination partition");
+          return true;
+        } else {
+          log_e("Sketch propagation to destination partition failed");
+          return false;
+        }
+      } else {
+        log_i("Current sketch and destination partition already match");
+        return true;
+      }
+      return false;
+    }
+
 
 
     bool saveSketchToFactory()
@@ -405,6 +489,23 @@ namespace SDUpdaterNS
     }
 
 
+    Partition_t* findDupePartition( esp_image_metadata_t *meta, esp_partition_type_t type, esp_partition_subtype_t filter_subtype )
+    {
+      if( Partitions.size()==0 ) {
+        scan();
+      }
+      digest_t digests = digest_t();
+      for( int i=0; i<Partitions.size(); i++ ) {
+        if( Partitions[i].part.type==type
+         && Partitions[i].part.subtype!=filter_subtype
+         && digests.match( meta->image_digest, Partitions[i].meta.image_digest ) ) {
+          return &Partitions[i];
+        }
+      }
+      return nullptr;
+    }
+
+
     bool bootPartition( uint8_t ota_num )
     {
       const esp_partition_t* part = getPartition( ota_num );
@@ -454,9 +555,14 @@ namespace SDUpdaterNS
     }
 
 
-    const esp_partition_t* getNextAvailPartition()
+    const esp_partition_t* getNextAvailPartition(esp_partition_type_t type, esp_partition_subtype_t filter_subtype)
     {
+      if( Partitions.size()==0 ) {
+        scan();
+      }
       for( int i=0; i<Partitions.size(); i++ ) {
+        if( Partitions[i].part.type !=type ) continue;
+        if( Partitions[i].part.subtype ==filter_subtype ) continue;
         if( isEmpty( &Partitions[i] ) ) {
           return &Partitions[i].part;
         }
@@ -482,6 +588,9 @@ namespace SDUpdaterNS
 
     void scan()
     {
+      if( Partitions.size()>0 ) {
+        Partitions.clear(); // reset last scan results
+      }
       esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
       while(pi != NULL) {
         const esp_partition_t* part = esp_partition_get(pi);

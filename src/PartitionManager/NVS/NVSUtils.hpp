@@ -15,14 +15,21 @@
 
 #include "../Partitions/PartitionUtils.hpp"
 
-#define SDU_PARTITION_NS "sdu"
-#define SDU_PARTITION_KEY "partitions"
 
 namespace SDUpdaterNS
 {
 
   namespace NVS
   {
+
+    // NVS namespace/key for virtual partitions array (may hold fw-menu partition)
+    constexpr const char* PARTITION_NS  = "sdu";
+    constexpr const char* PARTITION_KEY = "partitions";
+    // NVS namespace/keys for sd-menu partition (blob digest + size)
+    constexpr const char* MENU_PREF_NS  = "sd-menu";
+    constexpr const char* DIGEST_KEY    = "digest";
+    constexpr const char* MENUSIZE_KEY  = "menusize";
+
 
     // NVS representation of flash partition
     struct __attribute__((__packed__)) PartitionDesc_t
@@ -35,14 +42,21 @@ namespace SDUpdaterNS
     };
 
     extern nvs_handle_t handle;
-    extern std::vector<NVS::PartitionDesc_t> Partitions; // filled by NVS
+    extern std::vector<PartitionDesc_t> Partitions; // filled by NVS
 
     PartitionDesc_t* findPartition( uint8_t ota_num );
+    PartitionDesc_t* findPartition( const char* name );
     PartitionDesc_t* findPartition( Flash::Partition_t* flash_partition );
 
-    int         erase();
-    bool        getPartitions();
-    bool        parsePartitions( const char* blob, size_t size );
+    int  erase();
+    bool getPartitions();
+    void deletePartitions();
+    bool savePartitions();
+    bool parsePartitions( const char* blob, size_t size );
+
+    // save menu.bin meta info in NVS
+    bool saveMenuPrefs();
+    bool getMenuPrefs( uint32_t *menuSize, uint8_t *image_digest );
 
   };
 

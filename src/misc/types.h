@@ -117,6 +117,7 @@ namespace SDUpdaterNS
       BtnXPressCb cb; // external callback, returns true when the button was pressed
       bool changed() { return cb ? cb() : false; } // trigger checker
       SDUBtnActions val; // button value to return when action is triggered
+      bool enabled;
     };
 
     // abstract filesystem config

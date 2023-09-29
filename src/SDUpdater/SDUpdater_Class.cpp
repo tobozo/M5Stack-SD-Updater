@@ -30,6 +30,7 @@ namespace SDUpdaterNS
 
   bool SDUpdater::saveSketchToFS( SDUpdater* sdu, fs::FS &fs, const char* binfilename, bool skipIfExists )
   {
+    assert(sdu);
     // no rollback possible, start filesystem
     if( !_fsBegin( sdu, fs ) ) {
       const char *msg[] = {"No Filesystem mounted.","Can't check firmware."};
@@ -72,19 +73,8 @@ namespace SDUpdaterNS
   // rollback helper, save menu.bin meta info in NVS
   void SDUpdater::updateNVS()
   {
-    const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
-    if (!update_partition) {
-      log_d( "Canceling NVS Update as update partition is invalid" );
-      return;
-    }
-    esp_image_metadata_t nusketchMeta = Flash::getSketchMeta( update_partition );
-    uint32_t nuSize = nusketchMeta.image_len;
-    SDU_SERIAL.printf( "Updating menu.bin NVS size/digest after update: %d\n", nuSize );
-    Preferences preferences;
-    preferences.begin( "sd-menu", false );
-    preferences.putInt( "menusize", nuSize );
-    preferences.putBytes( "digest", nusketchMeta.image_digest, 32 );
-    preferences.end();
+    SDU_SERIAL.printf( "Updating NVS preferences with current partition's size/digest" );
+    NVS::saveMenuPrefs();
   }
 
 
@@ -158,12 +148,10 @@ namespace SDUpdaterNS
   {
     if( cfg->rollBackToFactory ) return; // SDU settings: factory supersedes rollback
     // if NVS has info about MENU_BIN flash size and digest, try rollback()
-    Preferences preferences;
-    preferences.begin( "sd-menu" );
-    uint32_t menuSize = preferences.getInt( "menusize", 0 );
+    uint32_t menuSize;// = preferences.getInt( "menusize", 0 );
     uint8_t image_digest[32];
-    preferences.getBytes( "digest", image_digest, 32 );
-    preferences.end();
+    NVS::getMenuPrefs( &menuSize, image_digest );
+
     SDU_SERIAL.println( "Trying rollback" );
 
     if( menuSize == 0 ) {
@@ -220,27 +208,22 @@ namespace SDUpdaterNS
   }
 
 
-  void SDUpdater::checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay )
+  void SDUpdater::checkUpdaterHeadless( fs::FS &fs, String fileName )
   {
     cfg->setFS( &fs );
-    checkSDUpdaterHeadless( fileName, waitdelay );
+    checkUpdaterHeadless( fileName );
   }
 
 
-  void SDUpdater::checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay )
+  void SDUpdater::checkUpdaterUI( fs::FS &fs, String fileName )
   {
     cfg->setFS( &fs );
-    checkSDUpdaterUI( fileName, waitdelay );
+    checkUpdaterUI( fileName );
   }
 
 
   void SDUpdater::updateFromFS( const String& fileName )
   {
-    if( cfg->fs == nullptr ) {
-      const char *msg[] = {"No valid filesystem", "selected!"};
-      _error( msg, 2 );
-      return;
-    }
     SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
     #ifdef M5_LIB_VERSION
       SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] M5Stack Core version: %s\n", (char*)M5_LIB_VERSION );
@@ -248,7 +231,14 @@ namespace SDUpdaterNS
     SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
     SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
 
-    // try rollback first, it's faster!
+    // try from flash, same as rollback but found from NVS partition table
+    if( fileName!="" && Flash::hasFactoryApp() ) {
+      auto part = NVS::findPartition( fileName.c_str() );
+      if( part ) {
+        Flash::bootPartition( part->ota_num );
+      }
+    }
+    // try rollback
     if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
       if( cfg->use_rollback ) {
         tryRollback( fileName );
@@ -257,7 +247,13 @@ namespace SDUpdaterNS
         log_d("Skipping rollback per config");
       }
     }
-    // no rollback possible, start filesystem
+    // no bootPartition()/rollback() possible, can't go any further without filesystem
+    if( cfg->fs == nullptr ) {
+      const char *msg[] = {"No valid filesystem", "selected!"};
+      _error( msg, 2 );
+      return;
+    }
+    // start filesystem
     if( !_fsBegin(this) ) {
       const char* msg[] = {"No filesystem mounted.", "Can't load firmware."};
       _error( msg, 2 );
@@ -266,19 +262,8 @@ namespace SDUpdaterNS
 
     File updateBin = cfg->fs->open( fileName );
     if ( updateBin ) {
-
-      if( updateBin.isDirectory() ) {
-        updateBin.close();
-        _error( fileName + " is a directory" );
-        return;
-      }
-
-      size_t updateSize = updateBin.size();
-
-      updateFromStream( updateBin, updateSize, fileName );
-
+      updateFromStream( updateBin, updateBin.size(), fileName );
       updateBin.close();
-
     } else {
       const char* msg[] = {"Could not reach", fileName.c_str(), "Can't load firmware."};
       _error( msg, 3 );
@@ -286,52 +271,26 @@ namespace SDUpdaterNS
   }
 
 
-  // check given FS for valid menu.bin and perform update if available
-  void SDUpdater::checkSDUpdaterHeadless( String fileName, unsigned long waitdelay )
+  void SDUpdater::checkUpdaterHeadless( String fileName )
   {
-    if( waitdelay == 0 ) {
-      waitdelay = 100; // at least give some time for the serial buffer to fill
+    if( SDUCfg.waitdelay == 0 ) {
+      SDUCfg.waitdelay = 100; // at least give some time for the serial buffer to fill
     }
-    SDU_SERIAL.printf("SDUpdater: you have %d milliseconds to send 'update', 'rollback', 'skip' or 'save' command\n", (int)waitdelay);
+    SDU_SERIAL.printf("SDUpdater: you have %d milliseconds to send 'update', 'rollback', 'skip' or 'save' command\n", (int)SDUCfg.waitdelay);
 
-    if( cfg->onWaitForAction ) {
-      int ret = cfg->onWaitForAction( nullptr, nullptr, nullptr, waitdelay );
-      if ( ret == ConfigManager::SDU_BTNA_MENU ) {
-        SDU_SERIAL.printf( SDU_LOAD_TPL, fileName.c_str() );
-        updateFromFS( fileName );
-        ESP.restart();
-      }
-      if( cfg->binFileName != nullptr ) {
-        log_d("Checking if %s needs saving", cfg->binFileName );
-        saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != ConfigManager::SDU_BTNC_SAVE );
-      }
-    } else {
-      _error( "Missing onWaitForAction!" );
-    }
+    if( !checkUpdaterCommon( fileName ) ) return;
 
     SDU_SERIAL.println("Delay expired, no SD-Update will occur");
   }
 
 
-  void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
+  void SDUpdater::checkUpdaterUI( String fileName )
   {
-    if( cfg->fs == nullptr ) {
-      const char* msg[] = {"No valid filesystem", "selected!", "Cannot load", fileName.c_str()};
-      _error( msg, 4 );
-      return;
-    }
-    bool draw = SDUHasTouch;
-    bool isRollBack = (fileName=="");
+    bool draw = SDUHasTouch || (SDUCfg.waitdelay>100 && !SDUHasTouch); // note: draw forced if waitdelay>100
 
-    if( !draw ) { // default touch button support
-      if( waitdelay <= 100 ) {
-        // no UI draw, but still attempt to detect "button is pressed on boot"
-        // round up to 100ms for button debounce
-        waitdelay = 100;
-      } else {
-        // only force draw if waitdelay > 100
-        draw = true;
-      }
+    if( SDUCfg.waitdelay <= 100 ) {
+      draw = false;    // 100ms delay will just look like a blink, cancel UI draw
+      SDUCfg.waitdelay = 100; // button press/touch on boot still needs "blind" detection, round up to 100ms for debounce
     }
 
     if( draw ) { // bring up the UI
@@ -339,15 +298,30 @@ namespace SDUpdaterNS
       if( cfg->onSplashPage) cfg->onSplashPage( BTN_HINT_MSG );
     }
 
+    checkUpdaterCommon( fileName );
+
+    if( draw ) {
+      // reset text styles to avoid messing with the overlayed application
+      if( cfg->onAfter ) cfg->onAfter();
+    }
+  }
+
+
+  // common logic to checkUpdaterUI() and checkUpdaterHeadless()
+  bool SDUpdater::checkUpdaterCommon( String fileName )
+  {
+    bool hasFileName = (fileName!="");
+
     if( cfg->onWaitForAction ) {
-      [[maybe_unused]] unsigned long startwait = millis();
-      int ret = cfg->onWaitForAction( isRollBack ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, (char*)cfg->labelSave, waitdelay );
-      [[maybe_unused]] unsigned long actualwaitdelay = millis()-startwait;
+      int action = cfg->onWaitForAction( !hasFileName ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, (char*)cfg->labelSave, SDUCfg.waitdelay );
 
-      log_v("Action '%d' was triggered after %d ms (waidelay=%d)", ret, actualwaitdelay, waitdelay );
-
-      if ( ret == ConfigManager::SDU_BTNA_MENU ) {
-        if( isRollBack == false ) {
+      if ( action == ConfigManager::SDU_BTNA_MENU ) { // all BtnA successful actions trigger a restart
+        if( hasFileName ) {
+          if( cfg->fs == nullptr ) {
+            const char* msg[] = {"No valid filesystem", "selected!", "Cannot load", fileName.c_str()};
+            _error( msg, 4 );
+            return false;
+          }
           SDU_SERIAL.printf( SDU_LOAD_TPL, fileName.c_str() );
           updateFromFS( fileName );
           ESP.restart();
@@ -355,18 +329,23 @@ namespace SDUpdaterNS
           if( cfg->rollBackToFactory ) Flash::loadFactory();
           doRollBack( SDU_ROLLBACK_MSG );
         }
+        return false; // rollback failed
+      } else if( cfg->binFileName != nullptr ) {
+        if( cfg->fs != nullptr ) {
+          log_v("Checking if %s needs saving", cfg->binFileName );
+          saveSketchToFS( *cfg->fs,  cfg->binFileName, action != ConfigManager::SDU_BTNC_SAVE );
+        } else if( cfg->rollBackToFactory ) {
+          return PartitionManager::migrateSketch( fileName.c_str() );
+        } else if( action == ConfigManager::SDU_BTNC_SAVE ) {
+          const char* msg[] = {"No valid filesystem", "selected!", "Cannot save", fileName.c_str()};
+          _error( msg, 4 );
+          return false;
+        }
       }
-      if( cfg->binFileName != nullptr ) {
-        log_d("Checking if %s needs saving", cfg->binFileName );
-        saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != ConfigManager::SDU_BTNC_SAVE );
-      }
+      return true;
     } else {
       _error( "Missing onWaitForAction!" );
-    }
-
-    if( draw ) {
-      // reset text styles to avoid messing with the overlayed application
-      if( cfg->onAfter ) cfg->onAfter();
+      return false;
     }
   }
 
