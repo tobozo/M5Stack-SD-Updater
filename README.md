@@ -480,7 +480,85 @@ void setup()
 - Serial message `[ERROR] No filesystem selected` or `[ERROR] No valid filesystem selected`: try `SDUCfg.setFS( &SD )` prior to calling the SDUpdater.
 
 
-<br />
+<br /><br />
+
+
+
+🏭 Factory Partition
+--------------------
+
+Abuse the OTA partition scheme and store up to 5 applications on the flash, plus the firmware loader.
+
+⚠️ This scenario uses a special [firmware loader](https://github.com/tobozo/M5Stack-SD-Updater/tree/1.2.8/examples/M5Stack-FW-Menu) `M5Stack-FW-Menu`, a custom partition scheme, and a different integration of M5Stack-SD-Updater in the loadable applications.
+
+Although it can work without the SD Card, `M5Stack-FW-Menu` can still act as a low profile replacement for the classic SD Card `/menu.bin`, and load binaries from the SD Card or other supported filesystems.
+
+
+#### Requirements:
+
+- Flash size must be 8MB or 16MB
+- custom partitions.csv must have more than 2 OTA partitions followed by one factory partition (see annotated example below)
+- loadable applications and firmware loader must share the same custom partitions scheme at compilation
+- `SDUCfg.rollBackToFactory = true;` must be set in all loadable applications (see `Detect factory support`)
+
+#### Custom partition scheme annotated example:
+
+```csv
+# 6 Apps + Factory
+# Name,   Type, SubType,    Offset,     Size
+nvs,      data, nvs,        0x9000,   0x5000
+otadata,  data, ota,        0xe000,   0x2000
+ota_0,    0,    ota_0,     0x10000, 0x200000  ,<< Default partition for flashing (UART, 2MB)
+ota_1,    0,    ota_1,    0x210000, 0x200000  ,<< Default partition for flashing (OTA, 2MB)
+ota_2,    0,    ota_2,    0x410000, 0x200000  ,<< Application (2MB)
+ota_3,    0,    ota_3,    0x610000, 0x200000  ,<< Application (2MB)
+ota_4,    0,    ota_4,    0x810000, 0x200000  ,<< Application (2MB)
+ota_5,    0,    ota_5,    0xA10000, 0x200000  ,<< Application (2MB)
+firmware, app,  factory,  0xC10000, 0x0F0000  ,<< Factory partition holding the firmware menu (960KB)
+spiffs,   data, spiffs,   0xD00000, 0x2F0000  ,<< SPIFFS (2MB)
+coredump, data, coredump, 0xFF0000,  0x10000
+```
+
+#### Quick Start:
+
+- Set a custom partition scheme according to the requirements (see annotated example above)
+- Compile and flash the [M5Stack-FW-Menu]https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-FW-Menu)
+- On first run the `M5Stack-FW-Menu` firmware loader will automatically populate the factory partition and restart from there
+
+Then for every other app you want to store on the flash:
+
+- Set the same custom partition scheme as `M5Stack-FW-Menu`
+- Add `SDUCfg.rollBackToFactory = true;` and second argument must be empty e.g. `checkSDUpdater( SD, "", 5000, TFCARD_CS_PIN )`
+- Compile your app
+- Copy the binary to the SD Card (e.g. copy the bin manually or use the `Save SD` option from the app's SD-Updater lobby)
+- Use `FW Menu` option from the app's SD-Updater lobby (note: **it should load the firmware loader, not the /menu.bin from the SD Card**)
+- Use the firmware loader menu `Manage Partitions/Add Firmware` to copy the recently added app to one of the available slots
+
+Note: the firmware loader can copy applications from any filesystem (SD, SD_MMC, SPIFFS, LittleFS, FFat).
+
+
+#### Detect factory support
+
+```cpp
+#if M5_SD_UPDATER_VERSION_INT >= VERSION_VAL(1, 2, 8)
+// New SD Updater support, requires version >=1.2.8 of https://github.com/tobozo/M5Stack-SD-Updater/
+if( Flash::hasFactoryApp() ) {
+  SDUCfg.rollBackToFactory = true;
+  SDUCfg.setLabelMenu("FW Menu");
+  SDUCfg.setLabelRollback("Save FW");
+  checkFWUpdater( 5000 );
+} else
+#endif
+{
+  checkSDUpdater( SD, MENU_BIN, 5000, TFCARD_CS_PIN );
+}
+```
+
+
+
+
+
+
 
 🛣 ROADMAP:
 ----------
