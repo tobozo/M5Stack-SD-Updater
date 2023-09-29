@@ -129,7 +129,7 @@ jobs:
             sketch-names: M5Stack-SD-Menu.ino,M5Stack-FW-Menu.ino
             launcher-name: M5CoreS3-Launcher
             factory-name: M5CoreS3-FW-Launcher
-            required-libraries: "ESP32-Chimera-Core,LovyanGFX"
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,Button2"
 
 
       fail-fast: false
