@@ -72,6 +72,7 @@ namespace SDUpdaterNS
       SDU_UI::Theme_t *theme = nullptr; // buttons theme
       TriggerSource::triggerMap_t *triggers = nullptr;
       int TFCardCsPin = -1;
+      unsigned long waitdelay = 5000;
       //bool load_defaults = true;
       bool use_rollback = true;
       bool rollBackToFactory = false;
@@ -85,9 +86,9 @@ namespace SDUpdaterNS
 
       BtnXAction Buttons[3]     =
       {
-        { nullptr, SDU_BTNA_MENU },
-        { nullptr, SDU_BTNB_SKIP },
-        { nullptr, SDU_BTNC_SAVE }
+        { nullptr, SDU_BTNA_MENU, true },
+        { nullptr, SDU_BTNB_SKIP, true },
+        { nullptr, SDU_BTNC_SAVE, true }
       };
 
       BtnPollCb         buttonsUpdate    = nullptr;
@@ -107,6 +108,7 @@ namespace SDUpdaterNS
       void buttonsPoll();
 
       void setCSPin( const int param );
+      void setWaitDelay( unsigned long waitdelay );
       void setFS( fs::FS *param );
       void setButtonsTheme( SDU_UI::Theme_t *_theme );
       void setProgressCb( onProgressCb cb );
