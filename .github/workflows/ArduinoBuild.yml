@@ -67,9 +67,12 @@ jobs:
           #- sdk-version: 2.0.1
           #- sdk-version: 2.0.5
           #- sdk-version: 2.0.6
-          - sdk-version: 2.0.7
-          - sdk-version: 2.0.8
-          - sdk-version: 2.0.9
+          # - sdk-version: 2.0.7
+          # - sdk-version: 2.0.8
+          # - sdk-version: 2.0.9
+          - sdk-version: 2.0.11
+          - sdk-version: 2.0.12
+          - sdk-version: 2.0.13
 
           # library health test sketches
           - { matrix-context: M5Core2-test,   arduino-board: m5stack-core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
@@ -111,11 +114,20 @@ jobs:
             #sketch-names: TTGO-test.ino
             #required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Atom
-            sdk-version: 2.0.8
+            sdk-version: 2.0.13
             arduino-board: m5stack-atom
             sketch-names: M5Stack-SD-Menu.ino
             launcher-name: M5Atom-Launcher
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,Button2"
+
+          - matrix-context: M5CoreS3
+            sdk-version: 2.0.13
+            arduino-board: m5stack-cores3
+            sketch-names: M5Stack-SD-Menu.ino,M5Stack-FW-Menu.ino
+            launcher-name: M5CoreS3-Launcher
+            factory-name: M5CoreS3-FW-Launcher
+            required-libraries: "ESP32-Chimera-Core,LovyanGFX"
+
 
       fail-fast: false
 
@@ -144,6 +156,7 @@ jobs:
         run: |
           cp examples/M5Stack-SD-Menu/build/M5Stack-SD-Menu.ino.bin examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}-${{ matrix.sdk-version }}.bin
           FILE=examples/AppStore/build/AppStore.ino.bin && [ -f "$FILE" ] && cp $FILE examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin || true
+          FILE=examples/M5Stack-FW-Menu/build/M5Stack-FW-Menu.ino.bin && [ -f "$FILE" ] && cp $FILE examples/M5Stack-SD-Menu/build/${{ matrix.factory-name }}-${{ matrix.sdk-version }}.bin || true
       - name: Upload artifact ${{ matrix.matrix-context }}
         uses: actions/upload-artifact@v3
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
@@ -152,6 +165,7 @@ jobs:
           path: |
             examples/M5Stack-SD-Menu/build/${{ matrix.launcher-name }}-${{ matrix.sdk-version }}.bin
             examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin
+            examples/M5Stack-SD-Menu/build/${{ matrix.factory-name  }}-${{ matrix.sdk-version }}.bin
 
   post_build:
     name: Gather Artefacts
