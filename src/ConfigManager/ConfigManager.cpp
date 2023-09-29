@@ -24,6 +24,7 @@ namespace SDUpdaterNS
 
     void config_sdu_t::setDisplay( void* ptr )                    { display=ptr; };
     void config_sdu_t::setCSPin( const int param )                { TFCardCsPin = param; }
+    void config_sdu_t::setWaitDelay( unsigned long delay )        { waitdelay = delay; }
     void config_sdu_t::setFS( fs::FS *param )                     { fs = param; }
     void config_sdu_t::setButtonsTheme( SDU_UI::Theme_t *_theme ) { theme = _theme; }
     void config_sdu_t::setProgressCb( onProgressCb cb )           { onProgress = cb; }
