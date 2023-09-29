@@ -10,17 +10,13 @@
 #include <FFat.h>
 #include <LittleFS.h>
 //#include <ESP32-targz.h>
-#include <Preferences.h> // lame but somehow reliable: store partitions info in NVS
 
-
-#define SDU_USE_FACTORY
-
-#include <M5Unified.h>
+//#include <M5Unified.h>
+#include <ESP32-Chimera-Core.h>
 #include <M5StackUpdater.h>
 
 #include <rom/rtc.h>
 #define resetReason (int)rtc_get_reset_reason(0)
-
 
 
 enum M5Btns_t
@@ -113,6 +109,7 @@ namespace AppTheme
 // ersatz for M5.update(), modified to also work with CoreS3's touch
 void HIDUpdate()
 {
+  #if defined __M5UNIFIED_HPP__
   if( M5.getBoard()==lgfx::boards::board_M5StackCoreS3 && M5.Touch.isEnabled() ) {
     // M5Unified doesn't handle Touch->M5.BtnX translation for CoreS3, give it a little help
     uint8_t edge = 220;
@@ -139,7 +136,9 @@ void HIDUpdate()
     M5.BtnA.setRawState(ms, btn_bits & 1);
     M5.BtnB.setRawState(ms, btn_bits & 2);
     M5.BtnC.setRawState(ms, btn_bits & 4);
-  } else { // trust M5Unified
+  } else
+  #endif
+  { // trust M5Unified
     M5.update();
   }
 }
@@ -642,7 +641,9 @@ void preferencesPicker()
   labels_vec.push_back({"Change Bightness", nullptr});
   labels_vec.push_back({"Set snooze delay", nullptr});
   labels_vec.push_back({"Restart", nullptr});
-  labels_vec.push_back({"Power Off", nullptr});
+  #if defined __M5UNIFIED_HPP__
+    labels_vec.push_back({"Power Off", nullptr});
+  #endif
 
   while(1) {
     drawSDUSplashElement( "Misc Tools", M5.Lcd.width()/2, 0, &TitleStyle );
@@ -654,7 +655,9 @@ void preferencesPicker()
         case 1: brightnessUI(); break;
         case 2: snoozeUI(); break;
         case 3: ESP.restart() ; break;
-        case 4: M5.Power.powerOff(); break;
+        #if defined __M5UNIFIED_HPP__
+          case 4: M5.Power.powerOff(); break;
+        #endif
         default: log_d("Leaving Tools"); return; break;
       }
     }
@@ -672,8 +675,9 @@ void launcherPicker()
   labels_vec.push_back({"..", nullptr});
   labels_vec.push_back({"Load Firmware (Flash)", nullptr});
   labels_vec.push_back({"Load Firmware (Filesystem)", nullptr});
-  labels_vec.push_back({"Manage Partitions (this is a super long, scrollable title)", nullptr});
+  labels_vec.push_back({"Manage Partitions", nullptr});
   labels_vec.push_back({"Tools", nullptr});
+  labels_vec.push_back({"Full Flash Backup", nullptr});
   if( Update.canRollBack() ) {
     labels_vec.push_back({"Rollback", nullptr});
   }
@@ -688,7 +692,13 @@ void launcherPicker()
         case 2: menuItemLoadFS(); break;
         case 3: toolsPicker(); break;
         case 4: preferencesPicker(); break;
-        case 5: Update.rollBack(); ESP.restart(); break;
+        case 5: {
+          SDUpdater sdUpdater;
+          if( ConfigManager::hasFS( &sdUpdater, SD ) ) {
+            PartitionManager::backupFlash( &SD, "/full_dump.fw" );
+          }
+        } break;
+        case 6: Update.rollBack(); ESP.restart(); break;
         default: log_d("Leaving launcherPicker"); return; break;
       }
     }
@@ -697,7 +707,7 @@ void launcherPicker()
 
 
 // decorator for serial output
-void printFlasPartition( Flash::Partition_t* sdu_partition )
+void printFlashPartition( Flash::Partition_t* sdu_partition )
 {
   Flash::digest_t digests = Flash::digest_t();
 
@@ -732,7 +742,7 @@ void lsFlashPartitions()
   Serial.println("Partition  Type   Subtype    Address   PartSize   ImgSize    Info    Digest");
   Serial.println("---------+------+---------+----------+----------+---------+--------+--------");
   for( int i=0; i<Flash::Partitions.size(); i++ ) {
-    printFlasPartition( &Flash::Partitions[i] );
+    printFlashPartition( &Flash::Partitions[i] );
   }
 }
 
@@ -792,6 +802,43 @@ bool checkFactoryStickyPartition()
 
 
 
+
+bool checkOTAStickyPartition()
+{
+  if( Flash::Partitions.size() == 0 ) {
+    log_e("No flash partitions found");
+    return false;
+  }
+
+  const esp_partition_t* last_partition = esp_ota_get_next_update_partition(NULL);
+
+  if( !last_partition ) return false;
+
+  const esp_partition_t* next_partition = Flash::getNextAvailPartition( last_partition->type, last_partition->subtype );
+
+  bool check_for_migration = false;
+  Flash::digest_t digests = Flash::digest_t();
+
+  if( last_partition && next_partition ) {
+    Flash::Partition_t fPartLast = { *last_partition, Flash::getSketchMeta( last_partition ) };
+    Flash::Partition_t fPartNext = { *next_partition, Flash::getSketchMeta( next_partition ) };
+    if( ! digests.match(fPartLast.meta.image_digest, fPartNext.meta.image_digest) ) {
+      printFlashPartition( &fPartLast );
+      printFlashPartition( &fPartNext );
+      check_for_migration = true;
+    }
+  }
+
+  return check_for_migration;
+
+}
+
+
+
+
+
+
+
 void setup()
 {
   using namespace AppTheme;
@@ -811,6 +858,8 @@ void setup()
   SDUCfg.setButtonDrawCb( drawSDUPushButton );
   SDUCfg.setButtonsTheme( &Theme );
 
+  SDU_UI::resetScroll();
+
   SDUpdater::_message("Booting factory...");
 
   if( ! checkFactoryStickyPartition() ) {
@@ -821,6 +870,9 @@ void setup()
     SDUpdater::_error("Halting"); // TODO: load SDUpdater lobby ?
     while(1);
   }
+
+  SDUpdater::_message("Checking for OTA migration...");
+  checkOTAStickyPartition();
 
   SDUpdater::_message("Enumerating NVS partition...");
   lsNVSpartitions();
