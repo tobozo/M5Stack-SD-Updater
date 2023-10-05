@@ -25,7 +25,6 @@ jobs:
     env:
       pio-envs: (lgfx m5stick-c m5stack-core-esp32 m5stack-core2 m5unified s3box m5stack-atom m5stack-cores3 sdfat-test)
       max-versions: 5
-      #pio-envs: {["lgfx", "m5stick-c", "m5stack-core-esp32", "m5stack-core2", "m5unified", "s3box", "m5stack-atom", "m5stack-cores3", "sdfat-test"]}
     outputs:
       matrix: ${{steps.set-matrix.outputs.matrix}}
     steps:
@@ -89,7 +88,6 @@ jobs:
         run: |
           cd ${{ env.PROJECT_DIR }}
           export pio_ver=${{ matrix.platform-version }}
-          # export pio_ver=${{ matrix.platform-version }}
           export pio_env_suffix="${pio_ver//./_}"
           [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
           pio pkg install -e ${{ matrix.pio-env }}-$pio_env_suffix --no-save --library file://$(realpath ../../../)
