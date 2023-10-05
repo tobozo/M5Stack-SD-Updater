@@ -23,8 +23,8 @@ jobs:
     name: Version planner
     runs-on: ubuntu-latest
     env:
-      piocontexts: ('lgfx' 'm5stick-c' 'm5stack-core-esp32' 'm5stack-core2' 'm5unified' 's3box' 'm5stack-atom' 'm5stack-cores3' 'sdfat-test')
-      pio-envs: {["lgfx", "m5stick-c", "m5stack-core-esp32", "m5stack-core2", "m5unified", "s3box", "m5stack-atom", "m5stack-cores3", "sdfat-test"]}
+      pio-envs: (lgfx m5stick-c m5stack-core-esp32 m5stack-core2 m5unified s3box m5stack-atom m5stack-cores3 sdfat-test)
+      #pio-envs: {["lgfx", "m5stick-c", "m5stack-core-esp32", "m5stack-core2", "m5unified", "s3box", "m5stack-atom", "m5stack-cores3", "sdfat-test"]}
     outputs:
       matrix: ${{steps.set-matrix.outputs.matrix}}
     steps:
@@ -37,8 +37,8 @@ jobs:
         last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= 5"`)
         # convert to json array
         versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .`
-        # pc_arr=${{env.piocontexts}}
-        pc_arr=${{ toJson( env.pio-envs ) }}
+        pc_arr=${{env.pio-envs}}
+        # pc_arr=${{ toJson( env.pio-envs ) }}
 
         # pc_arr=('lgfx' 'm5stick-c' 'm5stack-core-esp32' 'm5stack-core2' 'm5unified' 's3box' 'm5stack-atom' 'm5stack-cores3' 'sdfat-test')
         pc_json_arr=`printf '%s\n' "${pc_arr[@]}" | jq -R . | jq -s .`
