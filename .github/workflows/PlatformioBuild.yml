@@ -48,11 +48,10 @@ jobs:
 
         content=`printf '{"piocontext":%s,"platform_version":%s,"PROJECT_DIR":"%s","BRANCH_NAME":"%s"}' "$pc_json_arr" "$versions_json" "${{env.PROJECT_DIR}}" "${{env.PROJECT_DIR}}"`
 
-        # content='${{ toJson(env) }}'    # convert env vars to json
         echo $content
 
         exit 1
-
+        content='${{ toJson(env) }}'    # convert env vars to json
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
