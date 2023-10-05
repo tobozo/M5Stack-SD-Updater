@@ -46,7 +46,7 @@ jobs:
         pc_arr=${{env.piocontexts}}
         pc_json_arr=`printf '%s\n' "${pc_arr[@]}" | jq -R . | jq -s .`
 
-        content=`printf '{"piocontext":%s,"platform_version":%s}' "$pc_json_arr" "$versions_json"`
+        content=`printf '{"piocontext":%s,"platform_version":%s,"PROJECT_DIR":"%s","BRANCH_NAME":"%s"}' "$pc_json_arr" "$versions_json" "${{env.PROJECT_DIR}}" "${{env.PROJECT_DIR}}"`
 
         # content='${{ toJson(env) }}'    # convert env vars to json
         echo $content
