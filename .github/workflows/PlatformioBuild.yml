@@ -31,10 +31,10 @@ jobs:
     - name: "Fetch arduino cores versions list"
       id: set-env
       run: |
-        #export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
-        #export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
-        #echo "platform_version=(\"${VERSIONS_REL[0]}\" \"${VERSIONS_REL[1]}\" \"${VERSIONS_REL[2]}\" \"${VERSIONS_REL[3]}\" \"${VERSIONS_REL[4]}\")" >> $GITHUB_ENV
-        #platform_version='{"${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[3]}", "${VERSIONS_REL[4]}"}'
+        # export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
+        # export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
+        # echo "platform_version=(\"${VERSIONS_REL[0]}\" \"${VERSIONS_REL[1]}\" \"${VERSIONS_REL[2]}\" \"${VERSIONS_REL[3]}\" \"${VERSIONS_REL[4]}\")" >> $GITHUB_ENV
+        # platform_version='{"${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[3]}", "${VERSIONS_REL[4]}"}'
 
         json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"`
 
@@ -46,23 +46,9 @@ jobs:
         pc_arr=${{env.piocontexts}}
         pc_json_arr=`printf '%s\n' "${pc_arr[@]}" | jq -R . | jq -s .`
 
-        content=`printf '{"piocontext":%s,"versions_obj":%s}' "$pc_json_arr" "$versions_json"`
+        content=`printf '{"piocontext":%s,"platform_version":%s}' "$pc_json_arr" "$versions_json"`
 
-        echo "content: $content"
-
-        #content='${{ toJson(env) }}'    # convert env vars to json
-
-        exit 1
-
-
-
-
-
-
-        echo $versions_obj
-        exit 1
-
-        content='${{ toJson(env) }}'    # convert env vars to json
+        # content='${{ toJson(env) }}'    # convert env vars to json
         echo $content
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
