@@ -27,6 +27,8 @@ jobs:
       max-versions: 5
     outputs:
       matrix: ${{steps.set-matrix.outputs.matrix}}
+      project_dir: ${{steps.set-matrix.outputs.project_dir}}
+
     steps:
     - name: "Fetch arduino cores versions list"
       id: set-matrix
