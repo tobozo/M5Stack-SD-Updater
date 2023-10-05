@@ -25,50 +25,23 @@ jobs:
     outputs:
       env: ${{steps.set-env.outputs.env}}
     steps:
-     - name: "Fetch arduino cores versions list"
-        run: |
-          export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages.[0].platforms[].version' | awk 'NR <= 5'`)
-          export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages.[0].platforms[].version' | awk 'NR <= 5'`)
-
-          echo "latest=${VERSIONS_REL[0]}" >> $GITHUB_ENV
-          echo "prev_0=${VERSIONS_REL[1]}" >> $GITHUB_ENV
-          echo "prev_1=${VERSIONS_REL[2]}" >> $GITHUB_ENV
-          echo "prev_2=${VERSIONS_REL[3]}" >> $GITHUB_ENV
-          echo "prev_3=${VERSIONS_REL[4]}" >> $GITHUB_ENV
-    - id: set-env
+    - name: "Fetch arduino cores versions list"
+      id: set-env
       run: |
+        export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages.[0].platforms[].version' | awk 'NR <= 5'`)
+        export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages.[0].platforms[].version' | awk 'NR <= 5'`)
+
+        echo "latest=${VERSIONS_REL[0]}" >> $GITHUB_ENV
+        echo "prev_0=${VERSIONS_REL[1]}" >> $GITHUB_ENV
+        echo "prev_1=${VERSIONS_REL[2]}" >> $GITHUB_ENV
+        echo "prev_2=${VERSIONS_REL[3]}" >> $GITHUB_ENV
+        echo "prev_3=${VERSIONS_REL[4]}" >> $GITHUB_ENV
+
         content='${{ toJson(env) }}'    # convert env vars to json
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
         echo "env=${content}" >> $GITHUB_OUTPUT
-
-
-
-  # set_env:
-  #   name: "Set matrix env vars"
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     esp32_board_url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
-  #     esp8266_board_url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
-  #     Seeeduino_board_url: https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json
-  #     rp2040_board_url: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
-  #     rp2040_cli_args: "--build-property compiler.cpp.extra_flags=-DSKIP_I2C_TEST"
-  #     d1_mini_fbqn_extra: ":eesz=4M3M,xtal=80"
-  #
-  #   outputs:
-  #     env: ${{steps.set-env.outputs.env}}
-  #   steps:
-  #   # export at output variables, flatten as JSON
-  #   - id: set-env
-  #     run: |
-  #       content='${{ toJson(env) }}'    # convert env vars to json
-  #       content="${content//'%'/'%25'}" # escape percent entities
-  #       content="${content//$'\n'/''}"  # remove lf
-  #       content="${content//$'\r'/''}"  # remove cr
-  #       echo "env=${content}" >> $GITHUB_OUTPUT
-
-
 
   build:
     name: ${{ matrix.piocontext }}@${{ matrix.versioncontext }}
