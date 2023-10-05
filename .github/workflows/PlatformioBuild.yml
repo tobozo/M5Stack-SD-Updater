@@ -98,7 +98,8 @@ jobs:
           echo "[env:test]">>platformio.ini
           echo "extends = env:${{ matrix.pio-env }}">>platformio.ini
           echo "platform = https://github.com/tasmota/platform-espressif32">>platformio.ini
-          echo "platform_packages = framework-arduinoespressif32@https://github.com/espressif/arduino-esp32/releases/download/${pio_ver}/esp32-${pio_ver}.zip\n">>platformio.ini
+          echo "platform_packages = framework-arduinoespressif32@https://github.com/espressif/arduino-esp32/releases/download/${pio_ver}/esp32-${pio_ver}.zip">>platformio.ini
+          echo "">>platformio.ini
           cat platformio.ini
           # keep cache and dev_lib_deps.ini unless running from the master branch
           [[ "${{ needs.set_matrix.outputs.branch_name }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
