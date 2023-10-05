@@ -99,11 +99,11 @@ jobs:
 
       - name: Run PlatformIO
         run: |
-          cd ${{ env.PROJECT_DIR }}
+          cd ${{ needs.plan_version.outputs.env.PROJECT_DIR }}
           export pio_ver=${{ matrix.platform_version }}
           # export pio_ver=${{ matrix.platform-version }}
           export pio_env="${pio_ver//./_}"
-          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
+          [[ "${{ needs.plan_version.outputs.env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
           pio pkg install -e ${{ matrix.piocontext }}-$pio_env --no-save --library file://$(realpath ../../../)
           pio run -e ${{ matrix.piocontext }}-$pio_env
 
