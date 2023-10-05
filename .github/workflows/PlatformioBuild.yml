@@ -30,10 +30,21 @@ jobs:
     - name: "Fetch arduino cores versions list"
       id: set-env
       run: |
-        export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
-        export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
-        echo "platform_version=(\"${VERSIONS_REL[0]}\" \"${VERSIONS_REL[1]}\" \"${VERSIONS_REL[2]}\" \"${VERSIONS_REL[3]}\" \"${VERSIONS_REL[4]}\")" >> $GITHUB_ENV
+        #export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
+        #export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
+        #echo "platform_version=(\"${VERSIONS_REL[0]}\" \"${VERSIONS_REL[1]}\" \"${VERSIONS_REL[2]}\" \"${VERSIONS_REL[3]}\" \"${VERSIONS_REL[4]}\")" >> $GITHUB_ENV
+        #platform_version='{"${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[3]}", "${VERSIONS_REL[4]}"}'
+
+        json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"`
+        last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= 5"`) # bash array
+        versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .` # json string
+        versions_obj=`printf '{"platform_version":%s,%s}' "$versions_json" "${{ toJson(env) }}"`
+
+        echo $versions_obj
+        exit 1
+
         content='${{ toJson(env) }}'    # convert env vars to json
+        echo $content
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
