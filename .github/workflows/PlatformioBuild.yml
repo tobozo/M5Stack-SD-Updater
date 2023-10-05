@@ -50,6 +50,9 @@ jobs:
 
         # content='${{ toJson(env) }}'    # convert env vars to json
         echo $content
+
+        exit 1
+
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
