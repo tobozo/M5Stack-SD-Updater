@@ -41,6 +41,7 @@ jobs:
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
         echo "matrix=${content}" >> $GITHUB_OUTPUT
+        echo "project_dir=examples/Test/build_test" >> $GITHUB_OUTPUT
 
   build:
     name: ${{ matrix.pio-env }}@${{ matrix.platform-version }}
@@ -86,19 +87,14 @@ jobs:
 
       - name: Run PlatformIO
         run: |
-          cd ${{ env.PROJECT_DIR }}
+          cd ${{ needs.plan_version.outputs.project_dir }}
           export pio_ver=${{ matrix.platform-version }}
-
+          # create test profile
           echo "[env:test]">>platformio.ini
           echo "extends = env:${{ matrix.pio-env }}">>platformio.ini
           echo "platform = https://github.com/tasmota/platform-espressif32">>platformio.ini
           echo "platform_packages = framework-arduinoespressif32 @ https://github.com/espressif/arduino-esp32/releases/download/${pio_ver}/esp32-${pio_ver}.zip">>platformio.ini
-
           [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
           pio pkg install -e test --no-save --library file://$(realpath ../../../)
           pio run -e test
-
-          # export pio_env_suffix="${pio_ver//./_}"
-          # pio pkg install -e ${{ matrix.pio-env }}-$pio_env_suffix --no-save --library file://$(realpath ../../../)
-          # pio run -e ${{ matrix.pio-env }}-$pio_env_suffix
 
