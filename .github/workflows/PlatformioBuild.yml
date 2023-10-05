@@ -23,7 +23,8 @@ jobs:
     name: Version planner
     runs-on: ubuntu-latest
     env:
-      piocontext: ("lgfx" "m5stick-c" "m5stack-core-esp32" "m5stack-core2" "m5unified" "s3box" "m5stack-atom" "m5stack-cores3" "sdfat-test")
+      #piocontext: ("lgfx" "m5stick-c" "m5stack-core-esp32" "m5stack-core2" "m5unified" "s3box" "m5stack-atom" "m5stack-cores3" "sdfat-test")
+      piocontext: ["lgfx", "m5stick-c", "m5stack-core-esp32", "m5stack-core2", "m5unified", "s3box", "m5stack-atom", "m5stack-cores3", "sdfat-test"]
     outputs:
       env: ${{steps.set-env.outputs.env}}
     steps:
@@ -35,10 +36,12 @@ jobs:
         #echo "platform_version=(\"${VERSIONS_REL[0]}\" \"${VERSIONS_REL[1]}\" \"${VERSIONS_REL[2]}\" \"${VERSIONS_REL[3]}\" \"${VERSIONS_REL[4]}\")" >> $GITHUB_ENV
         #platform_version='{"${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[3]}", "${VERSIONS_REL[4]}"}'
 
+        content='${{ toJson(env) }}'    # convert env vars to json
+
         json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"`
         last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= 5"`) # bash array
         versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .` # json string
-        versions_obj=`printf '{"platform_version":%s,%s}' "$versions_json" "${{ toJson(env) }}"`
+        versions_obj=`printf '{"platform_version":%s,%s}' "$versions_json" "$content"`
 
         echo $versions_obj
         exit 1
