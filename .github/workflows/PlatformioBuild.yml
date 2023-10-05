@@ -31,30 +31,20 @@ jobs:
     - name: "Fetch arduino cores versions list"
       id: set-matrix
       run: |
-        # get esp32 packages list
-        json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"`
-        # fetch last 5 version, store in a bash array
-        last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= 5"`)
-        # convert to json array
-        versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .`
-        pc_arr=${{env.pio-envs}}
-        # pc_arr=${{ toJson( env.pio-envs ) }}
-
-        # pc_arr=('lgfx' 'm5stick-c' 'm5stack-core-esp32' 'm5stack-core2' 'm5unified' 's3box' 'm5stack-atom' 'm5stack-cores3' 'sdfat-test')
-        pc_json_arr=`printf '%s\n' "${pc_arr[@]}" | jq -R . | jq -s .`
-
-        content=`printf '{"piocontext":%s,"platform-version":%s}' "$pc_json_arr" "$versions_json"`
+        json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"` # get esp32 packages list
+        last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= 5"`) # fetch last 5 version, store in a bash array
+        versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .` # convert last versions to json array
+        pc_arr=${{env.pio-envs}} # get supported platformio env's
+        pc_json_arr=`printf '%s\n' "${pc_arr[@]}" | jq -R . | jq -s .` # convert to json array
+        content=`printf '{"pio-env":%s,"platform-version":%s}' "$pc_json_arr" "$versions_json"` # create the matrix array
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
         echo "matrix=${content}" >> $GITHUB_OUTPUT
 
-
-
   build:
-    name: ${{ matrix.piocontext }}@${{ matrix.platform-version }}
+    name: ${{ matrix.pio-env }}@${{ matrix.platform-version }}
     needs: plan_version
-    #env: ${{fromJSON(needs.plan_version.outputs.env)}}
     env:
       PROJECT_DIR: examples/Test/build_test
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
@@ -99,8 +89,8 @@ jobs:
           cd ${{ env.PROJECT_DIR }}
           export pio_ver=${{ matrix.platform-version }}
           # export pio_ver=${{ matrix.platform-version }}
-          export pio_env="${pio_ver//./_}"
+          export pio_env_suffix="${pio_ver//./_}"
           [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
-          pio pkg install -e ${{ matrix.piocontext }}-$pio_env --no-save --library file://$(realpath ../../../)
-          pio run -e ${{ matrix.piocontext }}-$pio_env
+          pio pkg install -e ${{ matrix.pio-env }}-$pio_env_suffix --no-save --library file://$(realpath ../../../)
+          pio run -e ${{ matrix.pio-env }}-$pio_env_suffix
 
