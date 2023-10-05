@@ -31,13 +31,23 @@ jobs:
       branch_name: ${{steps.set-matrix.outputs.branch_name}}
 
     steps:
+
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+
     - name: "Fetch arduino cores versions list"
       id: set-matrix
       run: |
+
         json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"` # get esp32 packages list
         last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= ${{ env.max-versions}}"`) # fetch last 5 version, store in a bash array
         versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .` # convert last versions to json array
-        pc_arr=${{env.pio-envs}} # get supported platformio env's
+        # pc_arr=${{env.pio-envs}} # get supported platformio env's
+        pc_arr=(`cat ${{env.PROJECT_DIR}}/platformio.ini | awk 'match($0, /^\[env:([a-zA-Z0-9\-_])+/){print substr($0, RSTART+5, RLENGTH-5)}'`)
+
+
         pc_json_arr=`printf '%s\n' "${pc_arr[@]}" | jq -R . | jq -s .` # convert to json array
         content=`printf '{"pio-env":%s,"platform-version":%s}' "$pc_json_arr" "$versions_json"` # create the matrix array
         content="${content//'%'/'%25'}" # escape percent entities
