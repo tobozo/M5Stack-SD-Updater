@@ -1,8 +1,8 @@
 name: PlatformIOBuild
 
-env:
-  PROJECT_DIR: examples/Test/build_test
-  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+# env:
+#   PROJECT_DIR: examples/Test/build_test
+#   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 on:
   push:
@@ -26,10 +26,10 @@ jobs:
       piocontexts: ('lgfx' 'm5stick-c' 'm5stack-core-esp32' 'm5stack-core2' 'm5unified' 's3box' 'm5stack-atom' 'm5stack-cores3' 'sdfat-test')
       #piocontext: ["lgfx", "m5stick-c", "m5stack-core-esp32", "m5stack-core2", "m5unified", "s3box", "m5stack-atom", "m5stack-cores3", "sdfat-test"]
     outputs:
-      env: ${{steps.set-env.outputs.env}}
+      matrix: ${{steps.set-matrix.outputs.matrix}}
     steps:
     - name: "Fetch arduino cores versions list"
-      id: set-env
+      id: set-matrix
       run: |
         # export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
         # export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
@@ -54,22 +54,22 @@ jobs:
 
         echo "matrix={\"include\":[{\"piocontext\":\"lgfx\",\"platform_version\":\"2.0.13\"},{\"piocontext\":\"m5stick-c\",\"platform_version\":\"2.0.13\"}]}" >> $GITHUB_OUTPUT
 
-        # echo $content
-        # forward env vars
-        content='${{ toJson(env) }}'    # convert env vars to json
-        content="${content//'%'/'%25'}" # escape percent entities
-        content="${content//$'\n'/''}"  # remove lf
-        content="${content//$'\r'/''}"  # remove cr
-        echo "env=${content}" >> $GITHUB_OUTPUT
-
-
-
+        # # echo $content
+        # # forward env vars
+        # content='${{ toJson(env) }}'    # convert env vars to json
+        # content="${content//'%'/'%25'}" # escape percent entities
+        # content="${content//$'\n'/''}"  # remove lf
+        # content="${content//$'\r'/''}"  # remove cr
+        # echo "env=${content}" >> $GITHUB_OUTPUT
 
 
   build:
     name: ${{ matrix.piocontext }}@${{ matrix.platform_version }}
     needs: plan_version
-    env: ${{fromJSON(needs.plan_version.outputs.env)}}
+    #env: ${{fromJSON(needs.plan_version.outputs.env)}}
+    env:
+      PROJECT_DIR: examples/Test/build_test
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
     runs-on: ubuntu-latest
 
     strategy:
