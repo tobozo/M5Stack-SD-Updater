@@ -32,7 +32,7 @@ jobs:
         curl --version
         json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"`
         # echo $json | jq
-        echo $json | jq -r .packages.[0].platforms[].version
+        echo $json | jq -r .packages[0].platforms[].version
 
         exit 1
 
