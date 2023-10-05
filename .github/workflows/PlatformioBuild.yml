@@ -36,19 +36,28 @@ jobs:
         #echo "platform_version=(\"${VERSIONS_REL[0]}\" \"${VERSIONS_REL[1]}\" \"${VERSIONS_REL[2]}\" \"${VERSIONS_REL[3]}\" \"${VERSIONS_REL[4]}\")" >> $GITHUB_ENV
         #platform_version='{"${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[3]}", "${VERSIONS_REL[4]}"}'
 
-        piocontexts=${{env.piocontexts}}
-        piocontext=`printf '%s\n' "${piocontexts[@]}" | jq -R . | jq -s .`
+        json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"`
 
-        echo "${piocontext}"
+        last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= 5"`) # bash array
+        versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .` # json string
+
+        # versions_obj=`printf '"platform_version":%s' "$versions_json"
+
+        pc_arr=${{env.piocontexts}}
+        pc_json_arr=`printf '%s\n' "${pc_arr[@]}" | jq -R . | jq -s .`
+
+        content=`printf '{"piocontext":%s,"versions_obj":%s}' "$pc_json_arr" "$versions_json"
+
+        echo "content: $content"
+
+        #content='${{ toJson(env) }}'    # convert env vars to json
+
         exit 1
 
 
-        content='${{ toJson(env) }}'    # convert env vars to json
 
-        json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"`
-        last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= 5"`) # bash array
-        versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .` # json string
-        versions_obj=`printf '{"platform_version":%s,%s}' "$versions_json" "$content"`
+
+
 
         echo $versions_obj
         exit 1
