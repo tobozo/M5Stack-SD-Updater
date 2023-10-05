@@ -1,8 +1,8 @@
 name: PlatformIOBuild
 
-# env:
-#   PROJECT_DIR: examples/Test/build_test
-#   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+env:
+  PROJECT_DIR: examples/Test/build_test
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 on:
   push:
@@ -28,6 +28,7 @@ jobs:
     outputs:
       matrix: ${{steps.set-matrix.outputs.matrix}}
       project_dir: ${{steps.set-matrix.outputs.project_dir}}
+      branch_name: ${{steps.set-matrix.outputs.branch_name}}
 
     steps:
     - name: "Fetch arduino cores versions list"
@@ -43,7 +44,8 @@ jobs:
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
         echo "matrix=${content}" >> $GITHUB_OUTPUT
-        echo "project_dir=examples/Test/build_test" >> $GITHUB_OUTPUT
+        echo "project_dir=${{env.PROJECT_DIR}}" >> $GITHUB_OUTPUT
+        echo "branch_name=${{env.BRANCH_NAME}}" >> $GITHUB_OUTPUT
 
   build:
     name: ${{ matrix.pio-env }}@${{ matrix.platform-version }}
@@ -90,7 +92,7 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ needs.plan_version.outputs.project_dir }}
-          echo "*** ${{ needs.plan_version.outputs.project_dir }} ***"
+          echo "*** ${{ needs.plan_version.outputs.project_dir }} / ${{ needs.plan_version.outputs.branch_name }} ***"
           exit 0
           export pio_ver=${{ matrix.platform-version }}
           # append "test" profile to the current platformio.ini
@@ -99,7 +101,7 @@ jobs:
           echo "platform = https://github.com/tasmota/platform-espressif32">>platformio.ini
           echo "platform_packages = framework-arduinoespressif32 @ https://github.com/espressif/arduino-esp32/releases/download/${pio_ver}/esp32-${pio_ver}.zip">>platformio.ini
           # keep cache and dev_lib_deps.ini unless running from the master branch
-          [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
+          [[ "${{ needs.plan_version.outputs.branch_name }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
           # install local version of the library
           pio pkg install -e test --no-save --library file://$(realpath ../../../)
           pio run -e test
