@@ -22,8 +22,8 @@ jobs:
   plan_version:
     name: Version planner
     runs-on: ubuntu-latest
-    #matrix:
-      #piocontexts: ('lgfx' 'm5stick-c' 'm5stack-core-esp32' 'm5stack-core2' 'm5unified' 's3box' 'm5stack-atom' 'm5stack-cores3' 'sdfat-test')
+    env:
+      piocontexts: ('lgfx' 'm5stick-c' 'm5stack-core-esp32' 'm5stack-core2' 'm5unified' 's3box' 'm5stack-atom' 'm5stack-cores3' 'sdfat-test')
       #piocontext: ["lgfx", "m5stick-c", "m5stack-core-esp32", "m5stack-core2", "m5unified", "s3box", "m5stack-atom", "m5stack-cores3", "sdfat-test"]
     outputs:
       matrix: ${{steps.set-matrix.outputs.matrix}}
@@ -31,40 +31,26 @@ jobs:
     - name: "Fetch arduino cores versions list"
       id: set-matrix
       run: |
-        # export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
-        # export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
-        # echo "platform_version=(\"${VERSIONS_REL[0]}\" \"${VERSIONS_REL[1]}\" \"${VERSIONS_REL[2]}\" \"${VERSIONS_REL[3]}\" \"${VERSIONS_REL[4]}\")" >> $GITHUB_ENV
-        # platform_version='{"${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[3]}", "${VERSIONS_REL[4]}"}'
-
+        # get esp32 packages list
         json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"`
-
-        last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= 5"`) # bash array
-        versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .` # json string
-
-        # versions_obj=`printf '"platform_version":%s' "$versions_json"
-
-        pc_arr=('lgfx' 'm5stick-c' 'm5stack-core-esp32' 'm5stack-core2' 'm5unified' 's3box' 'm5stack-atom' 'm5stack-cores3' 'sdfat-test')
+        # fetch last 5 version, store in a bash array
+        last_versions=(`echo $json | jq -r .packages[0].platforms[].version | awk "NR <= 5"`)
+        # convert to json array
+        versions_json=`printf '%s\n' "${last_versions[@]}" | jq -R . | jq -s .`
+        pc_arr=${{env.piocontexts}}
+        # pc_arr=('lgfx' 'm5stick-c' 'm5stack-core-esp32' 'm5stack-core2' 'm5unified' 's3box' 'm5stack-atom' 'm5stack-cores3' 'sdfat-test')
         pc_json_arr=`printf '%s\n' "${pc_arr[@]}" | jq -R . | jq -s .`
 
-        content=`printf '{"piocontext":%s,"platform_version":%s}' "$pc_json_arr" "$versions_json"`
+        content=`printf '{"piocontext":%s,"platform-version":%s}' "$pc_json_arr" "$versions_json"`
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
         echo "matrix=${content}" >> $GITHUB_OUTPUT
 
-        # echo "matrix={\"include\":[{\"piocontext\":\"lgfx\",\"platform_version\":\"2.0.13\"},{\"piocontext\":\"m5stick-c\",\"platform_version\":\"2.0.13\"}]}" >> $GITHUB_OUTPUT
-
-        # # echo $content
-        # # forward env vars
-        # content='${{ toJson(env) }}'    # convert env vars to json
-        # content="${content//'%'/'%25'}" # escape percent entities
-        # content="${content//$'\n'/''}"  # remove lf
-        # content="${content//$'\r'/''}"  # remove cr
-        # echo "env=${content}" >> $GITHUB_OUTPUT
 
 
   build:
-    name: ${{ matrix.piocontext }}@${{ matrix.platform_version }}
+    name: ${{ matrix.piocontext }}@${{ matrix.platform-version }}
     needs: plan_version
     #env: ${{fromJSON(needs.plan_version.outputs.env)}}
     env:
@@ -109,7 +95,7 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
-          export pio_ver=${{ matrix.platform_version }}
+          export pio_ver=${{ matrix.platform-version }}
           # export pio_ver=${{ matrix.platform-version }}
           export pio_env="${pio_ver//./_}"
           [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
