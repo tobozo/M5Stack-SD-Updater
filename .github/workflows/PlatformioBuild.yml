@@ -37,9 +37,9 @@ jobs:
         #platform_version='{"${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[3]}", "${VERSIONS_REL[4]}"}'
 
         piocontexts=${{env.piocontexts}}
-        piocontext=`printf '%s\n' "$piocontexts" | jq -R . | jq -s .`
+        piocontext=`printf '%s\n' "${piocontexts}" | jq -R . | jq -s .`
 
-        echo $piocontext
+        echo "${piocontext}"
         exit 1
 
 
