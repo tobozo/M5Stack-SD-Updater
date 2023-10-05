@@ -28,7 +28,8 @@ jobs:
     - name: "Fetch arduino cores versions list"
       id: set-env
       run: |
-        curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json" | jq -r ".packages.[0].platforms[].version" | awk "NR <= 5"
+        curl "https://espressif.github.io/arduino-esp32/package_esp32_index.json" | jq
+        curl "https://espressif.github.io/arduino-esp32/package_esp32_index.json" | jq -r ".packages.[0].platforms[].version" | awk "NR <= 5"
 
 
         export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r ".packages.[0].platforms[].version" | awk "NR <= 5"`)
