@@ -50,15 +50,21 @@ jobs:
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
-        echo "matrix=${content}" >> $GITHUB_OUTPUT
+        # echo "matrix=${content}" >> $GITHUB_OUTPUT
 
-        echo $content
+        echo "matrix={\"include\":[{\"piocontext\":\"lgfx\",\"platform_version\":\"2.0.13\"},{\"piocontext\":\"m5stick-c\",\"platform_version\":\"2.0.13\"}]}" >> $GITHUB_OUTPUT
+
+        # echo $content
         # forward env vars
         content='${{ toJson(env) }}'    # convert env vars to json
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
         echo "env=${content}" >> $GITHUB_OUTPUT
+
+
+
+
 
   build:
     name: ${{ matrix.piocontext }}@${{ matrix.platform_version }}
