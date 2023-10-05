@@ -23,37 +23,16 @@ jobs:
     name: Version planner
     runs-on: ubuntu-latest
     env:
-      boards: ("lgfx" "m5stick-c" "m5stack-core-esp32" "m5stack-core2" "m5unified" "s3box" "m5stack-atom" "m5stack-cores3" "sdfat-test")
+      piocontext: ("lgfx" "m5stick-c" "m5stack-core-esp32" "m5stack-core2" "m5unified" "s3box" "m5stack-atom" "m5stack-cores3" "sdfat-test")
     outputs:
       env: ${{steps.set-env.outputs.env}}
     steps:
     - name: "Fetch arduino cores versions list"
       id: set-env
       run: |
-        # jq --version
-        # curl --version
-        # json=`curl -s "https://espressif.github.io/arduino-esp32/package_esp32_index.json"`
-        # # echo $json | jq
-        # echo $json | jq -r .packages[0].platforms[].version
-        #
-        # exit 1
-        # curl "https://espressif.github.io/arduino-esp32/package_esp32_index.json" | jq -r .packages.[0].platforms[].version | awk "NR <= 5"
-
         export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
-        export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages[0].platforms[].version' | awk 'NR <= 5"`)
-
-        boards=${{env.boards}} # bash array
-        printf '%s\n' "${boards[@]}" | jq -R . | jq -s .
-
-        exit 1
-
-
-        echo "latest=${VERSIONS_REL[0]}" >> $GITHUB_ENV
-        echo "prev_0=${VERSIONS_REL[1]}" >> $GITHUB_ENV
-        echo "prev_1=${VERSIONS_REL[2]}" >> $GITHUB_ENV
-        echo "prev_2=${VERSIONS_REL[3]}" >> $GITHUB_ENV
-        echo "prev_3=${VERSIONS_REL[4]}" >> $GITHUB_ENV
-
+        export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
+        echo "platform_version=(\"${VERSIONS_REL[0]}\" "${VERSIONS_REL[1]}\" "${VERSIONS_REL[2]}\" "${VERSIONS_REL[3]}\" "${VERSIONS_REL[4]}\")" >> $GITHUB_ENV
         content='${{ toJson(env) }}'    # convert env vars to json
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
@@ -61,67 +40,13 @@ jobs:
         echo "env=${content}" >> $GITHUB_OUTPUT
 
   build:
-    name: ${{ matrix.piocontext }}@${{ matrix.versioncontext }}
+    name: ${{ matrix.piocontext }}@${{ matrix.platform_version }}
     needs: plan_version
     env: ${{fromJSON(needs.plan_version.outputs.env)}}
     runs-on: ubuntu-latest
 
     strategy:
-      matrix:
-
-        piocontext:
-          - lgfx
-          - m5stick-c
-          - m5stack-core-esp32
-          - m5stack-core2
-          - m5unified
-          - s3box
-          - m5stack-atom
-          - m5stack-cores3
-          - sdfat-test
-
-        versioncontext:
-          - latest
-          - prev_0
-          - prev_1
-          - prev_2
-          - prev_3
-
-
-        # platform-version:
-        #   #- 1.0.6
-        #   #- 2.0.0
-        #   #- 2.0.1
-        #   #- 2.0.2 # has broken SD Support
-        #   #- 2.0.3
-        #   #- 2.0.4
-        #   #- 2.0.5
-        #   #- 2.0.6
-        #   #- 2.0.7
-        #   #- 2.0.8
-        #   #- 2.0.9
-        #   #- 2.0.11
-        #   - 2.0.12
-        #   - 2.0.13
-        #   - 2.0.14
-
-        #exclude:
-          #- { piocontext: s3box, platform-version: 1.0.6 }
-          #- { piocontext: s3box, platform-version: 2.0.0 }
-          #- { piocontext: s3box, platform-version: 2.0.1 }
-          #- { piocontext: s3box, platform-version: 2.0.2 }
-          #- { piocontext: m5stack-core2, platform-version: 1.0.6 } # M5Core2.h broken I2S support with 1.0.6
-          #- { piocontext: m5stack-core2, platform-version: 2.0.0 } # M5Core2.h broken I2S support with 2.0.0
-
-        # include:
-        #   - piocontext: lgfx
-        #   - piocontext: m5stick-c
-        #   - piocontext: m5stack-core-esp32
-        #   - piocontext: m5stack-core2
-        #   - piocontext: m5unified
-        #   - piocontext: s3box
-        #   - piocontext: sdfat-test
-
+      matrix: ${{fromJSON(needs.plan_version.outputs.env)}}
       fail-fast: false
 
     steps:
@@ -157,7 +82,7 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ env.PROJECT_DIR }}
-          export pio_ver=${${{ matrix.versioncontext }}}
+          export pio_ver=${{ matrix.platform_version }}
           # export pio_ver=${{ matrix.platform-version }}
           export pio_env="${pio_ver//./_}"
           [[ "${{ env.BRANCH_NAME }}" == "master" ]] && rm dev_lib_deps.ini || echo "Develop!" && pio system prune -f
