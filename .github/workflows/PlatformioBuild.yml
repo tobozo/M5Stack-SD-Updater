@@ -92,8 +92,6 @@ jobs:
       - name: Run PlatformIO
         run: |
           cd ${{ needs.plan_version.outputs.project_dir }}
-          echo "*** ${{ needs.plan_version.outputs.project_dir }} / ${{ needs.plan_version.outputs.branch_name }} ***"
-          exit 0
           export pio_ver=${{ matrix.platform-version }}
           # append "test" profile to the current platformio.ini
           echo "[env:test]">>platformio.ini
