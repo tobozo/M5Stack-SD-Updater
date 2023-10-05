@@ -47,20 +47,23 @@ jobs:
         pc_json_arr=`printf '%s\n' "${pc_arr[@]}" | jq -R . | jq -s .`
 
         content=`printf '{"piocontext":%s,"platform_version":%s}' "$pc_json_arr" "$versions_json"`
-
-        echo $content
-
-        # exit 1
-        # content='${{ toJson(env) }}'    # convert env vars to json
         content="${content//'%'/'%25'}" # escape percent entities
         content="${content//$'\n'/''}"  # remove lf
         content="${content//$'\r'/''}"  # remove cr
         echo "matrix=${content}" >> $GITHUB_OUTPUT
 
+        echo $content
+        # forward env vars
+        content='${{ toJson(env) }}'    # convert env vars to json
+        content="${content//'%'/'%25'}" # escape percent entities
+        content="${content//$'\n'/''}"  # remove lf
+        content="${content//$'\r'/''}"  # remove cr
+        echo "env=${content}" >> $GITHUB_OUTPUT
+
   build:
     name: ${{ matrix.piocontext }}@${{ matrix.platform_version }}
     needs: plan_version
-    #env: ${{fromJSON(needs.plan_version.outputs.env)}}
+    env: ${{fromJSON(needs.plan_version.outputs.env)}}
     runs-on: ubuntu-latest
 
     strategy:
