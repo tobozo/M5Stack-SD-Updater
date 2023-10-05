@@ -36,7 +36,7 @@ jobs:
         #echo "platform_version=(\"${VERSIONS_REL[0]}\" \"${VERSIONS_REL[1]}\" \"${VERSIONS_REL[2]}\" \"${VERSIONS_REL[3]}\" \"${VERSIONS_REL[4]}\")" >> $GITHUB_ENV
         #platform_version='{"${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[0]}", "${VERSIONS_REL[3]}", "${VERSIONS_REL[4]}"}'
 
-        piocontext=printf '%s\n' "${{env.piocontexts}}" | jq -R . | jq -s .
+        piocontext=`printf '%s\n' "${{env.piocontexts}}" | jq -R . | jq -s .`
 
         echo $piocontext
         exit 1
