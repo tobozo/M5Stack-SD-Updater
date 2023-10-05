@@ -22,6 +22,9 @@ jobs:
   plan_version:
     name: Version planner
     runs-on: ubuntu-latest
+    env:
+      boards: ("lgfx" "m5stick-c" "m5stack-core-esp32" "m5stack-core2" "m5unified" "s3box" "m5stack-atom" "m5stack-cores3")
+      - sdfat-test
     outputs:
       env: ${{steps.set-env.outputs.env}}
     steps:
@@ -39,6 +42,12 @@ jobs:
 
         export VERSIONS_REL=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_index.json | jq -r '.packages[0].platforms[].version' | awk "NR <= 5"`)
         export VERSIONS_DEV=(`curl -s https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json | jq -r '.packages[0].platforms[].version' | awk 'NR <= 5"`)
+
+        boards=${{env.boards}} # bash array
+        printf '%s\n' "${boards[@]}" | jq -R . | jq -s .
+
+        exit 1
+
 
         echo "latest=${VERSIONS_REL[0]}" >> $GITHUB_ENV
         echo "prev_0=${VERSIONS_REL[1]}" >> $GITHUB_ENV
@@ -105,14 +114,14 @@ jobs:
           #- { piocontext: m5stack-core2, platform-version: 1.0.6 } # M5Core2.h broken I2S support with 1.0.6
           #- { piocontext: m5stack-core2, platform-version: 2.0.0 } # M5Core2.h broken I2S support with 2.0.0
 
-        include:
-          - piocontext: lgfx
-          - piocontext: m5stick-c
-          - piocontext: m5stack-core-esp32
-          - piocontext: m5stack-core2
-          - piocontext: m5unified
-          - piocontext: s3box
-          - piocontext: sdfat-test
+        # include:
+        #   - piocontext: lgfx
+        #   - piocontext: m5stick-c
+        #   - piocontext: m5stack-core-esp32
+        #   - piocontext: m5stack-core2
+        #   - piocontext: m5unified
+        #   - piocontext: s3box
+        #   - piocontext: sdfat-test
 
       fail-fast: false
 
