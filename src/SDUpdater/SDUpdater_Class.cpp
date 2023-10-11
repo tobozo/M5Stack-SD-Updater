@@ -312,6 +312,12 @@ namespace SDUpdaterNS
   {
     bool hasFileName = (fileName!="");
 
+    // if using factory: disable "Save FW" action button when running partition isn't the first partition
+    SDUCfg.Buttons[2].enabled = cfg->rollBackToFactory
+      ? esp_ota_get_running_partition()->subtype==ESP_PARTITION_SUBTYPE_APP_OTA_MIN
+      : SDUCfg.Buttons[2].enabled
+    ;
+
     if( cfg->onWaitForAction ) {
       int action = cfg->onWaitForAction( !hasFileName ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, (char*)cfg->labelSave, SDUCfg.waitdelay );
 
@@ -335,7 +341,7 @@ namespace SDUpdaterNS
           log_v("Checking if %s needs saving", cfg->binFileName );
           saveSketchToFS( *cfg->fs,  cfg->binFileName, action != ConfigManager::SDU_BTNC_SAVE );
         } else if( cfg->rollBackToFactory ) {
-          return PartitionManager::migrateSketch( fileName.c_str() );
+          return PartitionManager::migrateSketch( cfg->binFileName );
         } else if( action == ConfigManager::SDU_BTNC_SAVE ) {
           const char* msg[] = {"No valid filesystem", "selected!", "Cannot save", fileName.c_str()};
           _error( msg, 4 );

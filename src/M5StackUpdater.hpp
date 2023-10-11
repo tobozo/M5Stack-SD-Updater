@@ -96,7 +96,7 @@
 #define resetReason (int)rtc_get_reset_reason(0)
 
 // use `#define SDU_NO_PRAGMAS` to disable duplicate pragma messages
-#if !defined SDU_NO_PRAGMAS
+#if !defined SDU_NO_PRAGMAS && CORE_DEBUG_LEVEL>=ARDUHAL_LOG_LEVEL_ERROR
   #define SDU_STRINGIFY(a) #a
   #define SDU_PRAGMA_MESSAGE(msg) \
     _Pragma( SDU_STRINGIFY( message msg ) )

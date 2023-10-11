@@ -401,7 +401,8 @@ void menuItemLoadFW()
 {
   auto ota_num = slotPicker("Run Flash App", false); // load apps
   if( ota_num > 0 ) {
-    SDUpdater::_message("Booting partition");
+    String msg = "Booting partition " + String(ota_num);
+    SDUpdater::_message(msg);
     if( !Flash::bootPartition( ota_num ) ) {
       SDUpdater::_error("Partition unbootable :(");
     }
@@ -468,10 +469,10 @@ void menuItemPartitionsInfo()
     M5.Lcd.printf("Slot:  %d (%s)\n", nvs_part->ota_num, AppName.c_str());
     M5.Lcd.printf("Type:  0x%02x\n", part->type);
     M5.Lcd.printf("SType: 0x%02x\n", part->subtype);
-    M5.Lcd.printf("Addr:  0x%06x\n", part->address);
-    M5.Lcd.printf("Size:  %d\n", part->size);
+    M5.Lcd.printf("Addr:  0x%06lx\n", part->address);
+    M5.Lcd.printf("Size:  %lu\n", part->size);
     M5.Lcd.printf("Used:  %s\n", meta.image_len>0 ? String(meta.image_len).c_str() : "n/a");
-    M5.Lcd.printf("Desc:  %s\n", nvs_part->desc[0]!=0?nvs_part->desc:"none");
+    //M5.Lcd.printf("Desc:  %s\n", nvs_part->desc[0]!=0?nvs_part->desc:"none");
 
     M5.Lcd.clearClipRect();
 
@@ -724,7 +725,7 @@ void printFlashPartition( Flash::Partition_t* sdu_partition )
     }
   }
 
-  Serial.printf("%-8s   0x%02x      0x%02x   0x%06x   %8d  %8s %8s %8s\n",
+  Serial.printf("%-8s   0x%02x      0x%02x   0x%06lx   %8lu  %8s %8s %8s\n",
     String( part.label ).c_str(),
     part.type,
     part.subtype,
@@ -746,6 +747,7 @@ void lsFlashPartitions()
   }
 }
 
+#include "base64.h"
 
 void lsNVSpartitions()
 {
@@ -758,6 +760,36 @@ void lsNVSpartitions()
       Serial.printf("[%d] %s slot\n", nvs_part->ota_num, i==0?"Reserved":"Available" );
     }
   }
+  Serial.println("\nPartitions as CSV:");
+
+
+  size_t blob_size = (sizeof(NVS::PartitionDesc_t)*NVS::Partitions.size());
+  NVS::blob_partition_t *bPart = new NVS::blob_partition_t(blob_size);
+
+  if( !bPart->blob) {
+    log_e("Can't allocate %d bytes for blob", blob_size );
+    return;
+  }
+  size_t idx = 0;
+  for( int i=0; i<NVS::Partitions.size(); i++ ) {
+    idx = i*sizeof(NVS::PartitionDesc_t);
+    auto part = &NVS::Partitions[i];
+    memcpy( &bPart->blob[idx], part, sizeof(NVS::PartitionDesc_t) );
+  }
+
+
+  // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_partition_gen.html#csv-file-format
+  String b64 = base64::encode( (const uint8_t*)bPart->blob, blob_size );
+  Serial.printf("Sizeof PartitionDesc_t: %d bytes\n", sizeof(NVS::PartitionDesc_t) );
+  Serial.printf("Sizeof NVS blob: %d bytes\n", blob_size );
+  Serial.printf("Sizeof Base64: %d bytes\n", b64.length() );
+  Serial.println();
+  Serial.println("key,type,encoding,value");//     <-- column header
+  Serial.printf("%s,namespace,,\n", NVS::PARTITION_NS ); // <-- First entry should be of type "namespace"
+  Serial.printf("%s,data,base64,%s\n", NVS::PARTITION_KEY, b64.c_str() );
+  Serial.println();
+  // key1,data,u8,1
+  // key2,file,string,/path/to/file
 }
 
 
@@ -775,6 +807,7 @@ bool checkFactoryStickyPartition()
     return false;
   }
 
+  SDUpdater::_message("Checking factory...");
   // will compare running partition with factory, and update if necessary
   if( SDUpdater::saveSketchToFactory() ) {
     // sketch was just saved to factory partition, mark it as bootable and restart
@@ -782,7 +815,7 @@ bool checkFactoryStickyPartition()
     log_e("Switching to factory app failed :-(");
     return false;
   }
-
+  SDUpdater::_message("Checking partitions...");
   if( !NVS::getPartitions() ) {
     log_w("Partitions not found on NVS, creating"); // first visit!
     PartitionManager::createPartitions();
@@ -812,7 +845,9 @@ bool checkOTAStickyPartition()
 
   const esp_partition_t* last_partition = esp_ota_get_next_update_partition(NULL);
 
-  if( !last_partition ) return false;
+  if( !last_partition ) {
+    return false;
+  }
 
   const esp_partition_t* next_partition = Flash::getNextAvailPartition( last_partition->type, last_partition->subtype );
 
@@ -830,10 +865,7 @@ bool checkOTAStickyPartition()
   }
 
   return check_for_migration;
-
 }
-
-
 
 
 
@@ -860,7 +892,7 @@ void setup()
 
   SDU_UI::resetScroll();
 
-  SDUpdater::_message("Booting factory...");
+  //SDUpdater::_message("Booting factory...");
 
   if( ! checkFactoryStickyPartition() ) {
     // print partitions for debug
@@ -883,12 +915,6 @@ void setup()
 
 void loop()
 {
-  auto ota_num = slotPicker("Run Application", false); // load apps
-  if( ota_num > 0 ) {
-    SDUpdater::_message("Booting partition");
-    if( !Flash::bootPartition( ota_num ) ) {
-      SDUpdater::_error("Partition unbootable :(");
-    }
-  }
+  menuItemLoadFW();
   launcherPicker();
 }

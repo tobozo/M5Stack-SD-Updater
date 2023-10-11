@@ -105,4 +105,3 @@ jobs:
           # install local version of the library
           pio pkg install -e test --no-save --library file://$(realpath ../../../)
           pio run -e test
-

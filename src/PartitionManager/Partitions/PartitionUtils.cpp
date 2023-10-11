@@ -3,6 +3,10 @@
 #include "../../ConfigManager/ConfigManager.hpp"
 
 
+#if !defined SPI_FLASH_SEC_SIZE
+  #define SPI_FLASH_SEC_SIZE 4096
+#endif
+
 namespace SDUpdaterNS
 {
 
@@ -601,16 +605,22 @@ namespace SDUpdaterNS
     }
 
 
+    bool erase( const esp_partition_t *part )
+    {
+      assert(part);
+      log_d("Erasing ota partition %#x", part->subtype );
+      if( part && ESP.partitionEraseRange(part, 0, part->size ) ) {
+        return true;
+      }
+      log_e("FATAL: can't erase partition");
+      return false;
+    }
+
 
     bool erase( uint8_t ota_num )
     {
       auto part = getPartition( ota_num );
-      log_d("Erasing ota partition %d (%#x)", ota_num, part->subtype );
-      if( part && ESP.partitionEraseRange(part, 0, part->size ) ) {
-        return true;
-      }
-      log_e("FATAL: can't erase running partition");
-      return false;
+      return erase( part );
     }
 
   };

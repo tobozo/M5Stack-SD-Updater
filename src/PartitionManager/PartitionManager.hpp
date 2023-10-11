@@ -18,6 +18,7 @@ namespace SDUpdaterNS
     void createPartitions();
     void updatePartitions();
     void processPartitions();
+    void debugPartitions();
 
     bool flashFactory();
     bool migrateSketch( const char* binFileName );

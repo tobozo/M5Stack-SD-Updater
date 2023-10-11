@@ -25,11 +25,12 @@ namespace SDUpdaterNS
         if( Flash::metadataHasDigest( meta ) ) {
           nvs_part.bin_size = meta->image_len;
           memcpy( nvs_part.digest, meta->image_digest, 32 );
-          log_d("Added flash digest to NVS::Partitions[]: %s", digests.toString( nvs_part.digest ) );
+          log_d("Added flash digest to NVS::Partitions[%d]: %s", NVS::Partitions.size(), digests.toString( nvs_part.digest ) );
         }
         NVS::Partitions.push_back( nvs_part );
       }
       NVS::savePartitions();
+      //debugPartitions();
       log_i("Partition scheme has %d app slot(s)", NVS::Partitions.size() );
     }
 
@@ -62,6 +63,7 @@ namespace SDUpdaterNS
 
       if( needs_saving ) {
         NVS::savePartitions();
+        //debugPartitions();
       }
     }
 
@@ -84,6 +86,7 @@ namespace SDUpdaterNS
             nvs_part->bin_size = 0;
             memset( nvs_part->digest, 0, 32 );
             if( NVS::savePartitions() ) {
+              //debugPartitions();
               // TODO: implement partitions reload instead of restart
               ESP.restart();
             }
@@ -123,7 +126,8 @@ namespace SDUpdaterNS
           log_e("WARN: partition has no sha");
           //return false;
         }
-        return NVS::savePartitions();
+        ret = NVS::savePartitions();
+        //debugPartitions();
       }
       return ret;
     }
@@ -203,21 +207,83 @@ namespace SDUpdaterNS
     }
 
 
+    // void debugPartitions()
+    // {
+    //   log_d("OTA, size, digest, name, desc");
+    //   Flash::digest_t digests;
+    //   for( int i=0;i<NVS::Partitions.size();i++ ) {
+    //     log_d("%d %s %s %s %d bytes",
+    //       NVS::Partitions[i].ota_num, // OTA partition number
+    //       digests.toString( NVS::Partitions[i].digest ), // firmware digest
+    //       NVS::Partitions[i].name, // firmware name
+    //       NVS::Partitions[i].desc,  // firmware desc
+    //       NVS::Partitions[i].bin_size // firmware size
+    //     );
+    //   }
+    //
+    //   log_d("Partition  Type   Subtype    Address   PartSize   ImgSize    Info    Digest");
+    //   log_d("---------+------+---------+----------+----------+---------+--------+--------");
+    //   for( int i=0; i<Flash::Partitions.size(); i++ ) {
+    //     //printFlashPartition( &Flash::Partitions[i] );
+    //     Flash::digest_t digests = Flash::digest_t();
+    //
+    //     auto sdu_partition = &Flash::Partitions[i];
+    //     auto part = sdu_partition->part;
+    //     auto meta = sdu_partition->meta;
+    //
+    //     String AppName = "n/a";
+    //
+    //     if( Flash::partitionIsApp( &part ) ) {
+    //       if( Flash::partitionIsFactory( &part ) ) {
+    //         AppName = "Factory";
+    //       } else {
+    //         AppName = "OTA" + String( part.subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
+    //       }
+    //     }
+    //
+    //     log_d("%-8s   0x%02x      0x%02x   0x%06x   %8d  %8s %8s %8s",
+    //       String( part.label ).c_str(),
+    //       part.type,
+    //       part.subtype,
+    //       part.address,
+    //       part.size,
+    //       meta.image_len>0 ? String(meta.image_len).c_str() : "n/a",
+    //       AppName.c_str(),
+    //       Flash::partitionIsApp(&part)&&Flash::metadataHasDigest(&meta) ? digests.toString(meta.image_digest) : "n/a"
+    //     );
+    //   }
+    // }
+
+
     bool erase( uint8_t ota_num )
     {
       NVS::PartitionDesc_t* nvs_part = NVS::findPartition(ota_num);
-      if( !nvs_part ) return false;
+      if( !nvs_part ) {
+        log_e("Cannot erase partition,  NVS::findPartition(%d) found nothing", ota_num);
+        return false;
+      }
       auto flash_part = Flash::getPartition( ota_num );
-      if( !flash_part ) return false;
+      if( !flash_part ) {
+        log_e("Cannot erase partition,  Flash::getPartition(%d) found nothing", ota_num);
+        return false;
+      }
       if( Flash::erase(ota_num) ) {
+
         nvs_part->bin_size = 0;
         nvs_part->name[0] = 0;
-        nvs_part->desc[0] = 0;
+        //nvs_part->desc[0] = 0;
         for( int i=0;i<32;i++ ) nvs_part->digest[i] = 0;
+
+        Flash::scan();
+        //debugPartitions();
+
         if( NVS::savePartitions() ) {
           log_d("TODO: implement partitions reload instead of restart");
+          //debugPartitions();
           ESP.restart(); // force partition reload
         }
+      } else {
+        log_e("Could erase partition,  Flash::erase(%d) failed", ota_num);
       }
       return false;
     }
@@ -246,10 +312,15 @@ namespace SDUpdaterNS
     bool migrateSketch( const char* binFileName )
     {
       assert(binFileName);
+      log_v("Checking %s for migration", binFileName);
       Flash::digest_t digests = Flash::digest_t();
 
       if( !canMigrateToFactory() ) {
         return false; // need a factory partition scheme
+      }
+
+      if( !NVS::getPartitions() ) {
+        return false; // need a NVS partition management already set
       }
 
       esp_image_metadata_t running_meta;
@@ -262,35 +333,44 @@ namespace SDUpdaterNS
       size_t sksize = 0;
 
       String error = "";
+      String msg = "";
 
       Flash::running_partition = esp_ota_get_running_partition();
       if( !Flash::running_partition ) {
         log_e("Flash inconsistency: running partition not found" );
         return false; // uh-oh
       }
+
+      if( Flash::running_partition->subtype != ESP_PARTITION_SUBTYPE_APP_OTA_MIN ) {
+
+      }
+
+
       running_meta = Flash::getSketchMeta( Flash::running_partition );
 
       NVSPart = NVS::findPartition( binFileName );
 
-      if( !NVSPart ) {
+      if( !NVSPart /*|| (NVSPart && digests.isEmpty( NVSPart->digest))*/ ) {
         // No NVS partition found named [binFilename], but NVS may be wrong so try to also find by digest
         FlashPart = Flash::findDupePartition( &running_meta, Flash::running_partition->type, Flash::running_partition->subtype );
         if( FlashPart ) {
           //log_d("Duplicate partition found: NVS has no entry named %s but partition meta %d exists", binFileName, FlashPart->part.subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
-          error = "Error: NVS dupe found";
+          error = "Error: NVS dupe found, please erase NVS";
           goto _error_nvs;
         }
+        log_d("NVS Partition named %s not found", binFileName );
         // new slot, get next flashable partition
         Flash::nextupd_partition = Flash::getNextAvailPartition( Flash::running_partition->type, Flash::running_partition->subtype );
         if( !Flash::nextupd_partition ) {
-          error = "Partitions full";//migration to new slot is not possible
+          error = "Migration canceled: partitions full";//migration to new slot is not possible
           goto _error_nvs;
         }
         // store NVS app number
         ota_num = Flash::nextupd_partition->subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN;
         sksize = ESP.getSketchSize();
 
-        SDUpdater::_message( String("Migrating to new slot") );
+        msg = String("Migrating to new slot #") + String(ota_num);
+        SDUpdater::_message( msg );
 
         // copy to next partition
         if( !Flash::copyPartition( Flash::nextupd_partition, Flash::running_partition, sksize) ) {
@@ -337,20 +417,27 @@ namespace SDUpdaterNS
         FlashPart = Flash::findDupePartition( &running_meta, Flash::running_partition->type, Flash::running_partition->subtype );
         if( FlashPart ) {
           // erase duplicate (will trigger a restart on success)
-          SDUpdater::_message( String("Erasing old partition") );
-          if( !PartitionManager::erase( FlashPart->part.subtype -ESP_PARTITION_SUBTYPE_APP_OTA_MIN ) ) {
+          msg = String("Erasing old partition");
+          SDUpdater::_message( msg );
+          if( !PartitionManager::erase( FlashPart->part.subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN ) ) {
             error = "Erasing failed!";
             goto _error_nvs;
           }
+
         }
-        log_d("this sketch is already running from the right partition according to NVS");
+        log_i("this sketch is already running from the right partition (%d) according to NVS", ota_num);
         return false;
       }
 
-      // log_d("Current sketch is not running from its assigned partition (NVS want=%d, has=%d)", ota_num, Flash::running_partition->subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
+      log_w("Current sketch is not running from its assigned partition (NVS want=%d, has=%d)", ota_num, Flash::running_partition->subtype - ESP_PARTITION_SUBTYPE_APP_OTA_MIN );
 
       // overwrite if digests differ
       if( ! digests.match( NVSPart->digest, running_meta.image_digest ) ) {
+        msg  = "Overwriting slot (in=";
+        msg += digests.toString( NVSPart->digest );
+        msg += ", out=";
+        msg += digests.toString( running_meta.image_digest );
+        msg += ")";
         SDUpdater::_message( String("Overwriting slot") );
         sksize = ESP.getSketchSize();
         if( !Flash::copyPartition( Flash::nextupd_partition, Flash::running_partition, sksize) ) {
@@ -359,7 +446,7 @@ namespace SDUpdaterNS
         }
         goto _update_nvs;
       } else {
-        // log_d("names and digests match, no overwrite, just switch");
+        log_d("names and digests match, no overwrite, just switch");
         goto _boot_partition;
       }
 
@@ -372,7 +459,9 @@ namespace SDUpdaterNS
         NVSPart->bin_size = running_meta.image_len;
         memcpy( NVSPart->digest, running_meta.image_digest, 32 );
         snprintf( NVSPart->name, 39, "%s", binFileName );
+        log_d("Updated NVSPart->name %s=%s", NVSPart->name, binFileName);
         NVS::savePartitions();
+        //debugPartitions();
 
       _boot_partition:
 

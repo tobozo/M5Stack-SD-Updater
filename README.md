@@ -72,11 +72,12 @@ All those are available in the [Arduino Library Manager](https://www.arduinolibr
 
 <br />
 
-**2) Download the [SD-Content :floppy_disk:](https://github.com/tobozo/M5Stack-SD-Updater/releases/download/v0.4.1/SD-Apps-Folder.zip) folder from the release page and unzip it into the root of the SD Card.** Then put the SD Card into the M5Stack. This zip file comes preloaded with [precompiled apps](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/SD-Apps) and the relative meta information for the menu.
+**outdated binaries**
+~~**2) Download the [SD-Content :floppy_disk:](https://github.com/tobozo/M5Stack-SD-Updater/releases/download/v0.4.1/SD-Apps-Folder.zip) folder from the release page and unzip it into the root of the SD Card.** Then put the SD Card into the M5Stack. This zip file comes preloaded with [precompiled apps](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu/SD-Apps) and the relative meta information for the menu.~~
 
 <br />
 
-**3) Compile and flash the `M5Stack-SD-Menu.ino` example.** <br />
+**2) Compile and flash the `M5Stack-SD-Menu.ino` example.** <br />
 This sketch is the **menu** app. It shoul reside in the root directory of a micro SD card for persistence and also executed once.
 
 Once flashed it will **copy itself** on OTA2 partition and on the SDCard, then rolled back and executed from the OTA2 partition.
@@ -86,7 +87,7 @@ Thanks to @Lovyan03 this self-propagation logic is very convenient: by residing 
 
 <br />
 
-**4) Make application sketches compatible with the SD-Updater Menu .** <br />
+**3) Make application sketches compatible with the SD-Updater Menu .** <br />
 
 
 The snippet of code in the `M5Stack-SDLoader-Snippet.ino` sketch can be used as a model to make any ESP32 sketch compatible with the SD-Updater menu.

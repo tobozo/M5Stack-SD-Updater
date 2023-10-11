@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <esp_partition.h>
+#include <esp_flash.h>
 extern "C" {
   #include "esp_ota_ops.h"
   #include "esp_image_format.h"
@@ -45,6 +46,7 @@ namespace SDUpdaterNS
 
     bool bootPartition( uint8_t ota_num );
     bool erase( uint8_t ota_num );
+    bool erase( const esp_partition_t *part );
 
     bool copyPartition(fs::FS *fs, const char* binfilename); // copy from OTA0 to OTA1 and filesystem
     bool copyPartition(fs::File* dstFile, const esp_partition_t* src, size_t length); // copy from given partition to filesystem

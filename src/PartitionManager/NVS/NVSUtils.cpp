@@ -81,13 +81,15 @@ namespace SDUpdaterNS
     }
 
 
+
+
     bool getPartitions()
     {
       if( Partitions.size()>0 )
         Partitions.clear();
       size_t blob_size;
-      char* out = nullptr;
       bool ret = false;
+      blob_partition_t *bPart = nullptr;
       auto err = nvs_open(PARTITION_NS, NVS_READONLY, &handle);
       if( err != ESP_OK ) {
         log_i("NVS Namespace not created yet");
@@ -100,22 +102,23 @@ namespace SDUpdaterNS
         goto _nvs_close;
       }
 
-      out = (char*)calloc(blob_size+1, sizeof(char));
-      if (!out ) {
-        log_e("Could not alloc %d bytes", blob_size+1 );
+      bPart = new blob_partition_t( blob_size );
+      if (!bPart->blob ) {
+        log_e("Could not alloc %d bytes", blob_size );
         goto _nvs_close;
       }
-      err = nvs_get_blob(handle, PARTITION_KEY, out, &blob_size);
+
+      err = nvs_get_blob(handle, PARTITION_KEY, bPart->blob, &blob_size);
       if( err != ESP_OK ) {
         log_e("Could not read blob");
         goto _nvs_close;
       }
 
-      ret = parsePartitions( out, blob_size-1 );
-      free( out );
+      ret = parsePartitions( bPart->blob, blob_size );
 
       _nvs_close:
       nvs_close( handle );
+      if( bPart!=nullptr ) delete bPart;
       return ret;
     }
 
@@ -145,9 +148,10 @@ namespace SDUpdaterNS
       bool ret = true;
       if( Partitions.size() > 0 ) {
         log_d("Saving partitions");
-        size_t blob_size = (sizeof(PartitionDesc_t)*Partitions.size()) + 1;
-        char* blob = (char*)calloc(blob_size, sizeof(char));
-        if( !blob) {
+        size_t blob_size = (sizeof(PartitionDesc_t)*Partitions.size());
+        blob_partition_t *bPart = new blob_partition_t(blob_size);
+
+        if( !bPart->blob) {
           log_e("Can't allocate %d bytes for blob", blob_size );
           return false;
         }
@@ -155,7 +159,7 @@ namespace SDUpdaterNS
         for( int i=0; i<Partitions.size(); i++ ) {
           idx = i*sizeof(PartitionDesc_t);
           auto part = &Partitions[i];
-          memcpy( &blob[idx], part, sizeof(PartitionDesc_t) );
+          memcpy( &bPart->blob[idx], part, sizeof(PartitionDesc_t) );
         }
 
         auto err = nvs_open(PARTITION_NS, NVS_READWRITE, &handle);
@@ -164,7 +168,7 @@ namespace SDUpdaterNS
           return false;
         }
 
-        err = nvs_set_blob(handle, PARTITION_KEY, blob, blob_size);
+        err = nvs_set_blob(handle, PARTITION_KEY, bPart->blob, blob_size);
         if( err != ESP_OK ) {
           log_e("Failed to save blob");
           ret = false;
@@ -174,7 +178,7 @@ namespace SDUpdaterNS
         }
 
         nvs_close( handle );
-        free( blob );
+        delete bPart;
       }
       return ret;
     }

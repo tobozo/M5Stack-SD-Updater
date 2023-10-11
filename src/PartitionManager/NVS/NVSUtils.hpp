@@ -38,7 +38,28 @@ namespace SDUpdaterNS
       size_t  bin_size{0};   // firmware size
       uint8_t digest[32]{0}; // firmware digest
       char    name[40]{0};   // firmware name
-      char    desc[40]{0};   // firmware desc
+      //char    desc[40]{0};   // firmware desc
+    };
+
+    struct blob_partition_t
+    {
+      char* blob{nullptr};
+      bool needs_free{false};
+      blob_partition_t() : blob(nullptr), needs_free(false) { }
+      blob_partition_t( size_t blob_size ) : blob(nullptr), needs_free(false)
+      {
+        this->blob = (char*)calloc(blob_size+1, sizeof(char));
+        if (!this->blob ) {
+          log_e("Could not alloc %d bytes", blob_size );
+        } else {
+          needs_free = true;
+        }
+      }
+      ~blob_partition_t()
+      {
+        if( needs_free )
+          free(this->blob);
+      }
     };
 
     extern nvs_handle_t handle;
