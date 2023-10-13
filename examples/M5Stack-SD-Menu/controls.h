@@ -30,7 +30,7 @@ unsigned long beforeRepeatDelay = LONG_DELAY_BEFORE_REPEAT;
 #endif
 
 
-#if defined ARDUINO_M5STACK_Core2 && defined _CHIMERA_CORE_
+#if defined ARDUINO_M5STACK_Core2 && defined _CHIMERA_CORE_ && defined HAS_AXP192
   // enable M5Core2's haptic feedback !
   static bool isVibrating = false;
 

@@ -20,6 +20,7 @@ namespace SDUpdaterNS
     if( SDUCfg.onError ) SDUCfg.onError( errMsg, waitdelay );
   }
 
+
   void SDUpdater::_message( const String& msg )
   {
     SDU_SERIAL.println( msg );
@@ -27,246 +28,9 @@ namespace SDUpdaterNS
   }
 
 
-
-
-  //***********************************************************************************************
-  //                                B A C K T O F A C T O R Y                                     *
-  //***********************************************************************************************
-  // https://www.esp32.com/posting.php?mode=quote&f=2&p=19066&sid=5ba5f33d5fe650eb8a7c9f86eb5b61b8
-  // Return to factory version.                                                                   *
-  // This will set the otadata to boot from the factory image, ignoring previous OTA updates.     *
-  //***********************************************************************************************
-  void SDUpdater::loadFactory()
-  {
-    esp_partition_iterator_t  pi ;                   // Iterator for find
-    const esp_partition_t*    factory ;              // Factory partition
-    esp_err_t                 err ;
-
-    pi = esp_partition_find ( ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL ) ;
-
-    if ( pi == NULL ) {                              // Check result
-      log_e( "Failed to find factory partition" ) ;
-    } else {
-      factory = esp_partition_get ( pi ) ;           // Get partition struct
-      esp_partition_iterator_release ( pi ) ;        // Release the iterator
-      err = esp_ota_set_boot_partition ( factory ) ; // Set partition for boot
-      if ( err != ESP_OK ) {                         // Check error
-        log_e( "Failed to set boot partition" ) ;
-      } else {
-        esp_restart() ;                              // Restart ESP
-      }
-    }
-  }
-
-
-  const esp_partition_t* SDUpdater::getFactoryPartition()
-  {
-    auto factorypi = esp_partition_find ( ESP_PARTITION_TYPE_APP,  ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL );
-    if( factorypi != NULL ) {
-      return esp_partition_get(factorypi);
-    }
-    return NULL;
-  }
-
-
-
-  esp_image_metadata_t SDUpdater::getSketchMeta( const esp_partition_t* source_partition )
-  {
-    esp_image_metadata_t data;
-    if ( !source_partition ) {
-      log_e("No source partition provided");
-      return data;
-    }
-    const esp_partition_pos_t source_partition_pos  = {
-      .offset = source_partition->address,
-      .size = source_partition->size,
-    };
-    data.start_addr = source_partition_pos.offset;
-
-    esp_app_desc_t app_desc;
-    if( esp_ota_get_partition_description(source_partition, &app_desc) != ESP_OK ) {
-      // nothing flashed here
-      memset( data.image_digest, 0, sizeof(data.image_digest) );
-      data.image_len = 0;
-      return data;
-    }
-
-    // only verify OTA partitions
-    if( source_partition->type==ESP_PARTITION_TYPE_APP && (source_partition->subtype>=ESP_PARTITION_SUBTYPE_APP_OTA_MIN && source_partition->subtype<ESP_PARTITION_SUBTYPE_APP_OTA_MAX) ) {
-      esp_err_t ret = esp_image_verify( ESP_IMAGE_VERIFY, &source_partition_pos, &data );
-      if( ret != ESP_OK ) {
-        log_e("Failed to verify image %s at addr %x", String( source_partition->label ), source_partition->address );
-      } else {
-        log_v("Successfully verified image %s at addr %x", String( source_partition->label[3] ), source_partition->address );
-      }
-    } else if( source_partition->type==ESP_PARTITION_TYPE_APP && source_partition->subtype==ESP_PARTITION_SUBTYPE_APP_FACTORY ) {
-      // factory partition, compute the digest
-      if( esp_partition_get_sha256(source_partition, data.image_digest) != ESP_OK ) {
-        memset( data.image_digest, 0, sizeof(data.image_digest) );
-        data.image_len = 0;
-      }
-    }
-    return data;//.image_len;
-  }
-
-
-  bool SDUpdater::compareFlashPartition(const esp_partition_t* src1, const esp_partition_t* src2, size_t length)
-  {
-    size_t lengthLeft = length;
-    const size_t bufSize = SPI_FLASH_SEC_SIZE;
-    std::unique_ptr<uint8_t[]> buf1(new uint8_t[bufSize]);
-    std::unique_ptr<uint8_t[]> buf2(new uint8_t[bufSize]);
-    uint32_t offset = 0;
-    size_t i;
-    while( lengthLeft > 0) {
-      size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
-      if (!ESP.flashRead(src1->address + offset, reinterpret_cast<uint32_t*>(buf1.get()), (readBytes + 3) & ~3)
-      || !ESP.flashRead(src2->address + offset, reinterpret_cast<uint32_t*>(buf2.get()), (readBytes + 3) & ~3)) {
-          return false;
-      }
-      for (i = 0; i < readBytes; ++i) if (buf1[i] != buf2[i]) return false;
-      lengthLeft -= readBytes;
-      offset += readBytes;
-    }
-    return true;
-  }
-
-
-
-  bool SDUpdater::compareFsPartition(const esp_partition_t* src1, fs::File* src2, size_t length)
-  {
-    size_t lengthLeft = length;
-    const size_t bufSize = SPI_FLASH_SEC_SIZE;
-    std::unique_ptr<uint8_t[]> buf1(new uint8_t[bufSize]);
-    std::unique_ptr<uint8_t[]> buf2(new uint8_t[bufSize]);
-    uint32_t offset = 0;
-    uint32_t progress = 0, progressOld = 1;
-    size_t i;
-    while( lengthLeft > 0) {
-      size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
-      if (!ESP.flashRead(src1->address + offset, reinterpret_cast<uint32_t*>(buf1.get()), (readBytes + 3) & ~3)
-      || !src2->read(                           reinterpret_cast<uint8_t*>(buf2.get()), (readBytes + 3) & ~3)
-      ) {
-          return false;
-      }
-      for (i = 0; i < readBytes; ++i) if (buf1[i] != buf2[i]) return false;
-      lengthLeft -= readBytes;
-      offset += readBytes;
-      if( SDUCfg.onProgress ) {
-        progress = 100 * offset / length;
-        if (progressOld != progress) {
-          progressOld = progress;
-          SDUCfg.onProgress( (uint8_t)progress, 100 );
-        }
-      }
-    }
-    return true;
-  }
-
-
-  bool SDUpdater::copyFsPartition(fs::File* dst, const esp_partition_t* src, size_t length)
-  {
-    size_t lengthLeft = length;
-    const size_t bufSize = SPI_FLASH_SEC_SIZE;
-    std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
-    uint32_t offset = 0;
-    uint32_t progress = 0, progressOld = 1;
-    while( lengthLeft > 0) {
-      size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
-      if (!ESP.flashRead(src->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)
-      ) {
-          return false;
-      }
-      if (dst) dst->write(buf.get(), (readBytes + 3) & ~3);
-      lengthLeft -= readBytes;
-      offset += readBytes;
-      if( SDUCfg.onProgress ) {
-        progress = 100 * offset / length;
-        if (progressOld != progress) {
-          progressOld = progress;
-          SDUCfg.onProgress( (uint8_t)progress, 100 );
-          vTaskDelay(10);
-        }
-      }
-    }
-    return true;
-  }
-
-
-  bool SDUpdater::copyFlashPartition(const esp_partition_t* dst, const esp_partition_t* src, size_t length)
-  {
-    if( dst->size < length ) {
-      log_e("data won't fit in destination partition (available: %d, needed: %d)", dst->size, length );
-      return false;
-    }
-
-    size_t lengthLeft = length;
-    const size_t bufSize = SPI_FLASH_SEC_SIZE;
-    std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
-    uint32_t offset = 0;
-    uint32_t progress = 0, progressOld = 0;
-    while( lengthLeft > 0) {
-      size_t readBytes = (lengthLeft < bufSize) ? lengthLeft : bufSize;
-      if (!ESP.flashRead(src->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)
-      || !ESP.flashEraseSector((dst->address + offset) / bufSize)
-      || !ESP.flashWrite(dst->address + offset, reinterpret_cast<uint32_t*>(buf.get()), (readBytes + 3) & ~3)) {
-          return false;
-      }
-      lengthLeft -= readBytes;
-      offset += readBytes;
-      if( SDUCfg.onProgress ) {
-        progress = 100 * offset / length;
-        if (progressOld != progress) {
-          progressOld = progress;
-          SDUCfg.onProgress( (uint8_t)progress, 100 );
-        }
-      }
-    }
-    return true;
-  }
-
-
-
-
-  bool SDUpdater::saveSketchToFactory()
-  {
-    const esp_partition_t* running     = esp_ota_get_running_partition();
-    //const esp_partition_t* nextupdate  = esp_ota_get_next_update_partition(NULL);
-    const esp_partition_t* factorypart = SDUpdater::getFactoryPartition();
-
-    if( !factorypart ) {
-      log_w( "This flash has no factory partition" );
-      return false;
-    }
-    if (!running) {
-      log_e( "Can't fetch running partition info !!" );
-      return false;
-    }
-    size_t sksize = ESP.getSketchSize();
-
-    if( running == factorypart ) {
-      log_d("Sketch is running from factory partition, no need to propagate");
-      return false;
-    }
-
-    if (!compareFlashPartition(running, factorypart, sksize)) {
-      if( copyFlashPartition( factorypart, running, sksize) ) {
-        log_d("Sketch successfully propagated to factory partition");
-        return true;
-      } else {
-        log_e("Sketch propagation to factory partition failed");
-      }
-    } else {
-      log_i("Current sketch and factory partition already match");
-      return true;
-    }
-    return false;
-  }
-
-
-
   bool SDUpdater::saveSketchToFS( SDUpdater* sdu, fs::FS &fs, const char* binfilename, bool skipIfExists )
   {
+    assert(sdu);
     // no rollback possible, start filesystem
     if( !_fsBegin( sdu, fs ) ) {
       const char *msg[] = {"No Filesystem mounted.","Can't check firmware."};
@@ -290,7 +54,7 @@ namespace SDUpdaterNS
     if( SDUCfg.onProgress ) SDUCfg.onProgress( 25, 100 );
     _message( String("Overwriting ") + String(binfilename) );
 
-    if (copyFsPartition( &dst, running, sksize)) {
+    if (Flash::copyPartition( &dst, running, sksize)) {
       if( SDUCfg.onProgress ) SDUCfg.onProgress( 75, 100 );
       _message( String("Done ") + String(binfilename) );
       vTaskDelay(1000);
@@ -309,19 +73,8 @@ namespace SDUpdaterNS
   // rollback helper, save menu.bin meta info in NVS
   void SDUpdater::updateNVS()
   {
-    const esp_partition_t* update_partition = esp_ota_get_next_update_partition( NULL );
-    if (!update_partition) {
-      log_d( "Canceling NVS Update as update partition is invalid" );
-      return;
-    }
-    esp_image_metadata_t nusketchMeta = getSketchMeta( update_partition );
-    uint32_t nuSize = nusketchMeta.image_len;
-    SDU_SERIAL.printf( "Updating menu.bin NVS size/digest after update: %d\n", nuSize );
-    Preferences preferences;
-    preferences.begin( "sd-menu", false );
-    preferences.putInt( "menusize", nuSize );
-    preferences.putBytes( "digest", nusketchMeta.image_digest, 32 );
-    preferences.end();
+    SDU_SERIAL.printf( "Updating NVS preferences with current partition's size/digest" );
+    NVS::saveMenuPrefs();
   }
 
 
@@ -365,6 +118,7 @@ namespace SDUpdaterNS
   void SDUpdater::doRollBack( const String& message )
   {
     assert(UpdateIface);
+    SDU_SERIAL.println( SDU_ROLLBACK_MSG );
     log_d("Wil check for rollback capability");
     if( !cfg->onMessage)   { log_d("No message reporting"); }
     //if( !cfg->onError )    log_d("No error reporting");
@@ -390,15 +144,14 @@ namespace SDUpdaterNS
   }
 
 
-  // if NVS has info about MENU_BIN flash size and digest, try rollback()
   void SDUpdater::tryRollback( String fileName )
   {
-    Preferences preferences;
-    preferences.begin( "sd-menu" );
-    uint32_t menuSize = preferences.getInt( "menusize", 0 );
+    if( cfg->rollBackToFactory ) return; // SDU settings: factory supersedes rollback
+    // if NVS has info about MENU_BIN flash size and digest, try rollback()
+    uint32_t menuSize;// = preferences.getInt( "menusize", 0 );
     uint8_t image_digest[32];
-    preferences.getBytes( "digest", image_digest, 32 );
-    preferences.end();
+    NVS::getMenuPrefs( &menuSize, image_digest );
+
     SDU_SERIAL.println( "Trying rollback" );
 
     if( menuSize == 0 ) {
@@ -411,7 +164,7 @@ namespace SDUpdaterNS
       log_d( "Cancelling rollback as update partition is invalid" );
       return;
     }
-    esp_image_metadata_t sketchMeta = getSketchMeta( update_partition );
+    esp_image_metadata_t sketchMeta = Flash::getSketchMeta( update_partition );
     uint32_t nuSize = sketchMeta.image_len;
 
     if( nuSize != menuSize ) {
@@ -455,27 +208,22 @@ namespace SDUpdaterNS
   }
 
 
-  void SDUpdater::checkSDUpdaterHeadless( fs::FS &fs, String fileName, unsigned long waitdelay )
+  void SDUpdater::checkUpdaterHeadless( fs::FS &fs, String fileName )
   {
     cfg->setFS( &fs );
-    checkSDUpdaterHeadless( fileName, waitdelay );
+    checkUpdaterHeadless( fileName );
   }
 
 
-  void SDUpdater::checkSDUpdaterUI( fs::FS &fs, String fileName, unsigned long waitdelay )
+  void SDUpdater::checkUpdaterUI( fs::FS &fs, String fileName )
   {
     cfg->setFS( &fs );
-    checkSDUpdaterUI( fileName, waitdelay );
+    checkUpdaterUI( fileName );
   }
 
 
   void SDUpdater::updateFromFS( const String& fileName )
   {
-    if( cfg->fs == nullptr ) {
-      const char *msg[] = {"No valid filesystem", "selected!"};
-      _error( msg, 2 );
-      return;
-    }
     SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] SD Updater version: %s\n", (char*)M5_SD_UPDATER_VERSION );
     #ifdef M5_LIB_VERSION
       SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] M5Stack Core version: %s\n", (char*)M5_LIB_VERSION );
@@ -483,7 +231,14 @@ namespace SDUpdaterNS
     SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Application was Compiled on %s %s\n", __DATE__, __TIME__ );
     SDU_SERIAL.printf( "[" SD_PLATFORM_NAME "-SD-Updater] Will attempt to load binary %s \n", fileName.c_str() );
 
-    // try rollback first, it's faster!
+    // try from flash, same as rollback but found from NVS partition table
+    if( fileName!="" && Flash::hasFactoryApp() ) {
+      auto part = NVS::findPartition( fileName.c_str() );
+      if( part ) {
+        Flash::bootPartition( part->ota_num );
+      }
+    }
+    // try rollback
     if( strcmp( MenuBin, fileName.c_str() ) == 0 ) {
       if( cfg->use_rollback ) {
         tryRollback( fileName );
@@ -492,7 +247,13 @@ namespace SDUpdaterNS
         log_d("Skipping rollback per config");
       }
     }
-    // no rollback possible, start filesystem
+    // no bootPartition()/rollback() possible, can't go any further without filesystem
+    if( cfg->fs == nullptr ) {
+      const char *msg[] = {"No valid filesystem", "selected!"};
+      _error( msg, 2 );
+      return;
+    }
+    // start filesystem
     if( !_fsBegin(this) ) {
       const char* msg[] = {"No filesystem mounted.", "Can't load firmware."};
       _error( msg, 2 );
@@ -501,19 +262,8 @@ namespace SDUpdaterNS
 
     File updateBin = cfg->fs->open( fileName );
     if ( updateBin ) {
-
-      if( updateBin.isDirectory() ) {
-        updateBin.close();
-        _error( fileName + " is a directory" );
-        return;
-      }
-
-      size_t updateSize = updateBin.size();
-
-      updateFromStream( updateBin, updateSize, fileName );
-
+      updateFromStream( updateBin, updateBin.size(), fileName );
       updateBin.close();
-
     } else {
       const char* msg[] = {"Could not reach", fileName.c_str(), "Can't load firmware."};
       _error( msg, 3 );
@@ -521,55 +271,26 @@ namespace SDUpdaterNS
   }
 
 
-  // check given FS for valid menu.bin and perform update if available
-  void SDUpdater::checkSDUpdaterHeadless( String fileName, unsigned long waitdelay )
+  void SDUpdater::checkUpdaterHeadless( String fileName )
   {
-    if( waitdelay == 0 ) {
-      waitdelay = 100; // at least give some time for the serial buffer to fill
+    if( SDUCfg.waitdelay == 0 ) {
+      SDUCfg.waitdelay = 100; // at least give some time for the serial buffer to fill
     }
-    SDU_SERIAL.printf("SDUpdater: you have %d milliseconds to send 'update', 'rollback', 'skip' or 'save' command\n", (int)waitdelay);
+    SDU_SERIAL.printf("SDUpdater: you have %d milliseconds to send 'update', 'rollback', 'skip' or 'save' command\n", (int)SDUCfg.waitdelay);
 
-    if( cfg->onWaitForAction ) {
-      int ret = cfg->onWaitForAction( nullptr, nullptr, nullptr, waitdelay );
-      if ( ret == ConfigManager::SDU_BTNA_MENU ) {
-        SDU_SERIAL.printf( SDU_LOAD_TPL, fileName.c_str() );
-        updateFromFS( fileName );
-        ESP.restart();
-      }
-      if( cfg->binFileName != nullptr ) {
-        log_d("Checking if %s needs saving", cfg->binFileName );
-        saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != ConfigManager::SDU_BTNC_SAVE );
-      }
-    } else {
-      _error( "Missing onWaitForAction!" );
-    }
+    if( !checkUpdaterCommon( fileName ) ) return;
 
     SDU_SERIAL.println("Delay expired, no SD-Update will occur");
   }
 
 
-  void SDUpdater::checkSDUpdaterUI( String fileName, unsigned long waitdelay )
+  void SDUpdater::checkUpdaterUI( String fileName )
   {
-    if( cfg->fs == nullptr ) {
-      const char* msg[] = {"No valid filesystem", "selected!", "Cannot load", fileName.c_str()};
-      _error( msg, 4 );
-      return;
-    }
-    bool draw = SDUHasTouch;
-    bool isRollBack = true;
-    if( fileName != "" ) {
-      isRollBack = false;
-    }
+    bool draw = SDUHasTouch || (SDUCfg.waitdelay>100 && !SDUHasTouch); // note: draw forced if waitdelay>100
 
-    if( !draw ) { // default touch button support
-      if( waitdelay <= 100 ) {
-        // no UI draw, but still attempt to detect "button is pressed on boot"
-        // round up to 100ms for button debounce
-        waitdelay = 100;
-      } else {
-        // only force draw if waitdelay > 100
-        draw = true;
-      }
+    if( SDUCfg.waitdelay <= 100 ) {
+      draw = false;    // 100ms delay will just look like a blink, cancel UI draw
+      SDUCfg.waitdelay = 100; // button press/touch on boot still needs "blind" detection, round up to 100ms for debounce
     }
 
     if( draw ) { // bring up the UI
@@ -577,34 +298,60 @@ namespace SDUpdaterNS
       if( cfg->onSplashPage) cfg->onSplashPage( BTN_HINT_MSG );
     }
 
-    if( cfg->onWaitForAction ) {
-      [[maybe_unused]] unsigned long startwait = millis();
-      int ret = cfg->onWaitForAction( isRollBack ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, (char*)cfg->labelSave, waitdelay );
-      [[maybe_unused]] unsigned long actualwaitdelay = millis()-startwait;
-
-      log_v("Action '%d' was triggered after %d ms (waidelay=%d)", ret, actualwaitdelay, waitdelay );
-
-      if ( ret == ConfigManager::SDU_BTNA_MENU ) {
-        if( isRollBack == false ) {
-          SDU_SERIAL.printf( SDU_LOAD_TPL, fileName.c_str() );
-          updateFromFS( fileName );
-          ESP.restart();
-        } else {
-          SDU_SERIAL.println( SDU_ROLLBACK_MSG );
-          doRollBack( SDU_ROLLBACK_MSG );
-        }
-      }
-      if( cfg->binFileName != nullptr ) {
-        log_d("Checking if %s needs saving", cfg->binFileName );
-        saveSketchToFS( *cfg->fs,  cfg->binFileName, ret != ConfigManager::SDU_BTNC_SAVE );
-      }
-    } else {
-      _error( "Missing onWaitForAction!" );
-    }
+    checkUpdaterCommon( fileName );
 
     if( draw ) {
       // reset text styles to avoid messing with the overlayed application
       if( cfg->onAfter ) cfg->onAfter();
+    }
+  }
+
+
+  // common logic to checkUpdaterUI() and checkUpdaterHeadless()
+  bool SDUpdater::checkUpdaterCommon( String fileName )
+  {
+    bool hasFileName = (fileName!="");
+
+    // if using factory: disable "Save FW" action button when running partition isn't the first partition
+    SDUCfg.Buttons[2].enabled = cfg->rollBackToFactory
+      ? esp_ota_get_running_partition()->subtype==ESP_PARTITION_SUBTYPE_APP_OTA_MIN
+      : SDUCfg.Buttons[2].enabled
+    ;
+
+    if( cfg->onWaitForAction ) {
+      int action = cfg->onWaitForAction( !hasFileName ? (char*)cfg->labelRollback : (char*)cfg->labelMenu,  (char*)cfg->labelSkip, (char*)cfg->labelSave, SDUCfg.waitdelay );
+
+      if ( action == ConfigManager::SDU_BTNA_MENU ) { // all BtnA successful actions trigger a restart
+        if( hasFileName ) {
+          if( cfg->fs == nullptr ) {
+            const char* msg[] = {"No valid filesystem", "selected!", "Cannot load", fileName.c_str()};
+            _error( msg, 4 );
+            return false;
+          }
+          SDU_SERIAL.printf( SDU_LOAD_TPL, fileName.c_str() );
+          updateFromFS( fileName );
+          ESP.restart();
+        } else {
+          if( cfg->rollBackToFactory ) Flash::loadFactory();
+          doRollBack( SDU_ROLLBACK_MSG );
+        }
+        return false; // rollback failed
+      } else if( cfg->binFileName != nullptr ) {
+        if( cfg->fs != nullptr ) {
+          log_v("Checking if %s needs saving", cfg->binFileName );
+          saveSketchToFS( *cfg->fs,  cfg->binFileName, action != ConfigManager::SDU_BTNC_SAVE );
+        } else if( cfg->rollBackToFactory ) {
+          return PartitionManager::migrateSketch( cfg->binFileName );
+        } else if( action == ConfigManager::SDU_BTNC_SAVE ) {
+          const char* msg[] = {"No valid filesystem", "selected!", "Cannot save", fileName.c_str()};
+          _error( msg, 4 );
+          return false;
+        }
+      }
+      return true;
+    } else {
+      _error( "Missing onWaitForAction!" );
+      return false;
     }
   }
 

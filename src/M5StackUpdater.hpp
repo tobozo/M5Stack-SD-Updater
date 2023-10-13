@@ -96,7 +96,7 @@
 #define resetReason (int)rtc_get_reset_reason(0)
 
 // use `#define SDU_NO_PRAGMAS` to disable duplicate pragma messages
-#if !defined SDU_NO_PRAGMAS
+#if !defined SDU_NO_PRAGMAS && CORE_DEBUG_LEVEL>=ARDUHAL_LOG_LEVEL_ERROR
   #define SDU_STRINGIFY(a) #a
   #define SDU_PRAGMA_MESSAGE(msg) \
     _Pragma( SDU_STRINGIFY( message msg ) )
@@ -283,6 +283,7 @@
 
 // now that all the contextual flags are created, load the SDUpdater stack
 #include "./ConfigManager/ConfigManager.hpp"
+//#include "./NVS/NVSUtils.hpp"
 #include "./SDUpdater/Update_Interface.hpp"
 #include "./SDUpdater/SDUpdater_Class.hpp"
 #include "./UI/common.hpp"
@@ -382,13 +383,13 @@ namespace SDUpdaterNS
       if( display ) {
 
         #if defined SDU_USE_DISPLAY
-          if( !onProgress   )  { setProgressCb(   SDMenuProgressUI );  log_d("Attached onProgress");   }
-          if( !onMessage    )  { setMessageCb(    DisplayUpdateUI );   log_d("Attached onMessage");    }
-          if( !onError      )  { setErrorCb(      DisplayErrorUI );    log_d("Attached onError");      }
-          if( !onBefore     )  { setBeforeCb(     freezeTextStyle );   log_d("Attached onBefore");     }
-          if( !onAfter      )  { setAfterCb(      thawTextStyle );     log_d("Attached onAfter");      }
-          if( !onSplashPage )  { setSplashPageCb( drawSDUSplashPage ); log_d("Attached onSplashPage"); }
-          if( !onButtonDraw )  { setButtonDrawCb( drawSDUPushButton ); log_d("Attached onButtonDraw"); }
+          if( !onProgress   )  { setProgressCb(   SDMenuProgressUI );  log_v("Attached onProgress");   }
+          if( !onMessage    )  { setMessageCb(    DisplayUpdateUI );   log_v("Attached onMessage");    }
+          if( !onError      )  { setErrorCb(      DisplayErrorUI );    log_v("Attached onError");      }
+          if( !onBefore     )  { setBeforeCb(     freezeTextStyle );   log_v("Attached onBefore");     }
+          if( !onAfter      )  { setAfterCb(      thawTextStyle );     log_v("Attached onAfter");      }
+          if( !onSplashPage )  { setSplashPageCb( drawSDUSplashPage ); log_v("Attached onSplashPage"); }
+          if( !onButtonDraw )  { setButtonDrawCb( drawSDUPushButton ); log_v("Attached onButtonDraw"); }
         #endif
 
         #if defined ARDUINO_ESP32_S3_BOX
@@ -406,13 +407,13 @@ namespace SDUpdaterNS
 
       } else {
 
-        if( !onProgress ) { setProgressCb( SDMenuProgressHeadless ); log_d("Attached onProgress"); }
-        if( !onMessage  ) { setMessageCb( DisplayUpdateHeadless );   log_d("Attached onMessage"); }
+        if( !onProgress ) { setProgressCb( SDMenuProgressHeadless ); log_v("Attached onProgress"); }
+        if( !onMessage  ) { setMessageCb( DisplayUpdateHeadless );   log_v("Attached onMessage"); }
         triggerSource = SDU_TRIGGER_SERIAL; // no display detected, fallback to serial
 
       }
 
-      if( !onWaitForAction) { setWaitForActionCb( actionTriggered ); log_d("Attached onWaitForAction(any)"); }
+      if( !onWaitForAction) { setWaitForActionCb( actionTriggered ); log_v("Attached onWaitForAction(any)"); }
 
       if( !triggers ) {
         switch( triggerSource ) {
@@ -427,7 +428,7 @@ namespace SDUpdaterNS
 
 
     // logic block generator for hasFS() filesystem detection/init
-    #define SD_MOUNT_ANY_FS_IF( cond, begin_cb, name )      \
+    #define SDU_MOUNT_ANY_FS_IF( cond, begin_cb, name )      \
       if( cond ) {                                          \
         if( !begin_cb ){                                    \
           msg[0] = name " MOUNT FAILED";                    \
@@ -437,8 +438,8 @@ namespace SDUpdaterNS
         mounted = true;                                     \
       }                                                     \
 
-    // function call generator to SD_MOUNT_ANY_FS_IF( condition, begin-callback, filesystem-name )
-    #define SD_MOUNT_FS_IF( fsobj ) SD_MOUNT_ANY_FS_IF( &fs == &fsobj, SDU_BEGIN_##fsobj (SDU_CONFIG_##fsobj ), #fsobj );
+    // function call generator to SDU_MOUNT_ANY_FS_IF( condition, begin-callback, filesystem-name )
+    #define SDU_MOUNT_FS_IF( fsobj ) SDU_MOUNT_ANY_FS_IF( &fs == &fsobj, SDU_BEGIN_##fsobj (SDU_CONFIG_##fsobj ), #fsobj );
 
     inline bool hasFS( SDUpdater* sdu, fs::FS &fs, bool report_errors=true )
     {
@@ -446,24 +447,24 @@ namespace SDUpdaterNS
       bool mounted = sdu->cfg->mounted; // inherit config mount state as default (can be triggered by rollback)
       const char* msg[] = {nullptr, "ABORTING"};
       #if defined SDU_HAS_SPIFFS // _SPIFFS_H_
-        SD_MOUNT_FS_IF( SPIFFS );
+        SDU_MOUNT_FS_IF( SPIFFS );
       #endif
       #if defined SDU_HAS_LITTLEFS // _LITTLEFS_H_
-        SD_MOUNT_FS_IF( LittleFS );
+        SDU_MOUNT_FS_IF( LittleFS );
       #endif
       #if defined SDU_HAS_FFAT //_FFAT_H_
-        SD_MOUNT_FS_IF( FFat );
+        SDU_MOUNT_FS_IF( FFat );
       #endif
       #if defined SDU_HAS_SD // _SD_H_
         SDU_SD_CONFIG_GET()->csPin = sdu->cfg->TFCardCsPin;
-        SD_MOUNT_FS_IF( SD );
+        SDU_MOUNT_FS_IF( SD );
       #endif
       #if defined SDU_HAS_SD_MMC // _SDMMC_H_
         //SDU_SD_MMC_CONFIG_GET()->busCfg.freq = 40000000;
-        SD_MOUNT_FS_IF( SD_MMC );
+        SDU_MOUNT_FS_IF( SD_MMC );
       #endif
       #if defined SDU_HAS_SDFS
-        SD_MOUNT_ANY_FS_IF( &fs==ConfigManager::SDU_SdFatFsPtr, SDU_BEGIN_SDFat(ConfigManager::SDU_SdSpiConfigPtr), "SDFat" );
+        SDU_MOUNT_ANY_FS_IF( &fs==ConfigManager::SDU_SdFatFsPtr, SDU_BEGIN_SDFat(ConfigManager::SDU_SdSpiConfigPtr), "SDFat" );
       #endif
       return mounted;
     }
@@ -515,10 +516,8 @@ namespace SDUpdaterNS
   }
 
 
-
-
   // provide a conditional function to cover more devices, including headless and touch
-  inline void checkSDUpdater( fs::FS &fs, String fileName, unsigned long waitdelay, const int TfCardCsPin_ )
+  inline void checkSDUpdater( fs::FS *fsPtr, String fileName, unsigned long waitdelay, const int TfCardCsPin_ )
   {
     if( waitdelay == 0 ) {
       // check for reset reset reason
@@ -549,15 +548,34 @@ namespace SDUpdaterNS
     log_n("Booting with reset reason: %d", resetReason );
 
     SDUCfg.setCSPin( TfCardCsPin_ );
-    SDUCfg.setFS( &fs );
+    SDUCfg.setFS( fsPtr );
+    SDUCfg.setWaitDelay( waitdelay );
+
+    // if( !fsPtr ) SDUCfg.Buttons[2].enabled = false; // disable "Save SD/Rollback" button
+
     SDUpdater sdUpdater( &SDUCfg );
 
     if( SDUCfg.display != nullptr ) {
-      sdUpdater.checkSDUpdaterUI( fileName, waitdelay );
+      sdUpdater.checkUpdaterUI( fileName );
     } else {
-      if( waitdelay <=100 ) waitdelay = 2000;
-      sdUpdater.checkSDUpdaterHeadless( fileName, waitdelay );
+      if( SDUCfg.waitdelay <=100 ) SDUCfg.waitdelay = 2000;
+      sdUpdater.checkUpdaterHeadless( fileName );
     }
+  }
+
+
+
+  inline void checkFWUpdater( unsigned long waitdelay=5000 )
+  {
+    return checkSDUpdater( SDUCfg.fs, "", waitdelay, SDUCfg.TFCardCsPin );
+  }
+
+
+
+  // provide a conditional function to cover more devices, including headless and touch
+  inline void checkSDUpdater( fs::FS &fs, String fileName, unsigned long waitdelay, const int TfCardCsPin_ )
+  {
+    return checkSDUpdater( &fs, fileName, waitdelay, TfCardCsPin_ );
   }
 
 
@@ -591,7 +609,7 @@ namespace SDUpdaterNS
       ConfigManager::SDU_SdSpiConfigPtr = SdFatCfg;
       ConfigManager::SDU_SdFatPtr = &sd;
       ConfigManager::SDU_SdFatFsPtr = getSdFsFs(sd);
-      checkSDUpdater( *ConfigManager::SDU_SdFatFsPtr, fileName, waitdelay, SdFatCfg->csPin );
+      checkSDUpdater( ConfigManager::SDU_SdFatFsPtr, fileName, waitdelay, SdFatCfg->csPin );
     }
 
   #endif

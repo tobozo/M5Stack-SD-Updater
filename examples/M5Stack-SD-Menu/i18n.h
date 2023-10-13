@@ -13,7 +13,7 @@
 #define MOVINGFILE_MESSAGE F("Moving ")
 #define FILESIZE_UNITS F(" bytes")
 
-#define MENU_TITLE F( PLATFORM_NAME " SD LAUNCHER")
+#define MENU_TITLE F( PLATFORM_NAME " SD/FW LAUNCHER")
 #define MENU_SUBTITLE F("Applications")
 #define MENU_BTN_INFO F("SELECT")
 #define MENU_BTN_SET F("SET")

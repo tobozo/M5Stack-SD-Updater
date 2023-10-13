@@ -26,6 +26,7 @@
     {
       if( ConfigManager::SD_ConfigPtr ) return ConfigManager::SD_ConfigPtr;
       static ConfigManager::SD_FS_Config_t SD_Config = ConfigManager::SD_FS_Config_t();
+      log_d("CREATED DEFAULT SD config csPin:%d, bus:%s, frq:%d", SD_Config.csPin, SD_Config.bus?"true":"false", SD_Config.bus?SD_Config.freq:0);
       ConfigManager::SD_ConfigPtr = &SD_Config;
       return ConfigManager::SD_ConfigPtr;
     }
@@ -48,7 +49,12 @@
     inline bool SDU_SDBegin( ConfigManager::SD_FS_Config_t cfg=ConfigManager::SD_FS_Config_t() )
     {
       ConfigManager::SD_ConfigPtr = &cfg;
-      return cfg.bus ? SD.begin(cfg.csPin, *cfg.bus, cfg.freq) : SD.begin(cfg.csPin);
+      log_d("SD will begin CS_PIN=%d, bus:%s, frq=%d", cfg.csPin, cfg.bus?"true":"false", cfg.bus?cfg.freq:0);
+      return cfg.freq==0 || cfg.freq > 80000000
+        ? SD.begin()
+        : cfg.bus
+          ? SD.begin(cfg.csPin, *cfg.bus, cfg.freq)
+          : SD.begin(cfg.csPin);
     }
 
 

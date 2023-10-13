@@ -168,8 +168,6 @@ unsigned long lastScrollRender = micros(); // timer for scrolling
 String lastScrollMessage; // last scrolling string state
 int16_t lastScrollOffset; // last scrolling string position
 
-
-//SDUpdater *sdUpdater = nullptr;
 M5SAM M5Menu;
 #if defined USE_DOWNLOADER
   AppRegistry Registry;
@@ -452,6 +450,7 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
     return;
   }
   File file = root.openNextFile();
+  tft.setFont( &Font2 );
   while( file ){
     if( file.isDirectory() ){
       log_d( "%s %s", DEBUG_DIRLABEL, SDUpdater::fs_file_path(&file) );
@@ -461,12 +460,15 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
     } else {
       if( isValidAppName( SDUpdater::fs_file_path(&file) ) ) {
         if( process ) {
+          FileInfo newFile = FileInfo();
+          fileInfo.push_back(newFile);
+          newFile.srcfs.fs = &fs;
           getFileInfo( fileInfo[appsCount], &file );
           if( appsCountProgress > 0 ) {
             float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
             progressBar( SDU_DISPLAY_OBJ_PTR, 110, 112, 100, 20, progressRatio);
             tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
-            tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
+            tft.drawString( fileInfo[appsCount].displayName(), 160, 148 );
           }
         }
         appsCount++;
@@ -489,12 +491,15 @@ void listDir( fs::FS &fs, const char * dirName, uint8_t levels, bool process )
   if( fs.exists( MENU_BIN ) ) {
     file = fs.open( MENU_BIN );
     if( process ) {
+      FileInfo newFile = FileInfo();
+      newFile.srcfs.fs = &fs;
+      fileInfo.push_back(newFile);
       getFileInfo( fileInfo[appsCount], &file );
       if( appsCountProgress > 0 ) {
         float progressRatio = ((((float)appsCount+1.0) / (float)appsCountProgress) * 80.00)+20.00;
         progressBar( SDU_DISPLAY_OBJ_PTR, 110, 112, 100, 20, progressRatio);
         tft.fillRect( 0, 140, tft.width(), 16, TFT_BLACK);
-        tft.drawString( fileInfo[appsCount].displayName(), 160, 148, 2);
+        tft.drawString( fileInfo[appsCount].displayName(), 160, 148 );
       }
     }
     appsCount++;
@@ -579,6 +584,9 @@ void drawM5Menu( bool renderButtons = false )
       M5Menu.drawAppMenu( MENU_TITLE, MENU_BTN_INFO, MENU_BTN_PAGE, MENU_BTN_NEXT );
     #endif
     tft.drawJpg(sdUpdaterIcon15x16_jpg, sdUpdaterIcon15x16_jpg_len, 296, 6, 15, 16);
+    if( factory_partition ) {
+      tft.drawJpg(flashUpdaterIcon16x16_jpg, flashUpdaterIcon16x16_jpg_len, 8, 6, 16, 16);
+    }
     #if defined USE_DOWNLOADER
       drawSDUpdaterChannel();
     #endif
@@ -836,12 +844,24 @@ void UISetup()
   //lsPart();
 
   tft.setBrightness(100);
+
+  #if defined HAS_LGFX // reset scroll position
+    log_d("Resetting scroll position");
+    tft.setScrollRect(0, 0, tft.width(), tft.height() );
+    tft.startWrite();
+    tft.writecommand(0x37); // ILI934x/ST778x VSCRSADD Vertical scrolling pointer
+    tft.writedata(0>>8);
+    tft.writedata(0);
+    tft.endWrite();
+  #endif
+
   lastcheck = millis();
   tft.drawJpg(disk01_jpg, 1775, (tft.width()-30)/2, 100);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor( TFT_WHITE, TFT_BLACK );
   tft.setTextSize( 1 );
-  tft.drawString( SD_LOADING_MESSAGE, 160, 142, 1 );
+  tft.setFont( &Font0 );
+  tft.drawString( SD_LOADING_MESSAGE, 160, 142 );
 
   //M5.update();
 
@@ -855,7 +875,8 @@ void UISetup()
     // TODO: make a more fancy animation
     toggle = !toggle;
     tft.setTextColor( toggle ? TFT_BLACK : TFT_WHITE );
-    tft.drawString( INSERTSD_MESSAGE, 160, 84, 2 );
+    tft.setFont( &Font2 );
+    tft.drawString( INSERTSD_MESSAGE, 160, 84 );
     tft.drawJpg( toggle ? disk01_jpg : disk00_jpg, 1775, (tft.width()-30)/2, 100 );
     delay( toggle ? 300 : 500 );
     // go to sleep after a minute, no need to hammer the SD Card reader
@@ -878,19 +899,20 @@ void UISetup()
       M5.update();
       tft.setTextColor( TFT_WHITE, M5MENU_GREY );
       tft.setTextDatum(MC_DATUM);
+      tft.setFont( &Font2 );
       char remainingStr[32];
       while( M5.BtnB.isPressed() ) {
         pushDuration = millis() - pushStart;
         if( pushDuration > longPush ) break;
         if( pushDuration > shortPush ) {
           tft.setTextColor( TFT_WHITE, TFT_RED );
-          tft.drawString( "FULL RESET", 160, 100, 2 );
+          tft.drawString( "FULL RESET", 160, 100 );
           sprintf( remainingStr, "%.2f", (float)(longPush-pushDuration)/1000 );
         } else {
-          tft.drawString( "TLS RESET", 160, 100, 2 );
+          tft.drawString( "TLS RESET", 160, 100 );
           sprintf( remainingStr, "%.2f", (float)(shortPush-pushDuration)/1000 );
         }
-        tft.drawString( remainingStr, 160, 120, 2 );
+        tft.drawString( remainingStr, 160, 120 );
         delay(100);
         M5.update();
       }
@@ -938,12 +960,18 @@ void doFSChecks()
   #if !defined HAS_RTC
     checkMenuTimeStamp();
   #endif
-  checkMenuStickyPartition();
+
+  factory_partition = Flash::getFactoryPartition();
+
+  if( ! factory_partition ) {
+    // propagate to SD and OTA1
+    checkMenuStickyPartition();
+  }
 
   tft.fillRect(110, 112, 100, 20,0);
   progressBar( SDU_DISPLAY_OBJ_PTR, 110, 112, 100, 20, 10);
 
-  scanDataFolder(); // do SD / SPIFFS health checks
+  scanDataFolder(); // create necessary folders
 
   #if defined USE_DOWNLOADER
     Registry = registryInit(); // load registry profile
@@ -978,10 +1006,16 @@ void doFSInventory()
   appsCount = 0;
   tft.drawJpg(sdUpdaterIcon32x40_jpg, sdUpdaterIcon32x40_jpg_len, (tft.width()-32)/2, 40);
   tft.setTextDatum(MC_DATUM);
-  tft.drawString("Scanning SD Card", 160, 95, 2);
+  tft.setFont( &Font2 );
+  tft.drawString("Scanning SD Card", 160, 95 );
   listDir(M5_FS, "/", 0, true); // now retrieve files meta
   tft.setTextDatum(TL_DATUM);
   aSortFiles(); // bubble sort alphabetically
+
+  if( factory_partition ) {
+    // TODO: insert partitions from NVS
+  }
+
   buildM5Menu();
   drawM5Menu( true ); // render the menu
   lastcheck = millis(); // reset the timer

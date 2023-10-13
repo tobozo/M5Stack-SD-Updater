@@ -94,9 +94,9 @@ namespace SDUpdaterNS
         if( SDUCfg.onButtonDraw ) {
           log_d("Drawing buttons");
           const BtnStyles_t btns;
-          if( SDUCfg.Buttons[0].cb) SDUCfg.onButtonDraw( trigger->labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
-          if( SDUCfg.Buttons[1].cb) SDUCfg.onButtonDraw( trigger->labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
-          if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].cb ) {
+          if( SDUCfg.Buttons[0].enabled) SDUCfg.onButtonDraw( trigger->labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
+          if( SDUCfg.Buttons[1].enabled) SDUCfg.onButtonDraw( trigger->labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
+          if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].enabled ) {
             SDUCfg.onButtonDraw( trigger->labelSave, 2, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor, btns.Save.ShadowColor );
           }
         } else {
@@ -191,9 +191,9 @@ namespace SDUpdaterNS
       }
 
       switch( trigger->source ) {
-        case SDU_TRIGGER_SERIAL:      log_d("Listening to trigger source: Serial, delay=%ms", trigger->waitdelay); break;
-        case SDU_TRIGGER_PUSHBUTTON:  log_d("Listening to trigger source: Push Button, delay=%ms", trigger->waitdelay); break;
-        case SDU_TRIGGER_TOUCHBUTTON: log_d("Listening to trigger source: Touch Button, delay=%ms", trigger->waitdelay); break;
+        case SDU_TRIGGER_SERIAL:      log_d("Listening to trigger source: Serial, delay=%dms", trigger->waitdelay); break;
+        case SDU_TRIGGER_PUSHBUTTON:  log_d("Listening to trigger source: Push Button, delay=%dms", trigger->waitdelay); break;
+        case SDU_TRIGGER_TOUCHBUTTON: log_d("Listening to trigger source: Touch Button, delay=%dms", trigger->waitdelay); break;
       }
       auto msec = millis();
       int ret = -1;
@@ -242,9 +242,9 @@ namespace SDUpdaterNS
         if( SDUCfg.onSplashPage ) SDUCfg.onSplashPage( BTN_HINT_MSG );
         if( SDUCfg.onButtonDraw ) {
           const BtnStyles_t btns;
-          if( SDUCfg.Buttons[0].cb) SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
-          if( SDUCfg.Buttons[1].cb) SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
-          if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].cb ) {
+          if( SDUCfg.Buttons[0].enabled) SDUCfg.onButtonDraw( labelLoad, 0, btns.Load.BorderColor, btns.Load.FillColor, btns.Load.TextColor, btns.Load.ShadowColor );
+          if( SDUCfg.Buttons[1].enabled) SDUCfg.onButtonDraw( labelSkip, 1, btns.Skip.BorderColor, btns.Skip.FillColor, btns.Skip.TextColor, btns.Skip.ShadowColor );
+          if( SDUCfg.binFileName != nullptr && SDUCfg.Buttons[2].enabled ) {
             SDUCfg.onButtonDraw( labelSave, 2, btns.Save.BorderColor, btns.Save.FillColor, btns.Save.TextColor, btns.Save.ShadowColor );
           }
         }
@@ -266,7 +266,7 @@ namespace SDUpdaterNS
         SDUCfg.buttonsPoll();
 
         for( int i=0; i<3; i++ ) {
-          if( SDUCfg.Buttons[i].changed() ) {
+          if( SDUCfg.Buttons[i].enabled && SDUCfg.Buttons[i].changed() ) {
             log_v("SDUCfg.Buttons[%d] was triggered", i);
             ret = SDUCfg.Buttons[i].val; goto _endAssert;
           }
