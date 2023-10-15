@@ -286,6 +286,7 @@
 //#include "./NVS/NVSUtils.hpp"
 #include "./SDUpdater/Update_Interface.hpp"
 #include "./SDUpdater/SDUpdater_Class.hpp"
+#include "./I2CUpdater/I2CUpdater.hpp"
 #include "./UI/common.hpp"
 
 #if defined SDU_USE_DISPLAY // load the lobby and button decorations if applicable

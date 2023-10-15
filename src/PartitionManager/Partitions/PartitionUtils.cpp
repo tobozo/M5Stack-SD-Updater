@@ -549,7 +549,7 @@ namespace SDUpdaterNS
     bool metadataHasDigest( const esp_image_metadata_t *meta )
     {
       digest_t digests = digest_t();
-      return meta && meta->image_digest ? !digests.isEmpty( meta->image_digest ) : false;
+      return meta /*&& meta->image_digest*/ ? !digests.isEmpty( meta->image_digest ) : false;
     }
 
 
