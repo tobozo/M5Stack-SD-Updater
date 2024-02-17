@@ -142,7 +142,7 @@ jobs:
       - name: ${{ matrix.matrix-context }}
         uses: ArminJo/arduino-test-compile@v3.2.0
         with:
-          platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
+          platform-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           #platform-url: ${{ matrix.platform-url }}
           arduino-board-fqbn: esp32:esp32:${{ matrix.arduino-board}}${{ matrix.extra-fqbn }}
           arduino-platform: esp32:esp32@${{ matrix.sdk-version }}
@@ -161,7 +161,7 @@ jobs:
           FILE=examples/AppStore/build/AppStore.ino.bin && [ -f "$FILE" ] && cp $FILE examples/M5Stack-SD-Menu/build/${{ matrix.appstore-name }}-${{ matrix.sdk-version }}.bin || true
           FILE=examples/M5Stack-FW-Menu/build/M5Stack-FW-Menu.ino.bin && [ -f "$FILE" ] && cp $FILE examples/M5Stack-SD-Menu/build/${{ matrix.factory-name }}-${{ matrix.sdk-version }}.bin || true
       - name: Upload artifact ${{ matrix.matrix-context }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: startsWith(matrix.sketch-names, 'M5Stack-SD-Menu')
         with:
           name: ${{ matrix.matrix-context }}
@@ -182,7 +182,7 @@ jobs:
         #if: startsWith(github.ref, 'refs/tags/')
         run: mkdir -p /home/runner/builds
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         #if: startsWith(github.ref, 'refs/tags/')
         with:
           path: builds
