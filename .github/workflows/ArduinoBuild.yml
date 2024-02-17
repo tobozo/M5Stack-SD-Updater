@@ -86,7 +86,7 @@ jobs:
           - { matrix-context: LGFX-test,      arduino-board: m5stack-core-esp32, sketch-names: LGFX-SDLoader-Snippet.ino,          required-libraries: "LovyanGFX", ... }
           - { matrix-context: SdFat-test,     arduino-board: m5stack-core2,      sketch-names: SdFatUpdater.ino,                   required-libraries: "SdFat,M5GFX,M5Unified", ... }
 
-          # Launcher and Appstore
+          # Launcher and Appstore # TODO: add https://github.com/shikarunochi/CardputerSimpleLaucher
           - matrix-context: M5Stack
             arduino-board: m5stack-core-esp32
             sketch-names: M5Stack-SD-Menu.ino,AppStore.ino
@@ -136,7 +136,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: ${{ matrix.matrix-context }}
@@ -177,7 +177,7 @@ jobs:
     needs: matrix_build
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Create artifacts dir
         #if: startsWith(github.ref, 'refs/tags/')
         run: mkdir -p /home/runner/builds
