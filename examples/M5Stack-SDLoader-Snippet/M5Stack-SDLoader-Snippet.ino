@@ -52,7 +52,8 @@
 #endif
 */
 #include <ESP32-targz.h> // optional: https://github.com/tobozo/ESP32-targz
-#include <ESP32-Chimera-Core.h>
+//#include <ESP32-Chimera-Core.h>
+#include <M5Unified.h>
 //#include <M5Stack.h>
 // #define SDU_HEADLESS
 
@@ -65,7 +66,7 @@ void setup()
 {
   M5.begin();
 
-  M5.Lcd.fillRect( 10, 10, 100, 100, TFT_BLUE );
+  M5.Display.fillRect( 10, 10, 100, 100, TFT_BLUE );
   delay(1000);
 
   Serial.println("Welcome to the SD-Updater minimal example!");
@@ -85,7 +86,7 @@ void setup()
     TFCARD_CS_PIN // (usually default=4 but your mileage may vary)
   );
   Serial.println("Nope, will run the sketch normally");
-  M5.Lcd.print("M5Stack SD Loader test");
+  M5.Display.print("M5Stack SD Loader test");
 }
 
 
