@@ -46,29 +46,29 @@ jobs:
           # - sdk-version: 3.3.0
 
           # library health test sketches
-          #- { matrix-context: M5Core2-test,   arduino-board: m5stack-core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
-          - { matrix-context: M5Stack-test,   arduino-board: m5stack-core-esp32, sketch-names: M5Stack-SDLoader-Snippet.ino,       required-libraries: "ESP32-Chimera-Core,LovyanGFX", ... }
+          #- { matrix-context: M5Core2-test,   arduino-board: m5stack_core2,      sketch-names: M5Core2-SDLoader-Snippet.ino,       required-libraries: "M5Core2", ... }
+          - { matrix-context: M5Stack-test,   arduino-board: m5stack_core, sketch-names: M5Stack-SDLoader-Snippet.ino,       required-libraries: "ESP32-Chimera-Core,LovyanGFX", ... }
           - { matrix-context: S3Box-Test,     arduino-board: esp32s3box,         sketch-names: M5Stack-SDLoader-Snippet.ino,       required-libraries: "ESP32-Chimera-Core,LovyanGFX", ... }
-          - { matrix-context: M5Unified-test, arduino-board: m5stack-core2,      sketch-names: M5Unified.ino,                      required-libraries: "M5GFX,M5Unified", ... }
-          - { matrix-context: M5StickC-test,  arduino-board: m5stick-c,          sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino, required-libraries: "M5StickC", ... }
-          - { matrix-context: LGFX-test,      arduino-board: m5stack-core-esp32, sketch-names: LGFX-SDLoader-Snippet.ino,          required-libraries: "LovyanGFX", ... }
-          - { matrix-context: SdFat-test,     arduino-board: m5stack-core2,      sketch-names: SdFatUpdater.ino,                   required-libraries: "SdFat,M5GFX,M5Unified", ... }
+          - { matrix-context: M5Unified-test, arduino-board: m5stack_core2,      sketch-names: M5Unified.ino,                      required-libraries: "M5GFX,M5Unified", ... }
+          - { matrix-context: M5StickC-test,  arduino-board: m5stack_stickc,          sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino, required-libraries: "M5StickC", ... }
+          - { matrix-context: LGFX-test,      arduino-board: m5stack_core, sketch-names: LGFX-SDLoader-Snippet.ino,          required-libraries: "LovyanGFX", ... }
+          - { matrix-context: SdFat-test,     arduino-board: m5stack_core2,      sketch-names: SdFatUpdater.ino,                   required-libraries: "SdFat,M5GFX,M5Unified", ... }
 
           # Launcher and Appstore # TODO: add https://github.com/shikarunochi/CardputerSimpleLaucher
           - matrix-context: M5Stack
-            arduino-board: m5stack-core-esp32
+            arduino-board: m5stack_core
             sketch-names: M5Stack-SD-Menu.ino
             launcher-name: M5Stack-Launcher
             appstore-name: M5Stack-AppStore
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Core2
-            arduino-board: m5stack-core2
+            arduino-board: m5stack_core2
             sketch-names: M5Stack-SD-Menu.ino
             launcher-name: M5Core2-Launcher
             appstore-name: M5Core2-AppStore
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson"
           - matrix-context: M5Fire
-            arduino-board: m5stack-fire
+            arduino-board: m5stack_fire
             sketch-names: M5Stack-SD-Menu.ino
             launcher-name: M5Fire-Launcher
             appstore-name: M5Fire-AppStore
@@ -82,13 +82,13 @@ jobs:
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,Button2"
           - matrix-context: M5Atom
             sdk-version: latest
-            arduino-board: m5stack-atom
+            arduino-board: m5stack_atom
             sketch-names: M5Stack-SD-Menu.ino
             launcher-name: M5Atom-Launcher
             required-libraries: "ESP32-Chimera-Core,LovyanGFX,ArduinoJson,Button2"
           - matrix-context: M5CoreS3
             sdk-version: latest
-            arduino-board: m5stack-cores3
+            arduino-board: m5stack_cores3
             sketch-names: M5Stack-FW-Menu.ino
             launcher-name: M5CoreS3-Launcher
             factory-name: M5CoreS3-FW-Launcher
