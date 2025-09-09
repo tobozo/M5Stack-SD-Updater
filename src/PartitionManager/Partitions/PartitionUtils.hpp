@@ -2,16 +2,11 @@
 
 #include <memory>
 #include <vector>
-#include <esp_partition.h>
-#include <esp_flash.h>
-extern "C" {
-  #include "esp_ota_ops.h"
-  #include "esp_image_format.h"
-  #include "bootloader_common.h"
-}
+#include "esp_ota_ops.h"
+#include "bootloader_common.h"
+
 #include <Stream.h>
 #include <FS.h>
-#include <Stream.h>
 
 
 namespace SDUpdaterNS

@@ -48,6 +48,8 @@
   #define SD_PLATFORM_NAME "Atom"
 #elif defined ARDUINO_ESP32_S3_BOX
   #define SD_PLATFORM_NAME "S3Box"
+#elif defined CONFIG_IDF_TARGET_ESP32P4
+  #define SD_PLATFORM_NAME "M5Tab5"
 #else
   #define SD_PLATFORM_NAME "ESP32"
 #endif

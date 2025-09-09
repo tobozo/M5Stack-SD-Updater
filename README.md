@@ -20,9 +20,13 @@
 
 ## ABOUT
 
-- **M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) or [Odroid-Go](https://forum.odroid.com/viewtopic.php?t=31705) to package your apps on a SD card and load them from a menu such as the [default SD Menu example](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu) of this project or [@lovyan03](https://github.com/lovyan03)'s [Treeview based SD Menu](https://github.com/lovyan03/M5Stack_LovyanLauncher). For a Micropython compatible version of this library, see the [M5Stack_MicroPython  custom_sdupdater](https://github.com/ciniml/M5Stack_MicroPython/tree/custom_sdupdater)**
+- **M5Stack-SD-Updater is an [Platform.io](https://platformio.org/lib/show/2575/M5Stack-SD-Updater)/[Arduino library](https://www.arduinolibraries.info/libraries/m5-stack-sd-updater) for [M5Stack](http://m5stack.com/) or [Odroid-Go](https://forum.odroid.com/viewtopic.php?t=31705) to package your apps on a SD card and load them from a menu such as the [default SD Menu example](https://github.com/tobozo/M5Stack-SD-Updater/tree/master/examples/M5Stack-SD-Menu) of this project or [@lovyan03](https://github.com/lovyan03)'s [Treeview based SD Menu](https://github.com/lovyan03/M5Stack_LovyanLauncher).
 
-- It is inspired by gamebuino, however it does not use a modified bootloader.
+For a Micropython compatible version of this library, see the [M5Stack_MicroPython  custom_sdupdater](https://github.com/ciniml/M5Stack_MicroPython/tree/custom_sdupdater)**
+
+For a boot based launcher see the [@bmorcelli's Launcher](https://github.com/bmorcelli/Launcher).
+
+- M5Stack-SD-Updater is inspired by gamebuino, however it does not use a modified bootloader.
 
 - [Video demonstration](https://www.youtube.com/watch?v=myQfeYxyc3o)
 

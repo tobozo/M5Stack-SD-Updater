@@ -1,33 +1,8 @@
 #pragma once
 
 #include "../gitTagVersion.h"
-#include <esp_partition.h> // required by getSketchMeta(), compareFsPartition() and copyFsPartition() methods
-extern "C" {
-  #include "esp_ota_ops.h"
-  #include "esp_image_format.h"
-}
-// required to guess the reset reason
-#if defined ESP_IDF_VERSION_MAJOR && ESP_IDF_VERSION_MAJOR >= 4
-  #if defined CONFIG_IDF_TARGET_ESP32
-    #include <esp32/rom/rtc.h>
-  #elif defined CONFIG_IDF_TARGET_ESP32S2
-    #include <esp32s2/rom/rtc.h>
-  #elif defined CONFIG_IDF_TARGET_ESP32C3
-    #include <esp32c3/rom/rtc.h>
-  #elif defined CONFIG_IDF_TARGET_ESP32S3
-    #include <rom/rtc.h>
-  #else
-    #warning "Target CONFIG_IDF_TARGET is unknown"
-    #include <rom/rtc.h>
-  #endif
-#else
-  #include <rom/rtc.h>
-#endif
 
 #include <FS.h>
-// #include <Update.h>
-// required to store the MENU_BIN hash
-// #include <Preferences.h>
 
 #include "../ConfigManager/ConfigManager.hpp"
 #include "../PartitionManager/PartitionManager.hpp"
@@ -162,6 +137,9 @@ namespace SDUpdaterNS
     if( SDUCfg.fsChecker ) return SDUCfg.fsChecker( sdu, *SDUCfg.fs, report_errors );
     return false;
   }
+
+
+
 
 
   inline bool SDUpdater::saveSketchToFactory()

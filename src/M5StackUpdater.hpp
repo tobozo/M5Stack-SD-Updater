@@ -92,7 +92,7 @@
 #include <FS.h>
 #include <Update.h>
 
-
+#include "rom/rtc.h"
 #define resetReason (int)rtc_get_reset_reason(0)
 
 // use `#define SDU_NO_PRAGMAS` to disable duplicate pragma messages
@@ -231,7 +231,7 @@
     #define SDU_DISPLAY_OBJ_PTR &M5.Display
     #define SDU_TouchButton LGFX_Button
     #define HAS_LGFX
-    #if !defined SDU_HAS_TOUCH && (defined ARDUINO_M5STACK_Core2 || defined ARDUINO_M5STACK_CORE2 || defined ARDUINO_M5STACK_CORES3 )
+    #if !defined SDU_HAS_TOUCH && (defined ARDUINO_M5STACK_Core2 || defined ARDUINO_M5STACK_CORE2 || defined ARDUINO_M5STACK_CORES3 || defined CONFIG_IDF_TARGET_ESP32P4)
       #define SDU_HAS_TOUCH
     #endif
   #else
@@ -286,7 +286,7 @@
 //#include "./NVS/NVSUtils.hpp"
 #include "./SDUpdater/Update_Interface.hpp"
 #include "./SDUpdater/SDUpdater_Class.hpp"
-#include "./I2CUpdater/I2CUpdater.hpp"
+//#include "./I2CUpdater/I2CUpdater.hpp"
 #include "./UI/common.hpp"
 
 #if defined SDU_USE_DISPLAY // load the lobby and button decorations if applicable

@@ -1,6 +1,10 @@
 ## Factory Partition Firmware Launcher
 
-/!\ This app launcher depends on special partition schemes that include the factory type and at least 4 OTA (app) partitions.
+⚠️ This app launcher depends on special partition schemes that include the `factory` type and at least 4 OTA (`app` type) partitions.
+Such partitions are available for M5CoreS3 in the Arduino IDE 3.x.x and superior under the following names:
+
+- partitions-16MB-factory-4-apps
+- partitions-16MB-factory-6-apps
 
 The intent of this launcher is to provide an application manager to hanle firmwares directly from the flash.
 

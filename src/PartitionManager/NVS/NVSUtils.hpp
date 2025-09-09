@@ -1,18 +1,7 @@
 #pragma once
 #define SDU_NVSUTILS_HPP
 
-//#include <Arduino.h>
-//#include <Preferences.h>
-#include <cstring>
-#include <ctype.h>
-#include <stdio.h>
-#include <vector>
-#include <esp32-hal-log.h>
-#include <esp_partition.h>
-#include <nvs_flash.h>
-#include <Stream.h>
-#include <StreamString.h>
-
+#include "nvs_flash.h"
 #include "../Partitions/PartitionUtils.hpp"
 
 

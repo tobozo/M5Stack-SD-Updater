@@ -25,7 +25,7 @@ namespace SDUpdaterNS
     bool canMigrateToFactory();
 
     bool verify( uint8_t ota_num );
-    bool erase( uint8_t ota_num );
+    bool erase( uint8_t ota_num, bool restart=true );
 
     bool flash( const esp_partition_t *dstpart, fs::FS *dstfs, const char* srcpath );
     bool flash( uint8_t ota_num, sdu_fs_picker_t fsPicker, sdu_file_picker_t filePicker );

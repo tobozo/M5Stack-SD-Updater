@@ -1,4 +1,5 @@
-#include <ESP32-Chimera-Core.h> // https://github.com/tobozo/ESP32-Chimera-Core
+// #include <ESP32-Chimera-Core.h> // https://github.com/tobozo/ESP32-Chimera-Core
+#include <M5Unified.h>
 #define tft M5.Lcd
 
 #define DEST_FS_USES_SD
@@ -17,7 +18,7 @@ void byteCountSI(int64_t b, char* dest )
   const int64_t unit = 1000;
   const char* units = "kMGTPE";
   if( b < unit ) {
-    sprintf(dest, "%d B", b);
+    sprintf(dest, "%lld B", b);
   }
   int64_t div = unit;
   int64_t exp = 0;
@@ -33,7 +34,7 @@ void byteCountIEC( int64_t b, char* dest )
   const int64_t unit = 1024;
   const char* units = "KMGTPE";
   if( b < unit ) {
-    sprintf(dest, "%d B", b);
+    sprintf(dest, "%lld B", b);
   }
   int64_t div = unit;
   int64_t exp = 0;

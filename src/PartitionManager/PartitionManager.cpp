@@ -2,7 +2,6 @@
 //#include "./PartitionManager.hpp"
 #include "../SDUpdater/SDUpdater_Class.hpp"
 
-
 namespace SDUpdaterNS
 {
   namespace PartitionManager
@@ -255,7 +254,7 @@ namespace SDUpdaterNS
     // }
 
 
-    bool erase( uint8_t ota_num )
+    bool erase( uint8_t ota_num, bool restart )
     {
       NVS::PartitionDesc_t* nvs_part = NVS::findPartition(ota_num);
       if( !nvs_part ) {
@@ -278,9 +277,12 @@ namespace SDUpdaterNS
         //debugPartitions();
 
         if( NVS::savePartitions() ) {
-          log_d("TODO: implement partitions reload instead of restart");
-          //debugPartitions();
-          ESP.restart(); // force partition reload
+          if( restart ) {
+            log_d("TODO: implement partitions reload instead of restart");
+            //debugPartitions();
+            ESP.restart(); // force partition reload
+          }
+          return true;
         }
       } else {
         log_e("Could erase partition,  Flash::erase(%d) failed", ota_num);

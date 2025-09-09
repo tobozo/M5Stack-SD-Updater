@@ -26,8 +26,8 @@ namespace SDUpdaterNS
     static void drawSDUSplashPage( const char* msg );
     static void drawSDUPushButton( const char* label, uint8_t position, uint16_t outlinecolor, uint16_t fillcolor, uint16_t textcolor, uint16_t shadowcolor );
     static void fillStyledRect( SplashPageElementStyle_t *style, int32_t x, int32_t y, uint16_t width, uint16_t height );
-    static void adjustFontSize( uint8_t *lineHeightBig, uint8_t *lineHeightSmall );
-    static void drawTextShadow( const char* text, int32_t x, int32_t y, uint16_t textcolor, uint16_t shadowcolor );
+    static void adjustFontSize( uint16_t *lineHeightBig, uint16_t *lineHeightSmall );
+    static void drawTextShadow( const char* text, int32_t x, int32_t y, uint16_t textcolor, uint16_t shadowcolor, uint16_t shadowdepth=1 );
     static void drawSDUSplashElement( const char* msg, int32_t x, int32_t y, SplashPageElementStyle_t *style );
     //void DisplayUpdateHeadless( const String& label );
     //void SDMenuProgressHeadless( int state, int size );
@@ -54,10 +54,6 @@ namespace SDUpdaterNS
         Serial.println();
       }
     };
-
-
-
-
 
   }
 
@@ -232,6 +228,7 @@ namespace SDUpdaterNS
       } while( msec > int64_t( millis() ) - int64_t( waitdelay ) );
       return -1;
     }
+
 
     static int pushButton( char* labelLoad, char* labelSkip, char* labelSave, unsigned long waitdelay )
     {

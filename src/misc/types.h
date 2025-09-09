@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+//#include <stdint.h>
 #include <functional>
 #include <vector>
 #include <Stream.h>
@@ -52,7 +52,7 @@ namespace SDUpdaterNS
     {
       SDU_TRIGGER_SERIAL,     // headless
       SDU_TRIGGER_PUSHBUTTON, // Push Button (GPIO or user provided)
-      SDU_TRIGGER_TOUCHBUTTON // Touche Button (using LGFX/eSPI touch driver)
+      SDU_TRIGGER_TOUCHBUTTON // Touch Button (using LGFX/eSPI touch driver)
     };
 
     struct triggerMap_t;
@@ -150,8 +150,8 @@ namespace SDUpdaterNS
       const uint16_t bgColor;
       const void* fontInfo; // holds font size + font face
       const uint16_t textDatum;
-      const uint16_t colorStart; // gradient color start
-      const uint16_t colorEnd;   // gradient color end
+      const uint16_t colorStart{0}; // gradient color start
+      const uint16_t colorEnd{0};   // gradient color end
     };
 
     struct ProgressBarStyle_t
@@ -252,7 +252,8 @@ namespace SDUpdaterNS
           pgbar_x  {0}, // progressbar X position
           pgbar_y  {0}, // progressbar Y position
           pgbar_w  {0}, // progressbar width
-          btn_fsize{0}  // touch buttons font size
+          btn_fsize{0}, // touch buttons font size
+          scale{0}      // size multiplier
       ;
       BtnStyle_t *Load{nullptr};
       BtnStyle_t *Skip{nullptr};

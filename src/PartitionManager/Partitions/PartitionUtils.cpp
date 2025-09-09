@@ -2,6 +2,7 @@
 #include "../NVS/NVSUtils.hpp"
 #include "../../ConfigManager/ConfigManager.hpp"
 
+#include "esp_flash.h"
 
 #if !defined SPI_FLASH_SEC_SIZE
   #define SPI_FLASH_SEC_SIZE 4096
@@ -97,6 +98,7 @@ namespace SDUpdaterNS
           if (progressOld != progress) {
             progressOld = progress;
             SDUCfg.onProgress( (uint8_t)progress, 100 );
+            yield();
           }
         }
       }
@@ -141,7 +143,7 @@ namespace SDUpdaterNS
           if (progressOld != progress) {
             progressOld = progress;
             SDUCfg.onProgress( (uint8_t)progress, 100 );
-            vTaskDelay(10);
+            yield();
           }
         }
       }
@@ -175,6 +177,7 @@ namespace SDUpdaterNS
           if (progressOld != progress) {
             progressOld = progress;
             SDUCfg.onProgress( (uint8_t)progress, 100 );
+            yield();
           }
         }
       }
@@ -207,6 +210,7 @@ namespace SDUpdaterNS
           if (progressOld != progress) {
             progressOld = progress;
             SDUCfg.onProgress( (uint8_t)progress, 100 );
+            yield();
           }
         }
       }
@@ -239,6 +243,7 @@ namespace SDUpdaterNS
           if (progressOld != progress) {
             progressOld = progress;
             SDUCfg.onProgress( (uint8_t)progress, 100 );
+            yield();
           }
         }
       }
@@ -265,7 +270,6 @@ namespace SDUpdaterNS
     {
       const uint32_t fw_size = ESP.getFlashChipSize();//0x1000000; // 0x1000000 = 16MB
       //ESP.getFlashChipSize();
-
 
       uint8_t buffer[SPI_FLASH_SEC_SIZE];
 
@@ -295,6 +299,7 @@ namespace SDUpdaterNS
           if (progressOld != progress) {
             progressOld = progress;
             SDUCfg.onProgress( (uint8_t)progress, 100 );
+            yield();
           }
         }
       }
