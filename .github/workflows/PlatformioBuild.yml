@@ -96,7 +96,7 @@ jobs:
           export pio_ver=${{ matrix.platform-version }}
           # append "test" profile to the current platformio.ini
           echo "[env:test]">>platformio.ini
-          echo "extends = env:${{ matrix.pio-env }}, platform_tasmota_2x">>platformio.ini
+          echo "extends = env:${{ matrix.pio-env }}, platform_pioarduino">>platformio.ini
           echo "platform = https://github.com/pioarduino/platform-espressif32/releases/download/stable/platform-espressif32.zip">>platformio.ini
           echo "platform_packages = framework-arduinoespressif32@https://github.com/espressif/arduino-esp32/releases/download/${pio_ver}/esp32-${pio_ver}.zip">>platformio.ini
           echo "">>platformio.ini
