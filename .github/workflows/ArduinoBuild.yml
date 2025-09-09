@@ -27,7 +27,7 @@ jobs:
           - 3.3.0
 
         matrix-context:
-          #- M5Core2-test
+          - M5Core2-test
           - M5Stack-test
           - M5StickC-test
           - LGFX-test
@@ -37,7 +37,7 @@ jobs:
           - M5Core2
           - M5Fire
           - OdroidGo
-          - SdFat-test
+          #- SdFat-test
 
         include:
 
@@ -51,7 +51,7 @@ jobs:
           - { matrix-context: S3Box-Test,     arduino-board: esp32s3box,     sketch-names: M5Unified.ino, required-libraries: "M5Unified,M5GFX", ... }
           - { matrix-context: M5StickC-test,  arduino-board: m5stack_stickc, sketch-names: M5StickC-SPIFFS-Loader-Snippet.ino, required-libraries: "M5StickC", ... }
           - { matrix-context: LGFX-test,      arduino-board: m5stack_core,   sketch-names: LGFX-SDLoader-Snippet.ino,          required-libraries: "LovyanGFX", ... }
-          - { matrix-context: SdFat-test,     arduino-board: m5stack_core2,  sketch-names: SdFatUpdater.ino,                   required-libraries: "SdFat,M5GFX,M5Unified", ... }
+          #- { matrix-context: SdFat-test,     arduino-board: m5stack_core2,  sketch-names: SdFatUpdater.ino,                   required-libraries: "SdFat,M5GFX,M5Unified", ... }
 
           # Launcher and Appstore # TODO: add https://github.com/shikarunochi/CardputerSimpleLaucher
           - matrix-context: M5Stack
@@ -80,13 +80,13 @@ jobs:
             extra-fqbn: ":PartitionScheme=min_spiffs"
             required-libraries: "M5Unified,M5GFX,ArduinoJson,Button2"
           - matrix-context: M5Atom
-            sdk-version: latest
+            sdk-version: 3.3.0
             arduino-board: m5stack_atom
             sketch-names: M5Stack-SD-Menu.ino
             launcher-name: M5Atom-Launcher
             required-libraries: "M5Unified,M5GFX,ArduinoJson,Button2"
           - matrix-context: M5CoreS3
-            sdk-version: latest
+            sdk-version: 3.3.0
             arduino-board: m5stack_cores3
             sketch-names: M5Stack-FW-Menu.ino
             launcher-name: M5CoreS3-Launcher

@@ -16,11 +16,17 @@
   #include "../misc/config.h"
   #include "../misc/types.h"
 
-  #undef __has_include // tell SdFat to define 'File' object needed to convert access mode to flag
+  #define old_include(x) __has_include__(x)
+  // NOTE: this is a code smell, see https://github.com/adafruit/SdFat/blob/daa55e618c88a0e3c72ed3a5c97aecd9322a4fa7/src/SdFat.h#L446
+  #undef __has_include // the only way to tell SdFat to define 'File' object (needed to convert access mode to flag)
+  // #define HAS_INCLUDE_FS_H
+  #define SDFAT_FILE_TYPE 3
+  #include <SdFat.h>
+
   #include <FS.h>
   #include <FSImpl.h>
-  #include <SdFat.h>
-  #define __has_include(STR)  __has_include__(STR) // kudos to @GOB52 for this trick
+
+  #define __has_include(x)  old_include(x) // kudos to @GOB52 for this trick
 
   // cfr https://en.cppreference.com/w/c/io/fopen + guesses
   inline oflag_t _convert_access_mode_to_flag(const char* mode, const bool create = false)
