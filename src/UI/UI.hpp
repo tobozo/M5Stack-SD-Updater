@@ -49,7 +49,7 @@ namespace SDUpdaterNS
       //#define fontInto_t basic_fontInfo_t
       struct fontInfo_t
       {
-        const uint8_t  fontNumber;
+        const uint8_t  font; // font number
         const uint8_t  fontSize;
       };
       fontInfo_t Font0Size1 = {0, 1};
@@ -204,7 +204,7 @@ namespace SDUpdaterNS
 
 
     #else // using TFT_eSPI based core (M5Core2.h, M5Stack.h, M5StickC.h).
-      #define setFontInfo(x, i) {auto info=(fontInfo_t*)i;x->setTextFont(info->fontNumber);x->setTextSize(info->fontSize);}
+      #define setFontInfo(x, i) {auto info=(fontInfo_t*)i;x->setTextFont(info->font);x->setTextSize(info->fontSize);}
       #define getTextFgColor(x) x->textcolor
       #define getTextBgColor(x) x->textbgcolor
       #define getTextDatum(x)   x->textdatum
